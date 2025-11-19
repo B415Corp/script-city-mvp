@@ -1,0 +1,2 @@
+export { SidebarPanel } from './SidebarPanel'
+

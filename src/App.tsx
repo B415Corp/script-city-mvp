@@ -1,41 +1,81 @@
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { useFrame } from '@react-three/fiber'
-import { useRef } from 'react'
-import * as THREE from 'three'
+import { useState } from 'react'
+import { Menu } from './components/Menu'
+import { SavesScreen } from './components/SavesScreen'
+import { SettingsScreen } from './components/SettingsScreen'
+import { ModsScreen } from './components/ModsScreen'
+import { GameWorld } from './components/GameWorld'
+import { Screen } from './types/screen'
 
-function RotatingBox() {
-  const meshRef = useRef<THREE.Mesh>(null)
 
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x += delta
-      meshRef.current.rotation.y += delta * 0.5
-    }
-  })
 
-  return (
-    <mesh ref={meshRef} position={[0, 0, 0]}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="orange" />
-    </mesh>
-  )
-}
 
 function App() {
+
+const screens = [
+  {
+    name: Screen.MENU,
+    component: Menu,
+  },
+  {
+    name: Screen.NEW_WORLD,
+    component: GameWorld,
+  },
+  {
+    name: Screen.SAVES,
+    component: SavesScreen,
+  },
+  {
+    name: Screen.SETTINGS,
+    component: SettingsScreen,
+  },
+  {
+    name: Screen.MODS,
+    component: ModsScreen,
+  },
+  
+]
+
+
+  const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.MENU)
+
+  const handleNewWorld = () => {
+    setCurrentScreen(Screen.NEW_WORLD)
+  }
+
+  const handleSaves = () => {
+    setCurrentScreen(Screen.SAVES)
+  }
+
+  const handleSettings = () => {
+    setCurrentScreen(Screen.SETTINGS)
+  }
+
+  const handleMods = () => {
+    setCurrentScreen(Screen.MODS)
+  }
+
+  const handleExit = () => {
+    if (window.confirm('Вы уверены, что хотите выйти?')) {
+      window.close()
+    }
+  }
+
+  const handleBack = () => {
+    setCurrentScreen(Screen.MENU)
+  }
+
+  const ScreenComponent = screens.find(screen => screen.name === currentScreen)?.component as React.ComponentType<{ onBack: () => void, onNewWorld: () => void, onSaves: () => void, onSettings: () => void, onMods: () => void, onExit: () => void }>
+
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <Canvas camera={{ position: [3, 3, 3], fov: 75 }}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
-        <RotatingBox />
-        <OrbitControls />
-        <axesHelper args={[2]} />
-        <gridHelper args={[10, 10]} />
-      </Canvas>
-    </div>
-  )
+    <ScreenComponent
+      onBack={handleBack}
+      onNewWorld={handleNewWorld}
+      onSaves={handleSaves}
+      onSettings={handleSettings}
+      onMods={handleMods}
+      onExit={handleExit}
+    />
+  );
 }
 
-export default App
+export default App;
