@@ -22,10 +22,16 @@ export class GameCore {
 
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
     this.eventBus = new EventBus();
-    this.tickManager = new TickManager();
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
-    this.commandProcessor = new CommandProcessor();
+    this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
+
+    this.tickManager = new TickManager({
+      tickRate: config?.tickRate ?? 10,
+      maxCatchUpTicks: config?.maxCatchUpTicks ?? 5,
+      eventBus: this.eventBus,
+      commandProcessor: this.commandProcessor,
+    });
 
     // 2. Регистрация базовых систем (если есть)
     // TODO: регистрация базовых систем
@@ -36,7 +42,7 @@ export class GameCore {
 
   public async start(): Promise<void> {
     // 1. Инициализация всех зарегистрированных модулей
-    await this.moduleManager.initializeModules();
+    await this.moduleManager.initializeModules(this);
 
     // 2. Запуск TickManager (начало цикла тиков)
     this.tickManager.start();
@@ -68,7 +74,10 @@ export class GameCore {
     // 3. Очистка всех подписок на события
     this.eventBus.clear();
 
-    // 4. Освобождение ресурсов
+    // 4. Очистка всех модулей
+    this.moduleManager.clear();
+
+    // 5. Освобождение ресурсов
     console.warn('👾 GameCore destroyed');
   }
 
