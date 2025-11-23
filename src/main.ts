@@ -2,7 +2,7 @@
 // Game initialization will happen here
 
 import Phaser from 'phaser';
-import { MainScene } from './scenes/MainScene';
+import { MainScene } from './scenes/main_scene';
 
 /**
  * Конфигурация Phaser игры
