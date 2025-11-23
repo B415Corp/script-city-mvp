@@ -1,4 +1,3 @@
-import { MovingBox } from '@/entities/Box';
 import { GameCore } from '@/core/game_core/game_core';
 import Phaser from 'phaser';
 
@@ -8,16 +7,12 @@ import Phaser from 'phaser';
  */
 export class GameScene extends Phaser.Scene {
   private core!: GameCore;
-  movingBox!: MovingBox;
 
   constructor() {
     super({ key: 'GameScene' });
   }
 
   async create(): Promise<void> {
-    const { width, height } = this.scale;
-    this.movingBox = new MovingBox(this, width / 2, height / 2, 200, 150, 'ахуел?');
-
     // Инициализация игрового ядра
     this.core = new GameCore();
     await this.core.initialize({
@@ -25,6 +20,8 @@ export class GameScene extends Phaser.Scene {
       maxCatchUpTicks: 5,
       enableDebug: true,
     });
+
+    // Запуск ядра
     await this.core.start();
 
     // Регистрация обработчиков после инициализации core
@@ -40,9 +37,6 @@ export class GameScene extends Phaser.Scene {
     if (this.core) {
       this.core.getTickManager().updateFromPhaser(delta);
     }
-
-    // Обновление визуальных объектов (рендеринг)
-    this.movingBox.update(delta);
   }
 
   // Очистка при остановке сцены

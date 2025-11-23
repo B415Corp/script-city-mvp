@@ -31,6 +31,7 @@ export class GameCore {
       maxCatchUpTicks: config?.maxCatchUpTicks ?? 5,
       eventBus: this.eventBus,
       commandProcessor: this.commandProcessor,
+      ecsManager: this.ecsManager,
     });
 
     // 2. Регистрация базовых систем (если есть)

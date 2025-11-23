@@ -29,6 +29,7 @@ export interface IModule {
    *
    * @param core - экземпляр GameCore для доступа к менеджерам
    */
+  // eslint-disable-next-line -- параметр core является частью сигнатуры типа функции
   initialize(core: GameCore): Promise<void>;
 
   /**
@@ -43,6 +44,7 @@ export interface IModule {
    *
    * @param ecs - экземпляр ECSManager для регистрации систем
    */
+  // eslint-disable-next-line -- параметр ecs является частью сигнатуры типа функции
   registerSystems?(ecs: ECSManager): void;
 }
 
@@ -54,4 +56,3 @@ export interface ModuleEntry {
   dependencies: string[];
   initialized: boolean;
 }
-
