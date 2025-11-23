@@ -172,3 +172,4 @@ export class EconomyModule implements IModule {
 - [Модули симуляции](./modules.md) — описание модульной архитектуры
 - [Как устроено игровое ядро](./core-example.md) — примеры взаимодействия
 - [Событийная модель](./events.md) — работа с EventBus
+- [Ядро Script City простыми словами](../guides/core-for-developers.md) — популярное объяснение для разработчиков
