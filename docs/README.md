@@ -10,6 +10,9 @@
 
 Техническая документация для разработчиков:
 
+- **[Туториалы](./tutorials/)** 🆕
+  - [Как работает ядро на примере модулей](./tutorials/how-core-works-by-modules-example.md) — пошаговый разбор работы ядра через DebugModule, BottomBarModule и SpeedIndicatorModule
+
 - **[Архитектура и расширяемость](./development/architecture/index.md)**
   - Игровое ядро и тики
   - Модульная симуляция (ECS)
