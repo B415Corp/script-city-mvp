@@ -1,4 +1,5 @@
 import { GameCore } from '@/core/game_core/game_core';
+import { DebugModule } from '@/modules/debug/debug_module';
 import { BottomBar } from '@/ui/bottom_bar/bottom_bar';
 import { SpeedIndicator } from '@/ui/speed_indicator/speed_indicator';
 import Phaser from 'phaser';
@@ -29,7 +30,18 @@ export class GameScene extends Phaser.Scene {
       maxCatchUpTicks: 5,
       enableDebug: true,
     });
+
+    const moduleManager = this.core.getModuleManager();
+
+    // ⬇️ РЕГИСТРАЦИЯ МОДУЛЕЙ
+    // Модуль отладки — один из модулей симуляции.
+    moduleManager.registerModule(new DebugModule());
+
+    // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();
+
+    // Прикрепление модулей к сцене (UI, хоткеи и т.п.)
+    moduleManager.attachModulesToScene(this);
 
     // Создание нижней панели управления
     this.bottomBar = new BottomBar(this, this.core);

@@ -1,5 +1,6 @@
 import { GameCore } from '../game_core/game_core';
 import { IModule, ModuleEntry } from './types';
+import Phaser from 'phaser';
 
 /**
  * Менеджер модулей симуляции.
@@ -137,6 +138,28 @@ export class ModuleManager {
    */
   getAllModules(): IModule[] {
     return Array.from(this.modules.values()).map((entry) => entry.module);
+  }
+
+  /**
+   * Прикрепление модулей к Phaser сцене.
+   *
+   * Вызывает метод `attachToScene(scene)` для всех модулей, которые его реализуют.
+   * Это позволяет модулям создавать UI, подписываться на события сцены и т.д.
+   *
+   * @param scene - Phaser сцена для прикрепления модулей
+   */
+  attachModulesToScene(scene: Phaser.Scene): void {
+    for (const entry of this.modules.values()) {
+      const module = entry.module as unknown as { attachToScene?: (scene: Phaser.Scene) => void };
+      if (typeof module.attachToScene === 'function') {
+        try {
+          module.attachToScene(scene);
+          console.warn(`📦 ModuleManager: attached module "${entry.module.id}" to scene`);
+        } catch (error) {
+          console.error(`📦 ModuleManager: failed to attach module "${entry.module.id}" to scene`, error);
+        }
+      }
+    }
   }
 
   /**
