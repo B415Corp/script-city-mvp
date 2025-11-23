@@ -84,16 +84,26 @@ export class TickManager {
     }
 
     const oldSpeed = this.speedMultiplier;
+    const wasPaused = this.isPaused;
     this.speedMultiplier = Math.max(0, multiplier);
 
     // Если скорость = 0, автоматически ставим на паузу
-    if (this.speedMultiplier === 0 && !this.isPaused) {
-      this.pause();
-    } else if (this.speedMultiplier > 0 && this.isPaused) {
-      this.resume();
+    if (this.speedMultiplier === 0) {
+      if (!this.isPaused) {
+        this.pause();
+      }
+    } else {
+      // Если скорость > 0, снимаем с паузы если нужно
+      if (this.isPaused) {
+        this.resume();
+      }
     }
 
-    if (oldSpeed !== this.speedMultiplier) {
+    // Отправляем событие если изменилась скорость или состояние паузы
+    const speedChanged = oldSpeed !== this.speedMultiplier;
+    const pauseStateChanged = wasPaused !== this.isPaused;
+
+    if (speedChanged || pauseStateChanged) {
       this.config.eventBus.emit('SpeedChanged', {
         oldSpeed,
         newSpeed: this.speedMultiplier,

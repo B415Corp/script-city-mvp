@@ -1,4 +1,6 @@
 import { GameCore } from '@/core/game_core/game_core';
+import { BottomBar } from '@/ui/bottom_bar/bottom_bar';
+import { SpeedIndicator } from '@/ui/speed_indicator/speed_indicator';
 import Phaser from 'phaser';
 
 /**
@@ -7,12 +9,19 @@ import Phaser from 'phaser';
  */
 export class GameScene extends Phaser.Scene {
   private core!: GameCore;
+  private bottomBar!: BottomBar;
+  private speedIndicator!: SpeedIndicator;
 
   constructor() {
     super({ key: 'GameScene' });
   }
 
   async create(): Promise<void> {
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.core.stop();
+      this.scene.start('MenuScene');
+    });
+
     // Инициализация игрового ядра
     this.core = new GameCore();
     await this.core.initialize({
@@ -20,27 +29,36 @@ export class GameScene extends Phaser.Scene {
       maxCatchUpTicks: 5,
       enableDebug: true,
     });
-
-    // Запуск ядра
     await this.core.start();
 
-    // Регистрация обработчиков после инициализации core
-    this.input.keyboard?.on('keydown-ESC', () => {
-      this.core.stop();
-      this.scene.start('MenuScene');
-    });
+    // Создание нижней панели управления
+    this.bottomBar = new BottomBar(this, this.core);
+    this.bottomBar.create();
+
+    // Создание индикатора скорости (в центре экрана)
+    const { width, height } = this.scale;
+    this.speedIndicator = new SpeedIndicator(this, this.core, width / 2, height / 2);
+    this.speedIndicator.create();
   }
 
   update(_: number, delta: number): void {
     // Делегируем шаг симуляции ядру (через TickManager)
-    // Симуляция обновляется до рендеринга
-    if (this.core) {
-      this.core.getTickManager().updateFromPhaser(delta);
+    this.core.getTickManager().updateFromPhaser(delta);
+
+    // Обновляем индикатор скорости
+    if (this.speedIndicator) {
+      this.speedIndicator.update(delta);
     }
   }
 
   // Очистка при остановке сцены
   shutdown(): void {
+    if (this.speedIndicator) {
+      this.speedIndicator.destroy();
+    }
+    if (this.bottomBar) {
+      this.bottomBar.destroy();
+    }
     if (this.core) {
       this.core.stop();
       // Можно также вызвать destroy() если сцена больше не нужна

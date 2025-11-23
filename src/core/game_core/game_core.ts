@@ -37,7 +37,10 @@ export class GameCore {
     // 2. Регистрация базовых систем (если есть)
     // TODO: регистрация базовых систем
 
-    // 3. Подготовка к работе (но без запуска цикла тиков)
+    // 3. Подписка на события команд
+    this.subscribeToCommandEvents();
+
+    // 4. Подготовка к работе (но без запуска цикла тиков)
     console.warn('👾 GameCore initialized', this.config);
   }
 
@@ -114,5 +117,23 @@ export class GameCore {
 
   public isSpeedChangeLocked(): boolean {
     return this.tickManager.isSpeedChangeLocked();
+  }
+
+  /**
+   * Подписка на события команд для обработки запросов на изменение скорости.
+   * Изменение скорости обрабатывается немедленно, минуя очередь команд,
+   * так как на паузе тики не выполняются и команды из очереди не обрабатываются.
+   */
+  private subscribeToCommandEvents(): void {
+    // Обработка запроса на изменение скорости симуляции (немедленно)
+    this.eventBus.on<{ speedLevel: number }>('SetSimulationSpeedRequested', (payload) => {
+      if (payload) {
+        const success = this.tickManager.setSpeed(payload.speedLevel);
+        console.warn('👾 GameCore: speed change request processed', {
+          requestedSpeed: payload.speedLevel,
+          success,
+        });
+      }
+    });
   }
 }

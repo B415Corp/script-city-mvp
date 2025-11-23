@@ -51,6 +51,11 @@ export class BottomBar {
     // Подписка на события изменения скорости
     this.subscribeToEvents();
 
+    // Синхронизация начального состояния с TickManager
+    const tickManager = this.core.getTickManager();
+    this.currentSpeed = tickManager.getSpeed();
+    this.isPaused = !tickManager.isActive();
+
     // Установка начального состояния
     this.updateSpeedDisplay();
   }
@@ -147,11 +152,21 @@ export class BottomBar {
   }
 
   private onPauseClick(): void {
-    if (this.isPaused) {
-      // Возобновление
-      this.sendSpeedCommand(1.0);
+    // Проверяем состояние напрямую из TickManager
+    const tickManager = this.core.getTickManager();
+    const isCurrentlyPaused = !tickManager.isActive();
+    const currentSpeed = tickManager.getSpeed();
+
+    if (isCurrentlyPaused) {
+      // Возобновление - устанавливаем скорость 1x (или предыдущую скорость, если она была > 0)
+      const resumeSpeed = currentSpeed > 0 ? currentSpeed : 1.0;
+      this.sendSpeedCommand(resumeSpeed);
     } else {
-      // Пауза
+      // Пауза - сохраняем текущую скорость и устанавливаем 0
+      // Сохраняем текущую скорость для возобновления
+      if (currentSpeed > 0) {
+        this.currentSpeed = currentSpeed;
+      }
       this.sendSpeedCommand(0.0);
     }
   }
@@ -161,25 +176,21 @@ export class BottomBar {
   }
 
   private sendSpeedCommand(speed: number): void {
-    // TODO: отправляем команду через CommandProcessor
-    console.log('sendSpeedCommand', speed);
-
-    // // Отправляем команду через CommandProcessor
-    // this.core.getCommandProcessor().enqueueCommand({
-    //   type: 'SetSimulationSpeed',
-    //   timestamp: Date.now(),
-    //   speedLevel: speed,
-    // });
+    // Отправляем событие напрямую, минуя очередь команд
+    // Это необходимо, т.к. на паузе тики не выполняются и команды из очереди не обрабатываются
+    this.core.getEventBus().emit('SetSimulationSpeedRequested', {
+      speedLevel: speed,
+    });
   }
 
   private subscribeToEvents(): void {
     const eventBus = this.core.getEventBus();
 
     // Подписка на изменение скорости
-    eventBus.on<{ speed: number }>('SpeedChanged', (payload) => {
+    eventBus.on<{ oldSpeed: number; newSpeed: number }>('SpeedChanged', (payload) => {
       if (payload) {
-        this.currentSpeed = payload.speed;
-        this.isPaused = payload.speed === 0.0;
+        this.currentSpeed = payload.newSpeed;
+        this.isPaused = payload.newSpeed === 0.0;
         this.updateSpeedDisplay();
       }
     });
