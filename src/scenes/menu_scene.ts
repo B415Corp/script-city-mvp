@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createMainMenuButton } from '../ui/main_menu_buttons/main_menu_button';
 
 /**
  * Сцена главного меню
@@ -22,25 +23,26 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Кнопка "Начать игру"
-    const startButton = this.add
-      .text(width / 2, height / 2, 'Начать игру', {
-        fontSize: '32px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        backgroundColor: '#34495e',
-        padding: { x: 20, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => {
-        startButton.setStyle({ backgroundColor: '#2c3e50' });
-      })
-      .on('pointerout', () => {
-        startButton.setStyle({ backgroundColor: '#34495e' });
-      })
-      .on('pointerdown', () => {
+    createMainMenuButton({
+      scene: this,
+      x: width / 2,
+      y: height / 2,
+      text: 'Начать игру',
+      onClick: () => {
         // Переход в игровую сцену
         this.scene.start('GameScene');
-      });
+      },
+    });
+    // Кнопка "Выход"
+    createMainMenuButton({
+      scene: this,
+      x: width / 2,
+      y: height / 2,
+      text: 'Выход',
+      onClick: () => {
+        // Переход в игровую сцену
+        this.scene.stop();
+      },
+    });
   }
 }
