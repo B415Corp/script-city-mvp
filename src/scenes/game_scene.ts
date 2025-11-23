@@ -18,11 +18,6 @@ export class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.movingBox = new MovingBox(this, width / 2, height / 2, 200, 150, 'ахуел?');
 
-    this.input.keyboard?.on('keydown-ESC', () => {
-      this.core.stop();
-      this.scene.start('MenuScene');
-    });
-
     // Инициализация игрового ядра
     this.core = new GameCore();
     await this.core.initialize({
@@ -31,13 +26,23 @@ export class GameScene extends Phaser.Scene {
       enableDebug: true,
     });
     await this.core.start();
+
+    // Регистрация обработчиков после инициализации core
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.core.stop();
+      this.scene.start('MenuScene');
+    });
   }
 
   update(_: number, delta: number): void {
-    this.movingBox.update(delta);
-
     // Делегируем шаг симуляции ядру (через TickManager)
-    // TODO: this.core.getTickManager().updateFromPhaser(delta);
+    // Симуляция обновляется до рендеринга
+    if (this.core) {
+      this.core.getTickManager().updateFromPhaser(delta);
+    }
+
+    // Обновление визуальных объектов (рендеринг)
+    this.movingBox.update(delta);
   }
 
   // Очистка при остановке сцены

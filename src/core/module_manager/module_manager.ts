@@ -23,7 +23,7 @@ export class ModuleManager {
   private modules: Map<string, ModuleEntry> = new Map();
 
   constructor() {
-    console.warn('ModuleManager initialized');
+    console.warn('📦 ModuleManager initialized');
   }
 
   /**
@@ -47,7 +47,7 @@ export class ModuleManager {
       initialized: false,
     });
 
-    console.warn('ModuleManager registered module', module.id, {
+    console.warn('📦 ModuleManager registered module', module.id, {
       dependencies: moduleDependencies,
     });
   }
@@ -63,7 +63,7 @@ export class ModuleManager {
    */
   async initializeModules(core: GameCore): Promise<void> {
     if (this.modules.size === 0) {
-      console.warn('ModuleManager: no modules to initialize');
+      console.warn('📦 ModuleManager: no modules to initialize');
       return;
     }
 
@@ -73,7 +73,7 @@ export class ModuleManager {
     // Топологическая сортировка для определения порядка инициализации
     const initOrder = this.topologicalSort();
 
-    console.warn('ModuleManager: initializing modules in order', initOrder);
+    console.warn('📦 ModuleManager: initializing modules in order', initOrder);
 
     // Инициализация модулей в правильном порядке
     for (const moduleId of initOrder) {
@@ -83,30 +83,30 @@ export class ModuleManager {
       }
 
       if (entry.initialized) {
-        console.warn(`ModuleManager: module "${moduleId}" already initialized, skipping`);
+        console.warn(`📦 ModuleManager: module "${moduleId}" already initialized, skipping`);
         continue;
       }
 
       try {
-        console.warn(`ModuleManager: initializing module "${moduleId}"`);
+        console.warn(`📦 ModuleManager: initializing module "${moduleId}"`);
         await entry.module.initialize(core);
 
         // Регистрация систем модуля, если метод определен
         if (entry.module.registerSystems) {
           const ecs = core.getECSManager();
           entry.module.registerSystems(ecs);
-          console.warn(`ModuleManager: registered systems for module "${moduleId}"`);
+          console.warn(`📦 ModuleManager: registered systems for module "${moduleId}"`);
         }
 
         entry.initialized = true;
-        console.warn(`ModuleManager: module "${moduleId}" initialized successfully`);
+        console.warn(`📦 ModuleManager: module "${moduleId}" initialized successfully`);
       } catch (error) {
-        console.error(`ModuleManager: failed to initialize module "${moduleId}"`, error);
+        console.error(`📦 ModuleManager: failed to initialize module "${moduleId}"`, error);
         throw error;
       }
     }
 
-    console.warn('ModuleManager: all modules initialized');
+    console.warn('📦 ModuleManager: all modules initialized');
   }
 
   /**
@@ -145,22 +145,22 @@ export class ModuleManager {
    * Вызывает destroy() для всех инициализированных модулей.
    */
   clear(): void {
-    console.warn('ModuleManager: clearing all modules');
+    console.warn('📦 ModuleManager: clearing all modules');
 
     // Вызываем destroy() для всех инициализированных модулей
     for (const entry of this.modules.values()) {
       if (entry.initialized) {
         try {
           entry.module.destroy();
-          console.warn(`ModuleManager: destroyed module "${entry.module.id}"`);
+          console.warn(`📦 ModuleManager: destroyed module "${entry.module.id}"`);
         } catch (error) {
-          console.error(`ModuleManager: error destroying module "${entry.module.id}"`, error);
+          console.error(`📦 ModuleManager: error destroying module "${entry.module.id}"`, error);
         }
       }
     }
 
     this.modules.clear();
-    console.warn('ModuleManager cleared');
+    console.warn('📦 ModuleManager cleared');
   }
 
   /**
@@ -172,7 +172,7 @@ export class ModuleManager {
     for (const [moduleId, entry] of this.modules.entries()) {
       for (const depId of entry.dependencies) {
         if (!this.modules.has(depId)) {
-          throw new Error(`Module "${moduleId}" depends on missing module "${depId}"`);
+          throw new Error(`📦 Module "${moduleId}" depends on missing module "${depId}"`);
         }
       }
     }
@@ -242,7 +242,7 @@ export class ModuleManager {
     // Проверка на циклические зависимости
     if (result.length !== this.modules.size) {
       const missing = Array.from(this.modules.keys()).filter((id) => !result.includes(id));
-      throw new Error(`Circular dependency detected. Modules not sorted: ${missing.join(', ')}`);
+      throw new Error(`📦 Circular dependency detected. Modules not sorted: ${missing.join(', ')}`);
     }
 
     return result;
