@@ -2,7 +2,8 @@
 // Game initialization will happen here
 
 import Phaser from 'phaser';
-import { MainScene } from './scenes/main_scene';
+import { MenuScene } from './scenes/menu_scene';
+import { GameScene } from './scenes/game_scene';
 
 /**
  * Конфигурация Phaser игры
@@ -14,7 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: window.innerHeight,
   parent: 'game-root',
   backgroundColor: '#2c3e50',
-  scene: [MainScene],
+  scene: [MenuScene, GameScene],
   physics: {
     default: 'arcade',
     arcade: {
