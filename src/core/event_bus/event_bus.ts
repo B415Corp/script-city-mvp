@@ -232,4 +232,28 @@ export class EventBus {
       this.handlers.clear();
     }
   }
+
+  /**
+   * Получение списка всех активных подписок (для отладки).
+   *
+   * @returns объект с типами событий и количеством подписок
+   */
+  getSubscriptions(): Record<string, { count: number; once: number }> {
+    const result: Record<string, { count: number; once: number }> = {};
+
+    for (const [eventType, handlers] of this.handlers.entries()) {
+      let onceCount = 0;
+      for (const handlerInfo of handlers) {
+        if (handlerInfo.once) {
+          onceCount++;
+        }
+      }
+      result[eventType] = {
+        count: handlers.size,
+        once: onceCount,
+      };
+    }
+
+    return result;
+  }
 }
