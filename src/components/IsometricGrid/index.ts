@@ -1,2 +1,0 @@
-export { IsometricGrid } from './IsometricGrid'
-

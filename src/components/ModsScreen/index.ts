@@ -1,2 +1,0 @@
-export { ModsScreen } from './ModsScreen'
-

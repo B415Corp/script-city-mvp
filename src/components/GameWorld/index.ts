@@ -1,2 +1,0 @@
-export { GameWorld } from './GameWorld'
-
