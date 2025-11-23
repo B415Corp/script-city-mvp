@@ -1,5 +1,7 @@
 # Режимы времени
 
+**Теги**: `arch:simulation`, `gameplay:time-control`, `arch:core`
+
 ## 1. Пауза
 
 - Tick rate = 0 (тики не выполняются).

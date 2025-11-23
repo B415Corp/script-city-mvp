@@ -1,5 +1,7 @@
 # Игровое ядро (Core)
 
+**Теги**: `arch:core`, `arch:simulation`, `arch:ecs`, `arch:events`, `arch:module`, `arch:commands`
+
 Ядро — это минимальный, но жёстко определённый центр игры.
 
 ## Основные обязанности
@@ -28,18 +30,39 @@
 
 ## Структура Core
 
+**Теги**: `arch:core`, `arch:simulation`, `arch:ecs`, `arch:events`, `arch:module`, `arch:commands`
+
 Core состоит из главного класса `GameCore` и нескольких специализированных менеджеров:
 
 - **`GameCore`** — главная точка входа, координирует все компоненты
+
+**Теги**: `arch:core`
+
 - **`TickManager`** — управление временем и тиками
+
+**Теги**: `arch:simulation`, `arch:core`, `gameplay:time-control`
+
 - **`ECSManager`** — управление ECS (entities, components, systems)
+
+**Теги**: `arch:ecs`, `arch:core`
+
 - **`EventBus`** — событийная шина для межмодульной коммуникации
+
+**Теги**: `arch:events`, `arch:core`
+
 - **`ModuleManager`** — регистрация и управление модулями
+
+**Теги**: `arch:module`, `arch:core`
+
 - **`CommandProcessor`** — обработка команд от UI
+
+**Теги**: `arch:commands`, `arch:core`
 
 Все эти компоненты инициализируются и управляются через `GameCore`, который предоставляет единый публичный API для взаимодействия с игровым ядром.
 
 ## TickManager
+
+**Теги**: `arch:simulation`, `arch:core`, `gameplay:time-control`
 
 Управляет игровым временем и циклом тиков симуляции.
 
@@ -91,6 +114,8 @@ Core состоит из главного класса `GameCore` и неско�
 
 ## ECSManager
 
+**Теги**: `arch:ecs`, `arch:core`, `tech:ecs`
+
 Управляет Entity Component System (ECS) архитектурой.
 
 ### Принципы работы
@@ -140,6 +165,8 @@ Core состоит из главного класса `GameCore` и неско�
 
 ## EventBus
 
+**Теги**: `arch:events`, `arch:core`
+
 Событийная шина для межмодульной коммуникации без жёстких связей.
 
 ### Принципы работы
@@ -168,6 +195,8 @@ Core состоит из главного класса `GameCore` и неско�
 
 ## ModuleManager
 
+**Теги**: `arch:module`, `arch:core`
+
 Управляет регистрацией и инициализацией модулей симуляции.
 
 ### Принципы работы
@@ -192,6 +221,8 @@ Core состоит из главного класса `GameCore` и неско�
 См. также: [Модули симуляции](./modules.md)
 
 ## CommandProcessor
+
+**Теги**: `arch:commands`, `arch:core`, `arch:ui`
 
 Обрабатывает команды от UI и применяет их к игровому состоянию.
 

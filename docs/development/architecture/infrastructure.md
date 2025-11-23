@@ -1,8 +1,12 @@
 # Инфраструктурные сервисы поверх Phaser
 
+**Теги**: `arch:infrastructure`, `map:isometric`, `map:chunks`, `arch:renderer`
+
 Эти сервисы обеспечивают основу для работы с картой и рендером.
 
 ## `IsometricMath`
+
+**Теги**: `arch:infrastructure`, `map:isometric`
 
 Назначение:
 
@@ -16,6 +20,8 @@
 
 ## `ChunkManager`
 
+**Теги**: `arch:infrastructure`, `map:chunks`, `tech:performance`
+
 Назначение:
 
 - деление карты на **чанки** (например, 64×64 тайлов);
@@ -26,6 +32,8 @@
 
 ## `TileRenderer`
 
+**Теги**: `arch:infrastructure`, `arch:renderer`
+
 Назначение:
 
 - создание спрайтов для тайлов и объектов;
@@ -33,6 +41,8 @@
 - удаление спрайтов, когда чанки выгружаются или объекты исчезают.
 
 ## `GameWorld`
+
+**Теги**: `arch:infrastructure`, `arch:core`, `gameplay:saves`
 
 Назначение:
 

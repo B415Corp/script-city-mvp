@@ -1,5 +1,7 @@
 # Инструкция по работе с Phaser в проекте Script City MVP
 
+**Теги**: `tech:phaser`, `arch:renderer`, `arch:core`, `arch:simulation`
+
 Этот документ описывает, **как использовать Phaser в рамках архитектуры проекта**, а не сам Phaser как игровой движок. За подробностями по общим концепциям движка см. официальную документацию Phaser (`https://docs.phaser.io`) и примеры (`https://phaser.io/examples`).
 
 См. также:  
@@ -10,6 +12,8 @@
 ---
 
 ## Роль Phaser в архитектуре проекта
+
+**Теги**: `tech:phaser`, `arch:renderer`, `arch:core`, `arch:simulation`
 
 В текущем MVP **Phaser — это слой визуализации и игровой цикл**, к которому "прикручено" игровое ядро:
 

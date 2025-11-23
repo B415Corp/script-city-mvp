@@ -1,5 +1,7 @@
 # Жизненный цикл тика
 
+**Теги**: `arch:simulation`, `arch:core`, `arch:commands`, `arch:events`, `arch:ecs`, `arch:renderer`
+
 Для однопользовательского режима (MVP) тик выглядит так:
 
 ## 1. Сбор ввода

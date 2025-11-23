@@ -1,24 +1,43 @@
 # Модули симуляции
 
+**Теги**: `arch:module`, `arch:core`
+
 Каждая крупная подсистема игры оформляется как **модуль**.
 
 ## Примеры модулей
 
 - **Модуль "Здания"**:
+
+**Теги**: `arch:module`, `building:construction`, `building:residential`, `building:commercial`, `building:industrial`
   - хранит типы зданий, уровни, состояния строительства;
   - отвечает за постройку/снос и события строительства.
 - **Модуль "Экономика"**:
+
+**Теги**: `arch:module`, `economy:budget`, `economy:taxes`, `building:construction`, `population:demographics`
+
   - бюджет города, налоги, расходы;
   - агрегирование доходов от зданий и населения.
 - **Модуль "Население"**:
+
+**Теги**: `arch:module`, `population:demographics`, `population:social-groups`, `population:migration`, `population:wellbeing`
+
   - группы населения, спрос на жильё и работу;
   - миграция, благополучие.
 - **Модуль "Транспорт"**:
+
+**Теги**: `arch:module`, `transport:road-network`, `transport:traffic`, `transport:public`, `transport:routing`
+
   - дорожная сеть, пробки, общественный транспорт;
   - маршрутизация.
 - **Модуль "Инфраструктура"**:
+
+**Теги**: `arch:module`, `building:utility`
+
   - электричество, вода, отходы, связь.
 - **Модуль "Политики и законы"**:
+
+**Теги**: `arch:module`, `policy:economic`, `policy:urban-planning`, `policy:transport`, `policy:environmental`, `policy:social`
+
   - влияющие на другие модули параметры (налоги, ограничения, бонусы).
 
 ## Формализация модуля

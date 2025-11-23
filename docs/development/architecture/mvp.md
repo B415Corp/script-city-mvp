@@ -1,6 +1,10 @@
 # Минимальное ядро (MVP) и модульные расширения
 
+**Теги**: `arch:core`, `status:mvp`, `arch:ecs`, `map:chunks`
+
 ## Минимальное ядро (MVP)
+
+**Теги**: `arch:core`, `arch:simulation`, `arch:ecs`, `map:chunks`, `status:mvp`
 
 Состав:
 
@@ -19,14 +23,23 @@
 
 ## Минимальные модули для старта
 
+**Теги**: `arch:module`, `building:construction`, `economy:budget`, `map:chunks`, `status:mvp`
+
 1. **Модуль "Здания"**:
+
+**Теги**: `arch:module`, `building:construction`, `building:residential`, `building:commercial`, `building:industrial`
    - базовые типы зданий (жилые/коммерческие/промышленные);
    - логика постройки и сноса;
    - события: начало/завершение строительства.
 2. **Модуль "Экономика (упрощённая)"**:
+
+**Теги**: `arch:module`, `economy:budget`, `economy:taxes`, `building:construction`
+
    - доходы/расходы города;
    - привязка к зданиям (налоги, обслуживание).
 3. **Модуль "Городская карта"**:
+
+**Теги**: `arch:module`, `map:chunks`, `arch:infrastructure`
    - управление чанками;
    - связь с `ChunkManager` и `TileRenderer`;
    - загрузка/выгрузка данных по мере движения камеры.

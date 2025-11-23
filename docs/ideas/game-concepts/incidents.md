@@ -2,6 +2,8 @@
 
 ## События и риски
 
+**Теги**: `event:fire`, `event:crime`, `event:disaster-natural`, `event:disaster-technological`, `event:epidemic`, `event:crisis-economic`, `transport:accidents`
+
 - Аварии на дорогах, дорожные работы.
 - Пожары, наводнения, отключения электричества/воды (пост-MVP).
 - Эпидемии/з заболеваемость (опционально, этично и абстрактно).
@@ -14,6 +16,8 @@
 В городе могут происходить различные **происшествия**, требующие реакции игрока:
 
 ### 1. Пожары
+
+**Теги**: `event:fire`, `building:safety`, `event:response`
 
 **Типы:**
 - Пожары в зданиях (жилые, коммерческие, промышленные)
@@ -41,6 +45,8 @@
 - Восстановление после пожара
 
 ### 2. Преступность
+
+**Теги**: `event:crime`, `building:safety`, `population:wellbeing`, `event:response`
 
 **Типы:**
 - Мелкие преступления (кражи, вандализм)
@@ -71,6 +77,8 @@
 
 ### 3. Природные катастрофы
 
+**Теги**: `event:disaster-natural`, `map:terrain`, `event:response`, `event:prevention`
+
 **Типы:**
 - Наводнения (реки, ливни)
 - Землетрясения
@@ -98,6 +106,8 @@
 
 ### 4. Техногенные аварии
 
+**Теги**: `event:disaster-technological`, `building:utility`, `ecology:pollution-air`, `event:response`
+
 **Типы:**
 - Аварии на электростанциях
 - Утечки химических веществ
@@ -123,6 +133,8 @@
 - Компенсации пострадавшим
 
 ### 5. Эпидемии и пандемии
+
+**Теги**: `event:epidemic`, `building:healthcare`, `ecology:pollution-water`, `population:migration`, `event:response`
 
 **Типы:**
 - Вспышки заболеваний
@@ -150,6 +162,8 @@
 
 ### 6. Экономические кризисы
 
+**Теги**: `event:crisis-economic`, `economy:budget`, `population:employment`, `event:response`
+
 **Типы:**
 - Банкротства предприятий
 - Безработица
@@ -176,7 +190,11 @@
 
 ## Система управления происшествиями
 
+**Теги**: `event:prevention`, `event:response`, `building:safety`, `building:healthcare`
+
 ### Предотвращение
+
+**Теги**: `event:prevention`, `building:safety`, `building:healthcare`, `building:education`
 
 - **Инфраструктура**: пожарные части, полиция, больницы
 - **Мониторинг**: системы раннего предупреждения
@@ -184,6 +202,8 @@
 - **Образование**: программы безопасности
 
 ### Реакция
+
+**Теги**: `event:response`, `transport:special`, `building:safety`
 
 - **Автоматическая**: экстренные службы реагируют автоматически
 - **Ручное управление**: игрок может направлять ресурсы

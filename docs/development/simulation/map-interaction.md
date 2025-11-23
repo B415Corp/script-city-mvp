@@ -1,5 +1,7 @@
 # Взаимодействие с картой и чанками
 
+**Теги**: `map:chunks`, `arch:infrastructure`, `arch:simulation`, `tech:performance`
+
 Система тиков тесно связана с картой и чанками:
 
 ## Чанки карты

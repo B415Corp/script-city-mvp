@@ -1,5 +1,7 @@
 # UI-слой
 
+**Теги**: `arch:ui`, `arch:commands`, `gameplay:time-control`
+
 UI-слой строится без React и представляет собой:
 
 - **HUD и панели**:

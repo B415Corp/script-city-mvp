@@ -2,6 +2,8 @@
 
 ## Карта, окружение и визуализация
 
+**Теги**: `map:isometric`, `map:heatmaps`, `map:terrain`, `map:water`, `status:post-mvp`
+
 - Изометрическая сцена, уровни масштабирования, оверлеи.
 - Рельеф и терраформинг (ограниченный в MVP), типы почвы и покрытий.
 - Погода, времена года, цикл день/ночь (визуально, с влиянием на трафик/спрос опционально).
@@ -12,31 +14,47 @@
 
 ### Типы загрязнения
 
+**Теги**: `ecology:pollution-air`, `ecology:pollution-water`, `ecology:pollution-soil`, `ecology:pollution-noise`
+
 1. **Воздух**
+
+**Теги**: `ecology:pollution-air`, `building:industrial`, `transport:traffic`
+
    - Промышленные выбросы
    - Транспортные выхлопы
    - Отопление (котельные)
    - Влияние на здоровье населения
 
 2. **Шум**
+
+**Теги**: `ecology:pollution-noise`, `transport:traffic`, `building:industrial`
+
    - Дороги и транспорт
    - Промышленность
    - Аэропорты
    - Снижение качества жизни
 
 3. **Вода**
+
+**Теги**: `ecology:pollution-water`, `building:utility`, `map:water`
+
    - Промышленные стоки
    - Бытовые отходы
    - Сельское хозяйство
    - Загрязнение водоемов
 
 4. **Почва**
+
+**Теги**: `ecology:pollution-soil`, `building:industrial`, `building:utility`
+
    - Промышленные отходы
    - Мусорные полигоны
    - Химикаты
    - Деградация земель
 
 ## Экологические системы
+
+**Теги**: `ecology:monitoring`, `ecology:cleanup`, `ecology:greening`, `building:utility`
 
 - **Мониторинг**: датчики, карты загрязнения
 - **Очистка**: очистные сооружения, фильтры
@@ -45,6 +63,8 @@
 - **Восстановление**: рекультивация земель
 
 ## Влияние экологии
+
+**Теги**: `ecology:health-impact`, `ecology:attractiveness`, `population:migration`, `policy:environmental`
 
 - Здоровье населения (заболеваемость, продолжительность жизни)
 - Привлекательность районов (миграция, ценность жилья)

@@ -37,9 +37,9 @@ Script City — это изометрический градостроитель
 ### Техническая документация
 
 - **[Архитектура](./docs/development/architecture/index.md)** — игровое ядро, модули, ECS, рендерер
-- **[Технический стек](./docs/development/tech-stack/index.md)** — технологии, инструменты, производительность
+- **[Технический стек](./docs/development/tech-stack/index.md)** — технологии, инструменты, производительность, интеграция с Phaser
 - **[Тики и симуляция](./docs/development/simulation/index.md)** — жизненный цикл тика, команды, события
-- **[План MVP](./docs/development/mvp-plan.md)** — этапы разработки и приоритизация
+- **[План MVP и post-MVP](./docs/development/mvp-plan/index.md)** — 13 этапов разработки от фундамента до мультиплеера
 
 > 📖 **Полный индекс документации**: [docs/README.md](./docs/README.md)
 
