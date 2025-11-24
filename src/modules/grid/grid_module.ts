@@ -1,6 +1,8 @@
 import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
 import { UIComponent } from '@/core/ui/ui_component';
+import { EventBus } from '@/core/event_bus/event_bus';
+import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '@/infrastructure/isometric_math/isometric_math';
 import Phaser from 'phaser';
 import { DEFAULT_MAP } from './default_map';
@@ -31,6 +33,7 @@ export class GridModule implements IModule {
 
   private scene?: Phaser.Scene;
   private isometricMath?: IsometricMath;
+  private eventBus?: EventBus;
 
   private container?: Phaser.GameObjects.Container;
   private highlightGraphics?: Phaser.GameObjects.Graphics;
@@ -49,8 +52,8 @@ export class GridModule implements IModule {
   // Текущий подсвеченный тайл
   private highlightedTile: { x: number; y: number } | null = null;
 
-  async initialize(_core: GameCore): Promise<void> {
-    void _core;
+  async initialize(core: GameCore): Promise<void> {
+    this.eventBus = core.getEventBus();
     this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
     console.warn('🗺 GridModule initialized');
   }
@@ -75,6 +78,7 @@ export class GridModule implements IModule {
 
     scene.input.on('pointermove', this.handlePointerMove, this);
     scene.input.on('pointerout', this.clearHighlight, this);
+    scene.input.on('pointerdown', this.handlePointerDown, this);
 
     console.warn('🗺 GridModule attached to scene');
   }
@@ -89,6 +93,12 @@ export class GridModule implements IModule {
 
     this.container.setPosition(cx, cy);
     this.isometricMath?.setOffset(0, 0);
+
+    // Эмитим событие центрирования карты
+    this.eventBus?.emit(Events.MapCentered, {
+      x: cx,
+      y: cy,
+    });
   }
 
   /** Основная отрисовка сетки — теперь плитки рендерятся как Image */
@@ -146,8 +156,58 @@ export class GridModule implements IModule {
 
   /** Очистка подсветки */
   private clearHighlight(): void {
+    if (this.highlightedTile) {
+      // Эмитим событие ухода с тайла
+      this.eventBus?.emit(Events.TileUnhovered, {
+        tileX: this.highlightedTile.x,
+        tileY: this.highlightedTile.y,
+      });
+    }
     this.highlightGraphics?.clear();
     this.highlightedTile = null;
+  }
+
+  /** Обработка клика по тайлу */
+  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.isDragging) return;
+    if (!this.scene || !this.container || !this.isometricMath) return;
+
+    // Проверка попадания над UI
+    const hasUI = this.scene.children.list.some((child) => {
+      const obj = child as Phaser.GameObjects.GameObject & { depth?: number };
+      if (obj.depth !== undefined && obj.depth >= UIComponent.DEPTH.UI_BASE) {
+        if (child instanceof Phaser.GameObjects.Container) {
+          return child.getBounds().contains(pointer.x, pointer.y);
+        }
+      }
+      return false;
+    });
+
+    if (hasUI) {
+      return;
+    }
+
+    // Обрабатываем только левый клик
+    if (!pointer.leftButtonDown()) {
+      return;
+    }
+
+    const worldX = (pointer.x - this.container.x) / this.container.scale;
+    const worldY = (pointer.y - this.container.y) / this.container.scale;
+    const tile = this.isometricMath.screenToTile(worldX, worldY);
+
+    if (
+      tile.tileX >= 0 &&
+      tile.tileX < this.gridWidth &&
+      tile.tileY >= 0 &&
+      tile.tileY < this.gridHeight
+    ) {
+      // Эмитим событие клика по тайлу
+      this.eventBus?.emit(Events.TileClicked, {
+        tileX: tile.tileX,
+        tileY: tile.tileY,
+      });
+    }
   }
 
   /** Реакция на передвижение мыши */
@@ -186,8 +246,22 @@ export class GridModule implements IModule {
         this.highlightedTile.x !== tile.tileX ||
         this.highlightedTile.y !== tile.tileY
       ) {
+        // Эмитим событие ухода со старого тайла, если был подсвечен другой
+        if (this.highlightedTile) {
+          this.eventBus?.emit(Events.TileUnhovered, {
+            tileX: this.highlightedTile.x,
+            tileY: this.highlightedTile.y,
+          });
+        }
+
         this.highlightedTile = { x: tile.tileX, y: tile.tileY };
         this.drawHighlight(tile.tileX, tile.tileY);
+
+        // Эмитим событие наведения на тайл
+        this.eventBus?.emit(Events.TileHovered, {
+          tileX: tile.tileX,
+          tileY: tile.tileY,
+        });
       }
     } else {
       this.clearHighlight();
@@ -216,6 +290,13 @@ export class GridModule implements IModule {
 
       container.setScale(newScale);
       container.setPosition(newX, newY);
+
+      // Эмитим событие изменения зума камеры
+      this.eventBus?.emit(Events.CameraZoomed, {
+        scale: newScale,
+        x: newX,
+        y: newY,
+      });
     });
 
     // Drag
@@ -230,6 +311,14 @@ export class GridModule implements IModule {
     this.scene.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (p.rightButtonReleased() || p.middleButtonReleased()) {
         this.isDragging = false;
+        // Эмитим событие перемещения камеры после завершения drag
+        if (this.container) {
+          this.eventBus?.emit(Events.CameraMoved, {
+            x: this.container.x,
+            y: this.container.y,
+            scale: this.container.scale,
+          });
+        }
       }
     });
 
@@ -241,6 +330,13 @@ export class GridModule implements IModule {
         this.container.y += dy;
         this.dragStartX = p.x;
         this.dragStartY = p.y;
+
+        // Эмитим событие перемещения камеры во время drag
+        this.eventBus?.emit(Events.CameraMoved, {
+          x: this.container.x,
+          y: this.container.y,
+          scale: this.container.scale,
+        });
       }
     });
 
@@ -262,6 +358,7 @@ export class GridModule implements IModule {
     if (this.scene) {
       this.scene.input.off('pointermove', this.handlePointerMove, this);
       this.scene.input.off('pointerout', this.clearHighlight, this);
+      this.scene.input.off('pointerdown', this.handlePointerDown, this);
       this.scene.events.off('update');
     }
 

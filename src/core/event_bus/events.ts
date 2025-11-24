@@ -64,6 +64,12 @@ export enum Events {
   TileUnhovered = 'TileUnhovered',
   /** Произошёл клик по тайлу */
   TileClicked = 'TileClicked',
+  /** Камера перемещена (drag или стрелки) */
+  CameraMoved = 'CameraMoved',
+  /** Камера увеличена/уменьшена (zoom) */
+  CameraZoomed = 'CameraZoomed',
+  /** Карта центрирована */
+  MapCentered = 'MapCentered',
 
   // ========== События инструментов ==========
   /** Инструмент зарегистрирован */
