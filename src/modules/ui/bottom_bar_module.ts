@@ -61,4 +61,3 @@ export class BottomBarModule implements IModule {
     console.warn('📊 BottomBarModule destroyed');
   }
 }
-

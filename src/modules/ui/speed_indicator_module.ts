@@ -64,4 +64,3 @@ export class SpeedIndicatorModule implements IModule {
     console.warn('⚡ SpeedIndicatorModule destroyed');
   }
 }
-

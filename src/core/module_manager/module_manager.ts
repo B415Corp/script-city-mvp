@@ -156,7 +156,10 @@ export class ModuleManager {
           module.attachToScene(scene);
           console.warn(`📦 ModuleManager: attached module "${entry.module.id}" to scene`);
         } catch (error) {
-          console.error(`📦 ModuleManager: failed to attach module "${entry.module.id}" to scene`, error);
+          console.error(
+            `📦 ModuleManager: failed to attach module "${entry.module.id}" to scene`,
+            error,
+          );
         }
       }
     }

@@ -46,6 +46,10 @@ export class DebugWindow {
     // Окно видимо по умолчанию для отладки
     this.isVisible = true;
     this.container.setVisible(true);
+    // Фиксируем UI - не двигается с камерой
+    this.container.setScrollFactor(0);
+    // Устанавливаем высокий depth, чтобы UI был поверх карты
+    this.container.setDepth(1000);
 
     // Фон окна
     this.background = this.scene.add.rectangle(

@@ -46,6 +46,11 @@ export class SpeedIndicator {
 
     this.container.add([this.circle, this.text]);
 
+    // Фиксируем UI - не двигается с камерой
+    this.container.setScrollFactor(0);
+    // Устанавливаем высокий depth, чтобы UI был поверх карты
+    this.container.setDepth(1000);
+
     // Подписка на события изменения скорости
     this.subscribeToEvents();
 

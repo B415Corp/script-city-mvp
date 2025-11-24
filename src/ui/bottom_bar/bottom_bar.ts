@@ -33,6 +33,10 @@ export class BottomBar {
 
     // Создаем контейнер для всей панели
     this.container = this.scene.add.container(0, 0);
+    // Фиксируем UI - не двигается с камерой
+    this.container.setScrollFactor(0);
+    // Устанавливаем высокий depth, чтобы UI был поверх карты
+    this.container.setDepth(1000);
 
     // Фон панели (темный полупрозрачный)
     this.background = this.scene.add.rectangle(
