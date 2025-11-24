@@ -1,0 +1,659 @@
+import Phaser from 'phaser';
+import { GameCore } from '@/core/game_core/game_core';
+import { UIComponent } from '@/core/ui/ui_component';
+import { Events } from '@/core/event_bus/events';
+import { ToolCategory, Tool } from '@/modules/tools/types';
+
+/**
+ * Верхняя полоса с категориями инструментов и подполосой инструментов.
+ * При наведении на категорию показывается подполоса с инструментами НАД верхней полосой.
+ *
+ * Теги: arch:ui, gameplay:editor, tech:phaser
+ */
+export class TopBar extends UIComponent {
+  // Константы размеров
+  readonly TOP_BAR_HEIGHT = 60;
+  readonly TOOLS_SUBBAR_HEIGHT = 70;
+  readonly BUTTON_WIDTH = 60;
+  readonly BUTTON_HEIGHT = 50;
+  readonly CATEGORY_BUTTON_WIDTH = 80;
+  readonly CATEGORY_BUTTON_HEIGHT = 50;
+  readonly BUTTON_SPACING = 10;
+
+  // Элементы верхней полосы
+  private topBarBackground!: Phaser.GameObjects.Rectangle;
+  private categoryButtons: Phaser.GameObjects.Container[] = [];
+  private toolsSubbarBackground: Phaser.GameObjects.Rectangle | null = null;
+  private toolsSubbarContainer: Phaser.GameObjects.Container | null = null;
+  private toolButtons: Phaser.GameObjects.Container[] = [];
+  private hoveredCategoryId: string | null = null;
+  private hideSubbarTimeout: number | null = null;
+  private isMouseOverSubbar: boolean = false;
+  private cancelToolButton: Phaser.GameObjects.Container | null = null;
+
+  // Позиция верхней полосы (вычисляется относительно высоты экрана)
+  private topBarY: number = 0;
+  private bottomBarHeight: number = 80;
+
+  constructor(scene: Phaser.Scene, core: GameCore, bottomBarHeight: number) {
+    super(scene, core);
+    this.bottomBarHeight = bottomBarHeight;
+  }
+
+  create(): void {
+    const { width, height } = this.scene.scale;
+    this.topBarY = height - this.bottomBarHeight - this.TOP_BAR_HEIGHT;
+
+    // Создаём контейнер
+    super.createContainer(0, 0, UIComponent.DEPTH.UI_PANELS);
+
+    // Создаём верхнюю полосу
+    this.createTopBar(width);
+
+    // Подписка на события
+    this.subscribeToEvents();
+  }
+
+  private createTopBar(width: number): void {
+    // Фон верхней полосы
+    this.topBarBackground = this.scene.add.rectangle(
+      width / 2,
+      this.topBarY + this.TOP_BAR_HEIGHT / 2,
+      width,
+      this.TOP_BAR_HEIGHT,
+      0x2d2d2d,
+      0.95,
+    );
+    this.container.add(this.topBarBackground);
+
+    // Создаём кнопки категорий инструментов
+    this.createCategoryButtons();
+
+    // Создаём кнопку отмены инструмента (скрыта по умолчанию)
+    this.createCancelToolButton(width);
+  }
+
+  private createCategoryButtons(): void {
+    const toolManager = this.core.getToolManager();
+    const categories = toolManager.getCategories();
+
+    const { width } = this.scene.scale;
+    const startX = 20;
+    // Учитываем место для кнопки отмены инструмента: отступ справа + ширина кнопки + отступ между
+    const rightMargin = 20 + this.CATEGORY_BUTTON_WIDTH + 20;
+    let currentX = startX;
+
+    categories.forEach((category) => {
+      // Проверяем, чтобы кнопки не выходили за правый край экрана (с учетом кнопки отмены)
+      if (currentX + this.CATEGORY_BUTTON_WIDTH > width - rightMargin) {
+        return; // Прекращаем создание кнопок, если они выходят за экран
+      }
+
+      const button = this.createCategoryButton(
+        currentX,
+        this.topBarY + this.TOP_BAR_HEIGHT / 2,
+        category,
+      );
+      this.categoryButtons.push(button);
+      this.container.add(button);
+
+      currentX += this.CATEGORY_BUTTON_WIDTH + this.BUTTON_SPACING;
+    });
+  }
+
+  private createCategoryButton(
+    x: number,
+    y: number,
+    category: ToolCategory,
+  ): Phaser.GameObjects.Container {
+    // Позиционируем контейнер так, чтобы центр кнопки был в указанной позиции
+    const container = this.scene.add.container(x + this.CATEGORY_BUTTON_WIDTH / 2, y);
+
+    // Фон кнопки (отцентрован в контейнере)
+    const bg = this.scene.add.rectangle(
+      0,
+      0,
+      this.CATEGORY_BUTTON_WIDTH,
+      this.CATEGORY_BUTTON_HEIGHT,
+      0x404040,
+      1,
+    );
+
+    // Иконка категории (отцентрована по горизонтали, смещена вверх)
+    const icon = this.scene.add
+      .text(0, -8, category.icon, {
+        fontSize: '24px',
+        color: '#ffffff',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5, 0.5);
+
+    // Название категории (отцентровано по горизонтали, смещено вниз)
+    const label = this.scene.add
+      .text(0, 12, category.name, {
+        fontSize: '12px',
+        color: '#cccccc',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5, 0.5);
+
+    container.add([bg, icon, label]);
+
+    // Делаем интерактивным
+    bg.setInteractive({ useHandCursor: true });
+    icon.setInteractive({ useHandCursor: true });
+    label.setInteractive({ useHandCursor: true });
+
+    // Обработчики событий
+    const handlePointerOver = (): void => {
+      bg.setFillStyle(0x4a90e2);
+      // Отменяем скрытие подполосы, если оно было запланировано
+      this.cancelHideSubbar();
+      // Показываем подполосу для этой категории
+      this.showToolsSubbar(category);
+    };
+
+    const handlePointerOut = (): void => {
+      bg.setFillStyle(0x404040);
+      // Сбрасываем hoveredCategoryId только если это была активная категория
+      // Если мышка перейдет на подполосу или другую категорию, hoveredCategoryId будет обновлен
+      if (this.hoveredCategoryId === category.id) {
+        this.hoveredCategoryId = null;
+      }
+      // Начинаем отсчет задержки скрытия подполосы
+      // Если мышка перейдет на подполосу или другую категорию, таймер будет отменен
+      this.scheduleHideSubbar();
+    };
+
+    const handlePointerDown = (): void => {
+      // При клике на категорию можно активировать первый инструмент или просто показать подполосу
+      if (category.tools.length > 0) {
+        const firstTool = category.tools[0];
+        this.activateTool(firstTool.id);
+      }
+    };
+
+    bg.on('pointerover', handlePointerOver);
+    bg.on('pointerout', handlePointerOut);
+    bg.on('pointerdown', handlePointerDown);
+
+    icon.on('pointerover', handlePointerOver);
+    icon.on('pointerout', handlePointerOut);
+    icon.on('pointerdown', handlePointerDown);
+
+    label.on('pointerover', handlePointerOver);
+    label.on('pointerout', handlePointerOut);
+    label.on('pointerdown', handlePointerDown);
+
+    return container;
+  }
+
+  private showToolsSubbar(category: ToolCategory): void {
+    // Отменяем таймер скрытия, если он был запущен
+    this.cancelHideSubbar();
+
+    // Обновляем активную категорию
+    this.hoveredCategoryId = category.id;
+
+    const { width } = this.scene.scale;
+    const toolsSubbarY = Math.max(0, this.topBarY - this.TOOLS_SUBBAR_HEIGHT);
+
+    // Создаём подполосу только если её еще нет
+    if (!this.toolsSubbarBackground) {
+      this.toolsSubbarBackground = this.scene.add.rectangle(
+        width / 2,
+        toolsSubbarY + this.TOOLS_SUBBAR_HEIGHT / 2,
+        width,
+        this.TOOLS_SUBBAR_HEIGHT,
+        0x3a3a3a,
+        0.95,
+      );
+      this.container.add(this.toolsSubbarBackground);
+    } else {
+      // Обновляем позицию если уже существует
+      this.toolsSubbarBackground.setPosition(
+        width / 2,
+        toolsSubbarY + this.TOOLS_SUBBAR_HEIGHT / 2,
+      );
+      this.toolsSubbarBackground.setVisible(true);
+    }
+
+    if (!this.toolsSubbarContainer) {
+      this.toolsSubbarContainer = this.scene.add.container(0, toolsSubbarY);
+      this.container.add(this.toolsSubbarContainer);
+    } else {
+      this.toolsSubbarContainer.setPosition(0, toolsSubbarY);
+      this.toolsSubbarContainer.setVisible(true);
+    }
+
+    // Очищаем предыдущие кнопки инструментов
+    this.toolButtons.forEach((btn) => btn.destroy());
+    this.toolButtons = [];
+
+    // Создаём кнопки инструментов с проверкой границ
+    const startX = 20;
+    const rightMargin = 20;
+    const centerY = this.TOOLS_SUBBAR_HEIGHT / 2; // Центр подполосы по вертикали
+    let currentX = startX;
+
+    category.tools.forEach((tool) => {
+      // Проверяем, чтобы кнопки не выходили за правый край экрана
+      if (currentX + this.BUTTON_WIDTH > width - rightMargin) {
+        return;
+      }
+
+      const button = this.createToolButton(currentX, centerY, tool);
+      this.toolButtons.push(button);
+      if (this.toolsSubbarContainer) {
+        this.toolsSubbarContainer.add(button);
+      }
+
+      currentX += this.BUTTON_WIDTH + this.BUTTON_SPACING;
+    });
+
+    // Настраиваем интерактивность для фона и контейнера подполосы
+    // Это позволит отслеживать, когда курсор находится в пределах подполосы
+    this.toolsSubbarBackground.setInteractive();
+    this.toolsSubbarContainer.setInteractive();
+
+    // Подписываемся на события мыши для скрытия подполосы при уходе курсора
+    this.setupSubbarHoverHandlers();
+  }
+
+  private setupSubbarHoverHandlers(): void {
+    if (!this.toolsSubbarBackground || !this.toolsSubbarContainer) {
+      return;
+    }
+
+    // Очищаем предыдущие обработчики
+    this.toolsSubbarBackground.removeAllListeners();
+    this.toolsSubbarContainer.removeAllListeners();
+
+    // Обработчики для показа подполосы при наведении на неё
+    const handleSubbarPointerOver = (): void => {
+      // Мышка наведена на подполосу - отменяем скрытие
+      this.isMouseOverSubbar = true;
+      this.cancelHideSubbar();
+    };
+
+    // Скрываем подполосу при уходе курсора (с задержкой)
+    const handleSubbarPointerOut = (): void => {
+      // Мышка ушла с подполосы (фон или контейнер)
+      // Сбрасываем флаг и запускаем таймер скрытия
+      // Если мышка вернется на любой элемент подполосы (включая кнопки),
+      // флаг установится обратно и таймер отменится
+      this.isMouseOverSubbar = false;
+      this.scheduleHideSubbar();
+    };
+
+    this.toolsSubbarBackground.on('pointerover', handleSubbarPointerOver);
+    this.toolsSubbarContainer.on('pointerover', handleSubbarPointerOver);
+    this.toolsSubbarBackground.on('pointerout', handleSubbarPointerOut);
+    this.toolsSubbarContainer.on('pointerout', handleSubbarPointerOut);
+  }
+
+  /**
+   * Запланировать скрытие подполосы с задержкой.
+   * Если мышка вернется на категорию или подполосу, таймер будет отменен.
+   *
+   * Следуем лучшим практикам UX для выпадающих меню:
+   * - Задержка перед закрытием (300ms)
+   * - Меню остается открытым пока курсор над ним или над триггером
+   * - Меню закрывается только когда курсор ушел и с триггера, и с самого меню
+   */
+  private scheduleHideSubbar(): void {
+    // Отменяем предыдущий таймер, если он был
+    this.cancelHideSubbar();
+
+    // Устанавливаем новый таймер с задержкой для комфортной навигации
+    this.hideSubbarTimeout = window.setTimeout(() => {
+      // Проверяем, что мышка действительно ушла и с категории, и с подполосы (включая кнопки)
+      if (!this.isMouseOverSubbar && this.hoveredCategoryId === null) {
+        this.hideToolsSubbar();
+      }
+      this.hideSubbarTimeout = null;
+    }, 300) as unknown as number; // 300ms - стандартная задержка для выпадающих меню
+  }
+
+  /**
+   * Отменить запланированное скрытие подполосы.
+   */
+  private cancelHideSubbar(): void {
+    if (this.hideSubbarTimeout !== null) {
+      window.clearTimeout(this.hideSubbarTimeout);
+      this.hideSubbarTimeout = null;
+    }
+  }
+
+  private hideToolsSubbar(): void {
+    // Отменяем таймер скрытия
+    this.cancelHideSubbar();
+
+    // Сбрасываем флаги
+    this.hoveredCategoryId = null;
+    this.isMouseOverSubbar = false;
+
+    if (this.toolsSubbarBackground) {
+      this.toolsSubbarBackground.setVisible(false);
+    }
+    if (this.toolsSubbarContainer) {
+      this.toolsSubbarContainer.setVisible(false);
+    }
+
+    // Уничтожаем кнопки инструментов
+    this.toolButtons.forEach((btn) => btn.destroy());
+    this.toolButtons = [];
+
+    // Уничтожаем подполосу полностью
+    if (this.toolsSubbarBackground) {
+      this.toolsSubbarBackground.destroy();
+      this.toolsSubbarBackground = null;
+    }
+    if (this.toolsSubbarContainer) {
+      this.toolsSubbarContainer.destroy();
+      this.toolsSubbarContainer = null;
+    }
+  }
+
+  private createToolButton(x: number, y: number, tool: Tool): Phaser.GameObjects.Container {
+    // Позиционируем контейнер так, чтобы центр кнопки был в указанной позиции
+    const container = this.scene.add.container(
+      x + this.BUTTON_WIDTH / 2,
+      y,
+    ) as Phaser.GameObjects.Container & {
+      toolId?: string;
+    };
+    // Сохраняем toolId в данных контейнера для последующего использования
+    container.toolId = tool.id;
+
+    // Фон кнопки (отцентрован в контейнере)
+    const bg = this.scene.add.rectangle(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, 0x505050, 1);
+
+    // Иконка инструмента (отцентрована по горизонтали, смещена вверх)
+    const icon = this.scene.add
+      .text(0, -5, tool.icon, {
+        fontSize: '20px',
+        color: '#ffffff',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5, 0.5);
+
+    // Название инструмента (отцентровано по горизонтали, смещено вниз)
+    const label = this.scene.add
+      .text(0, 15, tool.name, {
+        fontSize: '10px',
+        color: '#cccccc',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5, 0.5);
+
+    container.add([bg, icon, label]);
+
+    // Делаем интерактивным
+    bg.setInteractive({ useHandCursor: true });
+    icon.setInteractive({ useHandCursor: true });
+    label.setInteractive({ useHandCursor: true });
+
+    // Обработчики событий
+    const handlePointerOver = (): void => {
+      bg.setFillStyle(0x5aa0f2);
+      // Важно: мышка над кнопкой инструмента - отменяем скрытие меню
+      this.isMouseOverSubbar = true;
+      this.cancelHideSubbar();
+    };
+
+    const handlePointerOut = (): void => {
+      const toolManager = this.core.getToolManager();
+      const isActive = toolManager.isToolActive(tool.id);
+      bg.setFillStyle(isActive ? 0x4a90e2 : 0x505050);
+      // Мышка ушла с кнопки - сбрасываем флаг
+      // Если мышка не перейдет на другой элемент подполосы, таймер скрытия запустится
+      this.isMouseOverSubbar = false;
+    };
+
+    const handlePointerDown = (): void => {
+      this.activateTool(tool.id);
+      // После выбора инструмента можно оставить меню открытым
+      // для последовательного выбора нескольких инструментов
+    };
+
+    bg.on('pointerover', handlePointerOver);
+    bg.on('pointerout', handlePointerOut);
+    bg.on('pointerdown', handlePointerDown);
+
+    icon.on('pointerover', handlePointerOver);
+    icon.on('pointerout', handlePointerOut);
+    icon.on('pointerdown', handlePointerDown);
+
+    label.on('pointerover', handlePointerOver);
+    label.on('pointerout', handlePointerOut);
+    label.on('pointerdown', handlePointerDown);
+
+    // Обновляем состояние при создании
+    const toolManager = this.core.getToolManager();
+    const isActive = toolManager.isToolActive(tool.id);
+    bg.setFillStyle(isActive ? 0x4a90e2 : 0x505050);
+
+    return container;
+  }
+
+  private activateTool(toolId: string): void {
+    const toolManager = this.core.getToolManager();
+    toolManager.activateTool(toolId);
+
+    // Обновляем визуальное состояние всех кнопок инструментов
+    this.updateToolButtonsDisplay();
+  }
+
+  private updateToolButtonsDisplay(): void {
+    const toolManager = this.core.getToolManager();
+
+    this.toolButtons.forEach((buttonContainer) => {
+      const bg = buttonContainer.list[0] as Phaser.GameObjects.Rectangle;
+      if (!bg) return;
+
+      // Получаем toolId из данных контейнера
+      const toolId = (buttonContainer as Phaser.GameObjects.Container & { toolId?: string }).toolId;
+      if (!toolId) return;
+
+      const isActive = toolManager.isToolActive(toolId);
+      bg.setFillStyle(isActive ? 0x4a90e2 : 0x505050);
+    });
+
+    // Обновляем видимость кнопки отмены инструмента
+    this.updateCancelToolButtonVisibility();
+  }
+
+  /**
+   * Создание кнопки отмены инструмента.
+   * Кнопка показывается только когда есть активный инструмент.
+   */
+  private createCancelToolButton(width: number): void {
+    const buttonX = width - 20 - this.CATEGORY_BUTTON_WIDTH / 2; // Справа с отступом
+    const buttonY = this.topBarY + this.TOP_BAR_HEIGHT / 2;
+
+    const container = this.scene.add.container(buttonX, buttonY);
+
+    // Фон кнопки
+    const bg = this.scene.add.rectangle(
+      0,
+      0,
+      this.CATEGORY_BUTTON_WIDTH,
+      this.CATEGORY_BUTTON_HEIGHT,
+      0xdc2626, // Красный цвет для кнопки отмены
+      1,
+    );
+
+    // Иконка отмены (крестик)
+    const icon = this.scene.add
+      .text(0, -8, '✕', {
+        fontSize: '24px',
+        color: '#ffffff',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5, 0.5);
+
+    // Надпись "Отмена"
+    const label = this.scene.add
+      .text(0, 12, 'Отмена', {
+        fontSize: '12px',
+        color: '#ffffff',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5, 0.5);
+
+    container.add([bg, icon, label]);
+
+    // Делаем интерактивным
+    bg.setInteractive({ useHandCursor: true });
+    icon.setInteractive({ useHandCursor: true });
+    label.setInteractive({ useHandCursor: true });
+
+    // Обработчики событий
+    const handlePointerOver = (): void => {
+      bg.setFillStyle(0xf87171); // Светло-красный при наведении
+    };
+
+    const handlePointerOut = (): void => {
+      bg.setFillStyle(0xdc2626); // Возвращаем красный цвет
+    };
+
+    const handlePointerDown = (): void => {
+      this.deactivateTool();
+    };
+
+    bg.on('pointerover', handlePointerOver);
+    bg.on('pointerout', handlePointerOut);
+    bg.on('pointerdown', handlePointerDown);
+
+    icon.on('pointerover', handlePointerOver);
+    icon.on('pointerout', handlePointerOut);
+    icon.on('pointerdown', handlePointerDown);
+
+    label.on('pointerover', handlePointerOver);
+    label.on('pointerout', handlePointerOut);
+    label.on('pointerdown', handlePointerDown);
+
+    this.cancelToolButton = container;
+    this.container.add(container);
+
+    // Изначально скрываем кнопку
+    this.updateCancelToolButtonVisibility();
+  }
+
+  /**
+   * Обновление видимости кнопки отмены инструмента.
+   * Кнопка показывается только когда есть активный инструмент.
+   */
+  private updateCancelToolButtonVisibility(): void {
+    if (!this.cancelToolButton) {
+      return;
+    }
+
+    const toolManager = this.core.getToolManager();
+    const activeTool = toolManager.getActiveTool();
+    const hasActiveTool = activeTool.toolId !== null;
+
+    this.cancelToolButton.setVisible(hasActiveTool);
+  }
+
+  /**
+   * Деактивация текущего активного инструмента.
+   */
+  private deactivateTool(): void {
+    const toolManager = this.core.getToolManager();
+    toolManager.deactivateTool();
+
+    // Обновляем визуальное состояние всех кнопок инструментов
+    this.updateToolButtonsDisplay();
+  }
+
+  private subscribeToEvents(): void {
+    const eventBus = this.core.getEventBus();
+
+    // Подписка на события инструментов
+    eventBus.on<{ toolId: string; categoryId: string }>(Events.ToolActivated, () => {
+      this.updateToolButtonsDisplay();
+      this.updateCancelToolButtonVisibility();
+    });
+
+    eventBus.on<{ toolId: string; categoryId: string }>(Events.ToolDeactivated, () => {
+      this.updateToolButtonsDisplay();
+      this.updateCancelToolButtonVisibility();
+    });
+  }
+
+  resize(width: number, height: number): void {
+    this.topBarY = height - this.bottomBarHeight - this.TOP_BAR_HEIGHT;
+
+    // Обновление верхней полосы
+    this.topBarBackground.setSize(width, this.TOP_BAR_HEIGHT);
+    this.topBarBackground.setPosition(width / 2, this.topBarY + this.TOP_BAR_HEIGHT / 2);
+
+    // Пересоздаём кнопки категорий с учетом нового размера экрана
+    this.categoryButtons.forEach((btn) => btn.destroy());
+    this.categoryButtons = [];
+    this.createCategoryButtons();
+
+    // Обновляем позицию кнопки отмены инструмента
+    if (this.cancelToolButton) {
+      const buttonX = width - 20 - this.CATEGORY_BUTTON_WIDTH / 2;
+      const buttonY = this.topBarY + this.TOP_BAR_HEIGHT / 2;
+      this.cancelToolButton.setPosition(buttonX, buttonY);
+    }
+
+    // Обновление подполосы инструментов (если она видна)
+    if (this.toolsSubbarBackground && this.toolsSubbarContainer) {
+      const toolsSubbarY = Math.max(0, this.topBarY - this.TOOLS_SUBBAR_HEIGHT);
+      this.toolsSubbarBackground.setSize(width, this.TOOLS_SUBBAR_HEIGHT);
+      this.toolsSubbarBackground.setPosition(
+        width / 2,
+        toolsSubbarY + this.TOOLS_SUBBAR_HEIGHT / 2,
+      );
+      this.toolsSubbarContainer.setPosition(0, toolsSubbarY);
+
+      // Пересоздаём кнопки инструментов с учетом нового размера экрана
+      const hoveredCategory = this.hoveredCategoryId
+        ? this.core.getToolManager().getCategory(this.hoveredCategoryId)
+        : null;
+      if (hoveredCategory) {
+        // Очищаем старые кнопки
+        this.toolButtons.forEach((btn) => btn.destroy());
+        this.toolButtons = [];
+
+        // Создаём новые кнопки с проверкой границ
+        const startX = 20;
+        const rightMargin = 20;
+        let currentX = startX;
+
+        hoveredCategory.tools.forEach((tool) => {
+          if (currentX + this.BUTTON_WIDTH > width - rightMargin) {
+            return;
+          }
+
+          const button = this.createToolButton(currentX, this.TOOLS_SUBBAR_HEIGHT / 2, tool);
+          this.toolButtons.push(button);
+          if (this.toolsSubbarContainer) {
+            this.toolsSubbarContainer.add(button);
+          }
+
+          currentX += this.BUTTON_WIDTH + this.BUTTON_SPACING;
+        });
+      }
+    }
+  }
+
+  destroy(): void {
+    // Уничтожаем подполосу инструментов если она существует
+    this.hideToolsSubbar();
+
+    // Уничтожаем кнопку отмены инструмента
+    if (this.cancelToolButton) {
+      this.cancelToolButton.destroy();
+      this.cancelToolButton = null;
+    }
+
+    super.destroy();
+  }
+}
+
