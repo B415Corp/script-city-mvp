@@ -328,14 +328,32 @@ export class GridModule implements IModule {
       tilePos.tileY >= 0 &&
       tilePos.tileY < this.gridHeight
     ) {
-      // Если это новая клетка, обновляем подсветку
-      if (
-        !this.highlightedTile ||
-        this.highlightedTile.x !== tilePos.tileX ||
-        this.highlightedTile.y !== tilePos.tileY
-      ) {
-        this.highlightedTile = { x: tilePos.tileX, y: tilePos.tileY };
-        this.drawHighlight(tilePos.tileX, tilePos.tileY);
+      // Проверяем, действительно ли точка находится внутри ромба тайла
+      if (this.isometricMath.isPointInTile(worldX, worldY, tilePos.tileX, tilePos.tileY)) {
+        // Если это новая клетка, обновляем подсветку
+        if (
+          !this.highlightedTile ||
+          this.highlightedTile.x !== tilePos.tileX ||
+          this.highlightedTile.y !== tilePos.tileY
+        ) {
+          this.highlightedTile = { x: tilePos.tileX, y: tilePos.tileY };
+          this.drawHighlight(tilePos.tileX, tilePos.tileY);
+        }
+      } else {
+        // Точка не внутри ромба - проверяем соседние тайлы
+        const foundTile = this.findTileAtPoint(worldX, worldY, tilePos.tileX, tilePos.tileY);
+        if (foundTile) {
+          if (
+            !this.highlightedTile ||
+            this.highlightedTile.x !== foundTile.x ||
+            this.highlightedTile.y !== foundTile.y
+          ) {
+            this.highlightedTile = foundTile;
+            this.drawHighlight(foundTile.x, foundTile.y);
+          }
+        } else {
+          this.clearHighlight();
+        }
       }
     } else {
       this.clearHighlight();
@@ -377,6 +395,47 @@ export class GridModule implements IModule {
     this.highlightGraphics.lineTo(center.x - halfWidth, center.y);
     this.highlightGraphics.closePath();
     this.highlightGraphics.strokePath();
+  }
+
+  /**
+   * Поиск тайла, в котором находится точка, проверяя соседние тайлы
+   */
+  private findTileAtPoint(
+    worldX: number,
+    worldY: number,
+    centerTileX: number,
+    centerTileY: number,
+  ): { x: number; y: number } | null {
+    if (!this.isometricMath) {
+      return null;
+    }
+
+    // Проверяем центральный тайл и его соседей (всего 9 тайлов)
+    const offsets = [
+      { dx: 0, dy: 0 }, // Центральный
+      { dx: -1, dy: 0 }, // Лево
+      { dx: 1, dy: 0 }, // Право
+      { dx: 0, dy: -1 }, // Верх
+      { dx: 0, dy: 1 }, // Низ
+      { dx: -1, dy: -1 }, // Верх-лево
+      { dx: 1, dy: -1 }, // Верх-право
+      { dx: -1, dy: 1 }, // Низ-лево
+      { dx: 1, dy: 1 }, // Низ-право
+    ];
+
+    for (const offset of offsets) {
+      const tileX = centerTileX + offset.dx;
+      const tileY = centerTileY + offset.dy;
+
+      // Проверяем границы сетки
+      if (tileX >= 0 && tileX < this.gridWidth && tileY >= 0 && tileY < this.gridHeight) {
+        if (this.isometricMath.isPointInTile(worldX, worldY, tileX, tileY)) {
+          return { x: tileX, y: tileY };
+        }
+      }
+    }
+
+    return null;
   }
 
   /**

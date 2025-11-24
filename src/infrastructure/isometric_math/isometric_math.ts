@@ -67,6 +67,29 @@ export class IsometricMath {
   }
 
   /**
+   * Проверка, находится ли точка внутри ромба тайла.
+   *
+   * @param screenX - экранная координата X точки
+   * @param screenY - экранная координата Y точки
+   * @param tileX - координата X тайла
+   * @param tileY - координата Y тайла
+   * @returns true, если точка находится внутри ромба тайла
+   */
+  isPointInTile(screenX: number, screenY: number, tileX: number, tileY: number): boolean {
+    const center = this.tileToScreen(tileX, tileY);
+    const halfWidth = this.tileWidth / 2;
+    const halfHeight = this.tileHeight / 2;
+
+    // Относительные координаты точки относительно центра тайла
+    const dx = screenX - center.x;
+    const dy = screenY - center.y;
+
+    // Проверка точки внутри ромба используя формулу для изометрического ромба:
+    // |dx| / halfWidth + |dy| / halfHeight <= 1
+    return Math.abs(dx) / halfWidth + Math.abs(dy) / halfHeight <= 1;
+  }
+
+  /**
    * Получение размеров тайла
    */
   getTileSize(): { width: number; height: number } {
