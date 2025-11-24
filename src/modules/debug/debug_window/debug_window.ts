@@ -79,7 +79,7 @@ export class DebugWindow extends UIComponent {
     this.collapseButton.on('pointerdown', () => this.toggleCollapse());
     this.container.add(this.collapseButton);
 
-    // Текст тиков (3 строки: Tick, Game Time, Real Time)
+    // Текст тиков (6 строк: Tick, Game Time, Real Time, Tick Rate, Effective, Actual)
     const tickY = titleY + 35 + this.SECTION_SPACING;
     this.tickText = this.scene.add
       .text(this.PADDING, tickY, '', {
@@ -93,7 +93,7 @@ export class DebugWindow extends UIComponent {
     this.contentElements.push(this.tickText);
 
     // Текст скорости (2-3 строки: Speed, Locked, Locks)
-    const speedY = tickY + this.LINE_HEIGHT * 3 + this.SECTION_SPACING;
+    const speedY = tickY + this.LINE_HEIGHT * 6 + this.SECTION_SPACING;
     this.speedText = this.scene.add
       .text(this.PADDING, speedY, '', {
         fontSize: '16px',
@@ -167,8 +167,11 @@ export class DebugWindow extends UIComponent {
     const currentTick = tickManager.getCurrentTick();
     const gameTime = tickManager.getGameTime();
     const realTime = tickManager.getRealTime();
+    const tickRate = tickManager.getTickRate();
+    const effectiveTickRate = tickManager.getEffectiveTickRate();
+    const ticksPerSecond = tickManager.getTicksPerSecond();
     this.tickText.setText(
-      `Tick: ${currentTick}\nGame Time: ${gameTime}\nReal Time: ${(realTime / 1000).toFixed(2)}s`,
+      `Tick: ${currentTick}\nGame Time: ${gameTime}\nReal Time: ${(realTime / 1000).toFixed(2)}s\nTick Rate: ${tickRate}/s\nEffective: ${effectiveTickRate.toFixed(1)}/s\nActual: ${ticksPerSecond}/s`,
     );
 
     // Информация о скорости
