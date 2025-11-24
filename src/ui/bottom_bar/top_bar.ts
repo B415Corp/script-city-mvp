@@ -162,7 +162,10 @@ export class TopBar extends UIComponent {
     buttonWidth: number,
   ): Phaser.GameObjects.Container {
     // Позиционируем контейнер так, чтобы центр кнопки был в указанной позиции
-    const container = this.scene.add.container(x + buttonWidth / 2, y) as Phaser.GameObjects.Container & {
+    const container = this.scene.add.container(
+      x + buttonWidth / 2,
+      y,
+    ) as Phaser.GameObjects.Container & {
       categoryId?: string;
     };
     // Сохраняем categoryId в данных контейнера для последующего использования
@@ -330,7 +333,6 @@ export class TopBar extends UIComponent {
 
       currentX += buttonWidth + this.BUTTON_SPACING;
     });
-
   }
 
   private hideToolsSubbar(): void {
@@ -496,7 +498,8 @@ export class TopBar extends UIComponent {
       if (!bg) return;
 
       // Получаем categoryId из данных контейнера
-      const categoryId = (buttonContainer as Phaser.GameObjects.Container & { categoryId?: string }).categoryId;
+      const categoryId = (buttonContainer as Phaser.GameObjects.Container & { categoryId?: string })
+        .categoryId;
       if (!categoryId) return;
 
       // Подсвечиваем активную категорию
@@ -612,7 +615,11 @@ export class TopBar extends UIComponent {
    * Проверка, видима ли подполоса инструментов.
    */
   isSubbarVisible(): boolean {
-    return this.activeCategoryId !== null && this.toolsSubbarBackground !== null && this.toolsSubbarBackground.visible;
+    return (
+      this.activeCategoryId !== null &&
+      this.toolsSubbarBackground !== null &&
+      this.toolsSubbarBackground.visible
+    );
   }
 
   /**
