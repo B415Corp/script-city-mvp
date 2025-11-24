@@ -15,7 +15,13 @@ export class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
   }
-
+  preload() {
+    this.load.image('GRASS_BASE_0', 'src/assets/texture/tiles/grass/GRASS_BASE_0.png');
+    this.load.image('SAND_BASE_0', 'src/assets/texture/tiles/grass/SAND_BASE_0.png');
+    this.load.image('SNOW_BASE_0', 'src/assets/texture/tiles/grass/SNOW_BASE_0.png');
+    this.load.image('FOREST_BASE_0', 'src/assets/texture/tiles/grass/FOREST_BASE_0.png');
+    this.load.image('MOUNTAIN_BASE_0', 'src/assets/texture/tiles/grass/MOUNTAIN_BASE_0.png');
+  }
   async create(): Promise<void> {
     // Устанавливаем тёмно-серый фон сцены для контраста с сеткой
     this.cameras.main.setBackgroundColor('#1a202c');
