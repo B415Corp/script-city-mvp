@@ -31,18 +31,28 @@ export default [
       'prettier/prettier': 'error',
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
+
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+          destructuredArrayIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
   {
     ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts', 'index.html'],
   },
+  {
+    files: ['src/core/event_bus/events.ts'],
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 ];
-

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { UIComponent } from '@/core/ui/ui_component';
+import { Events } from '@/core/event_bus/events';
 
 /**
  * Визуальный индикатор скорости игры
@@ -83,16 +84,16 @@ export class SpeedIndicator extends UIComponent {
     const eventBus = this.core.getEventBus();
 
     // Подписка на изменение скорости
-    eventBus.on<{ oldSpeed: number; newSpeed: number }>('SpeedChanged', () => {
+    eventBus.on<{ oldSpeed: number; newSpeed: number }>(Events.SpeedChanged, () => {
       this.updateSpeedDisplay();
     });
 
     // Подписка на паузу/возобновление
-    eventBus.on('SimulationPaused', () => {
+    eventBus.on(Events.SimulationPaused, () => {
       this.updateSpeedDisplay();
     });
 
-    eventBus.on('SimulationResumed', () => {
+    eventBus.on(Events.SimulationResumed, () => {
       this.updateSpeedDisplay();
     });
   }

@@ -1,5 +1,6 @@
 import { ECSManager } from '../ecs_manager/ecs_manager';
 import { EventBus } from '../event_bus/event_bus';
+import { Events } from '../event_bus/events';
 import { ModuleManager } from '../module_manager/module_manager';
 import { CommandProcessor } from '../command_processor/command_processor';
 import { TickManager } from '../tick_manager/tick_manager';
@@ -52,7 +53,7 @@ export class GameCore {
     this.tickManager.start();
 
     // 3. Публикация события GameStarted
-    this.eventBus.emit('GameStarted');
+    this.eventBus.emit(Events.GameStarted);
     console.warn('👾 GameCore started');
   }
 
@@ -61,7 +62,7 @@ export class GameCore {
     this.tickManager.stop();
 
     // 2. Публикация события GameStopped
-    this.eventBus.emit('GameStopped');
+    this.eventBus.emit(Events.GameStopped);
 
     // 3. Сохранение состояния (если необходимо)
     // TODO: сохранение состояния
@@ -126,7 +127,7 @@ export class GameCore {
    */
   private subscribeToCommandEvents(): void {
     // Обработка запроса на изменение скорости симуляции (немедленно)
-    this.eventBus.on<{ speedLevel: number }>('SetSimulationSpeedRequested', (payload) => {
+    this.eventBus.on<{ speedLevel: number }>(Events.SetSimulationSpeedRequested, (payload) => {
       if (payload) {
         const success = this.tickManager.setSpeed(payload.speedLevel);
         console.warn('👾 GameCore: speed change request processed', {

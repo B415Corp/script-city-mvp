@@ -1,4 +1,5 @@
 import { EventHandler, HandlerInfo, Subscription } from './types';
+import { Events } from './events';
 
 /**
  * Событийная шина для межмодульной коммуникации без жёстких связей.
@@ -14,15 +15,16 @@ import { EventHandler, HandlerInfo, Subscription } from './types';
  * - Очистка подписок (для конкретного события или всех)
  *
  * @example
+ * import { Events } from './events';
  * const eventBus = new EventBus();
  *
- * // Подписка на событие
- * const sub = eventBus.on<{ id: string }>('BuildingCompleted', (data) => {
- *   console.log('Building:', data?.id);
+ * // Подписка на событие (рекомендуется использовать Events enum)
+ * const sub = eventBus.on<{ tileX: number; tileY: number }>(Events.TileClicked, (data) => {
+ *   console.log('Tile clicked:', data?.tileX, data?.tileY);
  * });
  *
  * // Публикация события
- * eventBus.emit('BuildingCompleted', { id: '123' });
+ * eventBus.emit(Events.TileClicked, { tileX: 10, tileY: 20 });
  *
  * // Отписка
  * sub.unsubscribe();
@@ -50,14 +52,15 @@ export class EventBus {
    * Ошибки в обработчиках не прерывают выполнение других обработчиков -
    * они логируются в консоль, но не влияют на остальные подписки.
    *
-   * @param eventType - Тип события (например, 'ConstructionCompleted', 'TickStarted')
+   * @param eventType - Тип события (рекомендуется использовать Events enum)
    * @param payload - Опциональные данные события (типизированы через дженерик T)
    *
    * @example
-   * eventBus.emit('ConstructionCompleted', { buildingId: '123', type: 'residential' });
-   * eventBus.emit('TickStarted'); // событие без данных
+   * import { Events } from './events';
+   * eventBus.emit(Events.TileClicked, { tileX: 10, tileY: 20 });
+   * eventBus.emit(Events.TickStarted); // событие без данных
    */
-  emit<T = unknown>(eventType: string, payload?: T): void {
+  emit<T = unknown>(eventType: Events | string, payload?: T): void {
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers || eventHandlers.size === 0) {
       return;
@@ -98,14 +101,15 @@ export class EventBus {
    * @returns Объект подписки с методом `unsubscribe()` для отмены подписки
    *
    * @example
-   * const subscription = eventBus.on<{ id: string }>('BuildingCompleted', (data) => {
-   *   console.log('Building completed:', data?.id);
+   * import { Events } from './events';
+   * const subscription = eventBus.on<{ tileX: number; tileY: number }>(Events.TileClicked, (data) => {
+   *   console.log('Tile clicked:', data?.tileX, data?.tileY);
    * });
    *
    * // Позже можно отписаться
    * subscription.unsubscribe();
    */
-  on<T = unknown>(eventType: string, handler: EventHandler<T>): Subscription {
+  on<T = unknown>(eventType: Events | string, handler: EventHandler<T>): Subscription {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
@@ -141,12 +145,13 @@ export class EventBus {
    * @returns Объект подписки с методом `unsubscribe()` для отмены подписки
    *
    * @example
-   * eventBus.once('GameStarted', () => {
+   * import { Events } from './events';
+   * eventBus.once(Events.GameStarted, () => {
    *   console.log('Игра запущена!');
    *   // Этот обработчик будет вызван только один раз
    * });
    */
-  once<T = unknown>(eventType: string, handler: EventHandler<T>): Subscription {
+  once<T = unknown>(eventType: Events | string, handler: EventHandler<T>): Subscription {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
@@ -179,13 +184,14 @@ export class EventBus {
    * @param handler - Функция-обработчик, которую нужно удалить из подписок
    *
    * @example
+   * import { Events } from './events';
    * const handler = (data) => console.log(data);
-   * eventBus.on('SomeEvent', handler);
+   * eventBus.on(Events.TileClicked, handler);
    *
    * // Позже отписываемся
-   * eventBus.off('SomeEvent', handler);
+   * eventBus.off(Events.TileClicked, handler);
    */
-  off(eventType: string, handler: Function): void {
+  off(eventType: Events | string, handler: Function): void {
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers) {
       return;
@@ -217,13 +223,14 @@ export class EventBus {
    * @param eventType - Опциональный тип события для очистки. Если не указан, очищаются все подписки
    *
    * @example
+   * import { Events } from './events';
    * // Очистить все подписки на конкретное событие
-   * eventBus.clear('SomeEvent');
+   * eventBus.clear(Events.TileClicked);
    *
    * // Очистить все подписки на все события
    * eventBus.clear();
    */
-  clear(eventType?: string): void {
+  clear(eventType?: Events | string): void {
     if (eventType) {
       // Очистка подписок для конкретного типа события
       this.handlers.delete(eventType);

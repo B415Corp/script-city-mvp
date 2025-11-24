@@ -1,4 +1,5 @@
 import { TickManagerConfig } from './types';
+import { Events } from '../event_bus/events';
 
 export class TickManager {
   private config: TickManagerConfig;
@@ -56,7 +57,7 @@ export class TickManager {
       return;
     }
     this.isPaused = true;
-    this.config.eventBus.emit('SimulationPaused');
+    this.config.eventBus.emit(Events.SimulationPaused);
     console.warn('⏱️ TickManager paused');
   }
 
@@ -68,7 +69,7 @@ export class TickManager {
       return;
     }
     this.isPaused = false;
-    this.config.eventBus.emit('SimulationResumed');
+    this.config.eventBus.emit(Events.SimulationResumed);
     console.warn('⏱️ TickManager resumed');
   }
 
@@ -104,7 +105,7 @@ export class TickManager {
     const pauseStateChanged = wasPaused !== this.isPaused;
 
     if (speedChanged || pauseStateChanged) {
-      this.config.eventBus.emit('SpeedChanged', {
+      this.config.eventBus.emit(Events.SpeedChanged, {
         oldSpeed,
         newSpeed: this.speedMultiplier,
       });
@@ -160,7 +161,7 @@ export class TickManager {
    */
   private tick(): void {
     // Публикуем событие начала тика
-    this.config.eventBus.emit('TickStarted', {
+    this.config.eventBus.emit(Events.TickStarted, {
       tick: this.currentTick,
       gameTime: this.gameTime,
     });
@@ -180,7 +181,7 @@ export class TickManager {
     this.gameTime++;
 
     // Публикуем событие конца тика
-    this.config.eventBus.emit('TickEnded', {
+    this.config.eventBus.emit(Events.TickEnded, {
       tick: this.currentTick - 1,
       gameTime: this.gameTime - 1,
     });
@@ -218,7 +219,7 @@ export class TickManager {
     }
 
     this.speedLocks.set(lockId, reason);
-    this.config.eventBus.emit('SpeedChangeLocked', { lockId, reason });
+    this.config.eventBus.emit(Events.SpeedChangeLocked, { lockId, reason });
     console.warn('⏱️ TickManager: speed change locked', lockId, reason);
   }
 
@@ -232,7 +233,7 @@ export class TickManager {
     }
 
     this.speedLocks.delete(lockId);
-    this.config.eventBus.emit('SpeedChangeUnlocked', { lockId });
+    this.config.eventBus.emit(Events.SpeedChangeUnlocked, { lockId });
     console.warn('⏱️ TickManager: speed change unlocked', lockId);
   }
 

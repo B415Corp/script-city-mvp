@@ -3,6 +3,8 @@ import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
 import { IsometricMath } from '@/infrastructure/isometric_math/isometric_math';
 import { UIComponent } from '@/core/ui/ui_component';
+import { EventBus } from '@/core/event_bus/event_bus';
+import { Events } from '@/core/event_bus/events';
 
 /**
  * Модуль для отрисовки изометрической сетки с управлением камерой.
@@ -14,6 +16,11 @@ import { UIComponent } from '@/core/ui/ui_component';
  * - Подсветка клеток при наведении мыши
  * - Zoom камеры (колесико мыши)
  * - Перемещение карты (перетаскивание средней кнопкой мыши или ПКМ)
+ *
+ * Публикуемые события (используйте Events enum):
+ * - `Events.TileHovered` - когда курсор наводится на тайл: `{ tileX: number, tileY: number }`
+ * - `Events.TileUnhovered` - когда курсор уходит с тайла: `{ tileX: number, tileY: number }`
+ * - `Events.TileClicked` - когда происходит клик по тайлу: `{ tileX: number, tileY: number, button: 'left' | 'right' | 'middle' }`
  */
 export class GridModule implements IModule {
   id = 'grid';
@@ -24,6 +31,7 @@ export class GridModule implements IModule {
   private gridGraphics?: Phaser.GameObjects.Graphics;
   private highlightGraphics?: Phaser.GameObjects.Graphics;
   private container?: Phaser.GameObjects.Container;
+  private eventBus?: EventBus;
 
   // Параметры сетки
   private readonly gridWidth: number = 100;
@@ -39,8 +47,8 @@ export class GridModule implements IModule {
   private dragStartX: number = 0;
   private dragStartY: number = 0;
 
-  async initialize(_core: GameCore): Promise<void> {
-    void _core;
+  async initialize(core: GameCore): Promise<void> {
+    this.eventBus = core.getEventBus();
     this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
     console.warn('🗺️ GridModule initialized');
   }
@@ -77,6 +85,9 @@ export class GridModule implements IModule {
     // Обработка движения мыши для подсветки
     scene.input.on('pointermove', this.handlePointerMove, this);
     scene.input.on('pointerout', this.clearHighlight, this);
+
+    // Обработка клика по тайлу
+    scene.input.on('pointerdown', this.handlePointerDown, this);
 
     console.warn('🗺️ GridModule attached to scene', scene.scene.key);
   }
@@ -336,8 +347,18 @@ export class GridModule implements IModule {
           this.highlightedTile.x !== tilePos.tileX ||
           this.highlightedTile.y !== tilePos.tileY
         ) {
+          const previousTile = this.highlightedTile;
           this.highlightedTile = { x: tilePos.tileX, y: tilePos.tileY };
           this.drawHighlight(tilePos.tileX, tilePos.tileY);
+
+          // Публикуем события о смене подсветки
+          if (previousTile) {
+            this.eventBus?.emit(Events.TileUnhovered, {
+              tileX: previousTile.x,
+              tileY: previousTile.y,
+            });
+          }
+          this.eventBus?.emit(Events.TileHovered, { tileX: tilePos.tileX, tileY: tilePos.tileY });
         }
       } else {
         // Точка не внутри ромба - проверяем соседние тайлы
@@ -348,8 +369,18 @@ export class GridModule implements IModule {
             this.highlightedTile.x !== foundTile.x ||
             this.highlightedTile.y !== foundTile.y
           ) {
+            const previousTile = this.highlightedTile;
             this.highlightedTile = foundTile;
             this.drawHighlight(foundTile.x, foundTile.y);
+
+            // Публикуем события о смене подсветки
+            if (previousTile) {
+              this.eventBus?.emit(Events.TileUnhovered, {
+                tileX: previousTile.x,
+                tileY: previousTile.y,
+              });
+            }
+            this.eventBus?.emit(Events.TileHovered, { tileX: foundTile.x, tileY: foundTile.y });
           }
         } else {
           this.clearHighlight();
@@ -439,19 +470,99 @@ export class GridModule implements IModule {
   }
 
   /**
+   * Обработка клика по тайлу
+   */
+  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    // Игнорируем клики при перетаскивании карты
+    if (this.isDragging || pointer.rightButtonDown() || pointer.middleButtonDown()) {
+      return;
+    }
+
+    if (!this.scene || !this.isometricMath || !this.container) {
+      return;
+    }
+
+    // Проверяем, не был ли клик по UI элементу
+    const hasUIElement = this.scene.children.list.some((child) => {
+      const gameObj = child as Phaser.GameObjects.GameObject & { depth?: number };
+      if (gameObj.depth !== undefined && gameObj.depth >= UIComponent.DEPTH.UI_BASE) {
+        if (child instanceof Phaser.GameObjects.Container) {
+          const bounds = child.getBounds();
+          return bounds.contains(pointer.x, pointer.y);
+        }
+      }
+      return false;
+    });
+
+    if (hasUIElement) {
+      return;
+    }
+
+    // Преобразуем экранные координаты с учётом scale и позиции контейнера
+    const worldX = (pointer.x - this.container.x) / this.container.scale;
+    const worldY = (pointer.y - this.container.y) / this.container.scale;
+
+    // Конвертируем в координаты тайла
+    const tilePos = this.isometricMath.screenToTile(worldX, worldY);
+
+    // Проверяем, что координаты в пределах сетки
+    if (
+      tilePos.tileX >= 0 &&
+      tilePos.tileX < this.gridWidth &&
+      tilePos.tileY >= 0 &&
+      tilePos.tileY < this.gridHeight
+    ) {
+      // Проверяем, действительно ли точка находится внутри ромба тайла
+      if (this.isometricMath.isPointInTile(worldX, worldY, tilePos.tileX, tilePos.tileY)) {
+        this.eventBus?.emit(Events.TileClicked, {
+          tileX: tilePos.tileX,
+          tileY: tilePos.tileY,
+          button: pointer.leftButtonDown()
+            ? 'left'
+            : pointer.rightButtonDown()
+              ? 'right'
+              : 'middle',
+        });
+      } else {
+        // Проверяем соседние тайлы
+        const foundTile = this.findTileAtPoint(worldX, worldY, tilePos.tileX, tilePos.tileY);
+        if (foundTile) {
+          this.eventBus?.emit(Events.TileClicked, {
+            tileX: foundTile.x,
+            tileY: foundTile.y,
+            button: pointer.leftButtonDown()
+              ? 'left'
+              : pointer.rightButtonDown()
+                ? 'right'
+                : 'middle',
+          });
+        }
+      }
+    }
+  }
+
+  /**
    * Очистка подсветки
    */
   private clearHighlight(): void {
-    if (this.highlightGraphics) {
+    if (this.highlightedTile) {
+      const previousTile = this.highlightedTile;
+      this.highlightedTile = null;
+      if (this.highlightGraphics) {
+        this.highlightGraphics.clear();
+      }
+      // Публикуем событие о снятии подсветки
+      this.eventBus?.emit(Events.TileUnhovered, { tileX: previousTile.x, tileY: previousTile.y });
+    } else if (this.highlightGraphics) {
       this.highlightGraphics.clear();
     }
-    this.highlightedTile = null;
   }
 
   destroy(): void {
     if (this.scene) {
       this.scene.input.off('pointermove', this.handlePointerMove, this);
       this.scene.input.off('pointerout', this.clearHighlight, this);
+      this.scene.input.off('pointerdown', this.handlePointerDown, this);
       this.scene.events.off('update');
     }
 

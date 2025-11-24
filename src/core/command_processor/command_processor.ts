@@ -1,4 +1,5 @@
 import { EventBus } from '../event_bus/event_bus';
+import { Events } from '../event_bus/events';
 import { ECSManager } from '../ecs_manager/ecs_manager';
 import {
   BuildBuildingCommand,
@@ -73,7 +74,7 @@ export class CommandProcessor {
           command: command.type,
           error: validation.error,
         });
-        this.eventBus.emit('CommandRejected', {
+        this.eventBus.emit(Events.CommandRejected, {
           command,
           reason: validation.error,
         });
@@ -83,13 +84,13 @@ export class CommandProcessor {
       // Применение команды
       try {
         this.applyCommand(command);
-        this.eventBus.emit('CommandProcessed', { command });
+        this.eventBus.emit(Events.CommandProcessed, { command });
       } catch (error) {
         console.error('⚙️ CommandProcessor: command processing failed', {
           command: command.type,
           error,
         });
-        this.eventBus.emit('CommandFailed', {
+        this.eventBus.emit(Events.CommandFailed, {
           command,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -265,7 +266,7 @@ export class CommandProcessor {
     const cmd = command as BuildBuildingCommand;
     // TODO: Применение через систему строительства
     // В будущем это будет работать через ECS системы
-    this.eventBus.emit('BuildCommandRequested', {
+    this.eventBus.emit(Events.BuildCommandRequested, {
       position: cmd.position,
       buildingType: cmd.buildingType,
     });
@@ -274,7 +275,7 @@ export class CommandProcessor {
   private applyBulldozeAreaCommand(command: ICommand): void {
     const cmd = command as BulldozeAreaCommand;
     // TODO: Применение через систему сноса
-    this.eventBus.emit('DemolishCommandRequested', {
+    this.eventBus.emit(Events.DemolishCommandRequested, {
       area: cmd.area,
     });
   }
@@ -282,7 +283,7 @@ export class CommandProcessor {
   private applyChangeTaxRateCommand(command: ICommand): void {
     const cmd = command as ChangeTaxRateCommand;
     // TODO: Применение через экономическую систему
-    this.eventBus.emit('ChangeTaxRequested', {
+    this.eventBus.emit(Events.ChangeTaxRequested, {
       taxType: cmd.taxType,
       newRate: cmd.newRate,
     });
@@ -291,7 +292,7 @@ export class CommandProcessor {
   private applySetPolicyCommand(command: ICommand): void {
     const cmd = command as SetPolicyCommand;
     // TODO: Применение через систему политик
-    this.eventBus.emit('PolicyChangeRequested', {
+    this.eventBus.emit(Events.PolicyChangeRequested, {
       policyId: cmd.policyId,
       enabled: cmd.enabled,
     });
@@ -300,7 +301,7 @@ export class CommandProcessor {
   private applySetSimulationSpeedCommand(command: ICommand): void {
     const cmd = command as SetSimulationSpeedCommand;
     // Применение через TickManager (через событие)
-    this.eventBus.emit('SetSimulationSpeedRequested', {
+    this.eventBus.emit(Events.SetSimulationSpeedRequested, {
       speedLevel: cmd.speedLevel,
     });
   }

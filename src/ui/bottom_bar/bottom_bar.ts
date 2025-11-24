@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { UIComponent } from '@/core/ui/ui_component';
+import { Events } from '@/core/event_bus/events';
 
 /**
  * Нижняя панель управления (как в Cities: Skylines)
@@ -175,7 +176,7 @@ export class BottomBar extends UIComponent {
   private sendSpeedCommand(speed: number): void {
     // Отправляем событие напрямую, минуя очередь команд
     // Это необходимо, т.к. на паузе тики не выполняются и команды из очереди не обрабатываются
-    this.core.getEventBus().emit('SetSimulationSpeedRequested', {
+    this.core.getEventBus().emit(Events.SetSimulationSpeedRequested, {
       speedLevel: speed,
     });
   }
@@ -184,7 +185,7 @@ export class BottomBar extends UIComponent {
     const eventBus = this.core.getEventBus();
 
     // Подписка на изменение скорости
-    eventBus.on<{ oldSpeed: number; newSpeed: number }>('SpeedChanged', (payload) => {
+    eventBus.on<{ oldSpeed: number; newSpeed: number }>(Events.SpeedChanged, (payload) => {
       if (payload) {
         this.currentSpeed = payload.newSpeed;
         this.isPaused = payload.newSpeed === 0.0;
@@ -193,12 +194,12 @@ export class BottomBar extends UIComponent {
     });
 
     // Подписка на паузу/возобновление
-    eventBus.on('SimulationPaused', () => {
+    eventBus.on(Events.SimulationPaused, () => {
       this.isPaused = true;
       this.updateSpeedDisplay();
     });
 
-    eventBus.on('SimulationResumed', () => {
+    eventBus.on(Events.SimulationResumed, () => {
       this.isPaused = false;
       this.updateSpeedDisplay();
     });
