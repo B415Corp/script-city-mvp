@@ -1,15 +1,13 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
+import { UIComponent } from '@/core/ui/ui_component';
 
 /**
  * Визуальный индикатор скорости игры
  * Объект на экране, который движется в зависимости от игровой скорости
  * Теги: arch:ui, gameplay:time-control, tech:phaser
  */
-export class SpeedIndicator {
-  private scene: Phaser.Scene;
-  private core: GameCore;
-  private container!: Phaser.GameObjects.Container;
+export class SpeedIndicator extends UIComponent {
   private circle!: Phaser.GameObjects.Arc;
   private text!: Phaser.GameObjects.Text;
   private baseX: number = 0;
@@ -21,15 +19,14 @@ export class SpeedIndicator {
   private readonly ANIMATION_SPEED = 0.002; // базовая скорость анимации
 
   constructor(scene: Phaser.Scene, core: GameCore, x: number, y: number) {
-    this.scene = scene;
-    this.core = core;
+    super(scene, core);
     this.baseX = x;
     this.baseY = y;
   }
 
   create(): void {
-    // Создаем контейнер
-    this.container = this.scene.add.container(this.baseX, this.baseY);
+    // Создаём контейнер с базовым depth
+    super.createContainer(this.baseX, this.baseY, UIComponent.DEPTH.UI_BASE);
 
     // Создаем круг
     this.circle = this.scene.add.circle(0, 0, this.CIRCLE_RADIUS, 0x4a90e2, 0.8);
@@ -45,11 +42,6 @@ export class SpeedIndicator {
       .setOrigin(0.5);
 
     this.container.add([this.circle, this.text]);
-
-    // Фиксируем UI - не двигается с камерой
-    this.container.setScrollFactor(0);
-    // Устанавливаем высокий depth, чтобы UI был поверх карты
-    this.container.setDepth(1000);
 
     // Подписка на события изменения скорости
     this.subscribeToEvents();
@@ -121,8 +113,6 @@ export class SpeedIndicator {
   }
 
   destroy(): void {
-    if (this.container) {
-      this.container.destroy(true);
-    }
+    super.destroy();
   }
 }

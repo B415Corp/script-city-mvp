@@ -1,15 +1,13 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
+import { UIComponent } from '@/core/ui/ui_component';
 
 /**
  * Нижняя панель управления (как в Cities: Skylines)
  * Содержит управление временем (тиками)
  * Теги: arch:ui, gameplay:time-control, tech:phaser
  */
-export class BottomBar {
-  private scene: Phaser.Scene;
-  private core: GameCore;
-  private container!: Phaser.GameObjects.Container;
+export class BottomBar extends UIComponent {
   private background!: Phaser.GameObjects.Rectangle;
   private speedButtons: Phaser.GameObjects.Text[] = [];
   private currentSpeed: number = 1.0;
@@ -23,20 +21,15 @@ export class BottomBar {
   private readonly BUTTON_Y_OFFSET = 15;
 
   constructor(scene: Phaser.Scene, core: GameCore) {
-    this.scene = scene;
-    this.core = core;
+    super(scene, core);
   }
 
   create(): void {
     const { width, height } = this.scene.scale;
     const barY = height - this.BAR_HEIGHT;
 
-    // Создаем контейнер для всей панели
-    this.container = this.scene.add.container(0, 0);
-    // Фиксируем UI - не двигается с камерой
-    this.container.setScrollFactor(0);
-    // Устанавливаем высокий depth, чтобы UI был поверх карты
-    this.container.setDepth(1000);
+    // Создаём контейнер с depth для панелей
+    super.createContainer(0, 0, UIComponent.DEPTH.UI_PANELS);
 
     // Фон панели (темный полупрозрачный)
     this.background = this.scene.add.rectangle(
@@ -260,6 +253,6 @@ export class BottomBar {
   }
 
   destroy(): void {
-    this.container.destroy(true);
+    super.destroy();
   }
 }

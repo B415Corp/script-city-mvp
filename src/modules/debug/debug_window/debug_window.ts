@@ -1,14 +1,12 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
+import { UIComponent } from '@/core/ui/ui_component';
 
 /**
  * Окно отладки с информацией о тиках, скорости и подписках
  * Теги: arch:ui, debug:info, tech:phaser
  */
-export class DebugWindow {
-  private scene: Phaser.Scene;
-  private core: GameCore;
-  private container!: Phaser.GameObjects.Container;
+export class DebugWindow extends UIComponent {
   private background!: Phaser.GameObjects.Rectangle;
   private titleText!: Phaser.GameObjects.Text;
   private collapseButton!: Phaser.GameObjects.Text;
@@ -32,8 +30,7 @@ export class DebugWindow {
   private contentElements: (Phaser.GameObjects.Text | Phaser.GameObjects.Rectangle)[] = [];
 
   constructor(scene: Phaser.Scene, core: GameCore) {
-    this.scene = scene;
-    this.core = core;
+    super(scene, core);
   }
 
   create(): void {
@@ -41,15 +38,11 @@ export class DebugWindow {
     const x = width - this.WINDOW_WIDTH - 20;
     const y = 20;
 
-    // Контейнер
-    this.container = this.scene.add.container(x, y);
+    // Создаём контейнер с depth для панелей
+    super.createContainer(x, y, UIComponent.DEPTH.UI_PANELS);
     // Окно видимо по умолчанию для отладки
     this.isVisible = true;
     this.container.setVisible(true);
-    // Фиксируем UI - не двигается с камерой
-    this.container.setScrollFactor(0);
-    // Устанавливаем высокий depth, чтобы UI был поверх карты
-    this.container.setDepth(1000);
 
     // Фон окна
     this.background = this.scene.add.rectangle(
@@ -256,8 +249,6 @@ export class DebugWindow {
   }
 
   destroy(): void {
-    if (this.container) {
-      this.container.destroy(true);
-    }
+    super.destroy();
   }
 }

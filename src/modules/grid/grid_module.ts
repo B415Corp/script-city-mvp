@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
 import { IsometricMath } from '@/infrastructure/isometric_math/isometric_math';
+import { UIComponent } from '@/core/ui/ui_component';
 
 /**
  * Модуль для отрисовки изометрической сетки с управлением камерой.
@@ -84,12 +85,19 @@ export class GridModule implements IModule {
    * Центрирование карты на экране
    */
   private centerMap(): void {
-    if (!this.scene || !this.container) {
+    if (!this.scene || !this.container || !this.isometricMath) {
       return;
     }
 
     const camera = this.scene.cameras.main;
-    this.container.setPosition(camera.width / 2, camera.height / 2);
+    const centerX = camera.width / 2;
+    const centerY = camera.height / 2;
+
+    this.container.setPosition(centerX, centerY);
+
+    // Координаты тайлов вычисляются относительно контейнера (0,0)
+    // поэтому offset должен быть 0
+    this.isometricMath.setOffset(0, 0);
   }
 
   /**
@@ -106,22 +114,46 @@ export class GridModule implements IModule {
     // Zoom колесиком мыши (изменяем scale контейнера)
     this.scene.input.on(
       'wheel',
-      (
-        _pointer: Phaser.Input.Pointer,
-        _gameObjects: unknown[],
-        _deltaX: number,
-        deltaY: number,
-      ) => {
-        if (!this.container) {
+      (pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _deltaX: number, deltaY: number) => {
+        if (!this.container || !this.scene) {
           return;
         }
+
+        // Проверяем, не находится ли курсор над UI элементом
+        const hasUIElement = this.scene.children.list.some((child) => {
+          const gameObj = child as Phaser.GameObjects.GameObject & { depth?: number };
+          if (gameObj.depth !== undefined && gameObj.depth >= UIComponent.DEPTH.UI_BASE) {
+            if (child instanceof Phaser.GameObjects.Container) {
+              const bounds = child.getBounds();
+              return bounds.contains(pointer.x, pointer.y);
+            }
+          }
+          return false;
+        });
+
+        if (hasUIElement) {
+          return; // Не зумим, если курсор над UI
+        }
+
+        const oldScale = this.container.scale;
         const zoomSpeed = 0.001;
         const newScale = Phaser.Math.Clamp(
-          this.container.scale - deltaY * zoomSpeed,
+          oldScale - deltaY * zoomSpeed,
           0.3, // Минимальный zoom
           2.0, // Максимальный zoom
         );
+
+        // Вычисляем координаты точки под курсором в пространстве контейнера (до изменения масштаба)
+        const worldX = (pointer.x - this.container.x) / oldScale;
+        const worldY = (pointer.y - this.container.y) / oldScale;
+
+        // После изменения масштаба, пересчитываем позицию контейнера так,
+        // чтобы эта же точка осталась под курсором
+        const newX = pointer.x - worldX * newScale;
+        const newY = pointer.y - worldY * newScale;
+
         this.container.setScale(newScale);
+        this.container.setPosition(newX, newY);
       },
     );
 
@@ -189,7 +221,6 @@ export class GridModule implements IModule {
     this.gridGraphics.clear();
 
     // Рисуем фон для каждой клетки (серый)
-    this.gridGraphics.fillStyle(0x2d3748, 1.0);
     for (let y = 0; y < this.gridHeight; y++) {
       for (let x = 0; x < this.gridWidth; x++) {
         const center = this.isometricMath.tileToScreen(x, y);
@@ -220,13 +251,15 @@ export class GridModule implements IModule {
     const halfWidth = this.tileWidth / 2;
     const halfHeight = this.tileHeight / 2;
 
+    // Устанавливаем стиль заливки для каждого тайла
+    graphics.fillStyle(0x2d3748, 1.0);
     graphics.beginPath();
     graphics.moveTo(centerX, centerY - halfHeight); // Верх
     graphics.lineTo(centerX + halfWidth, centerY); // Право
     graphics.lineTo(centerX, centerY + halfHeight); // Низ
     graphics.lineTo(centerX - halfWidth, centerY); // Лево
     graphics.closePath();
-    graphics.fillPath();
+    graphics.fillPath(); // Заливаем каждый ромб отдельно
   }
 
   /**
@@ -259,6 +292,25 @@ export class GridModule implements IModule {
     }
 
     if (!this.scene || !this.isometricMath || !this.highlightGraphics || !this.container) {
+      return;
+    }
+
+    // Проверяем, не был ли курсор над UI элементом
+    // Проверяем все объекты сцены с depth >= UI_BASE
+    const hasUIElement = this.scene.children.list.some((child) => {
+      const gameObj = child as Phaser.GameObjects.GameObject & { depth?: number };
+      if (gameObj.depth !== undefined && gameObj.depth >= UIComponent.DEPTH.UI_BASE) {
+        // Проверяем, попадает ли курсор в bounds контейнера
+        if (child instanceof Phaser.GameObjects.Container) {
+          const bounds = child.getBounds();
+          return bounds.contains(pointer.x, pointer.y);
+        }
+      }
+      return false;
+    });
+
+    if (hasUIElement) {
+      this.clearHighlight();
       return;
     }
 
