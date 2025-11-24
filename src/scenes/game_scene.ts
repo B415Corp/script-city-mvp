@@ -22,11 +22,6 @@ export class GameScene extends Phaser.Scene {
     // Устанавливаем тёмно-серый фон сцены для контраста с сеткой
     this.cameras.main.setBackgroundColor('#1a202c');
 
-    this.input.keyboard?.on('keydown-ESC', () => {
-      this.core.stop();
-      this.scene.start('MenuScene');
-    });
-
     // Инициализация игрового ядра
     this.core = new GameCore();
     await this.core.initialize({

@@ -30,9 +30,7 @@ export class TopBar extends UIComponent {
   private toolsSubbarBackground: Phaser.GameObjects.Rectangle | null = null;
   private toolsSubbarContainer: Phaser.GameObjects.Container | null = null;
   private toolButtons: Phaser.GameObjects.Container[] = [];
-  private hoveredCategoryId: string | null = null;
-  private hideSubbarTimeout: number | null = null;
-  private isMouseOverSubbar: boolean = false;
+  private activeCategoryId: string | null = null; // Категория, для которой открыта подполоса
   private cancelToolButton: Phaser.GameObjects.Container | null = null;
 
   // Позиция верхней полосы (вычисляется относительно высоты экрана)
@@ -164,7 +162,11 @@ export class TopBar extends UIComponent {
     buttonWidth: number,
   ): Phaser.GameObjects.Container {
     // Позиционируем контейнер так, чтобы центр кнопки был в указанной позиции
-    const container = this.scene.add.container(x + buttonWidth / 2, y);
+    const container = this.scene.add.container(x + buttonWidth / 2, y) as Phaser.GameObjects.Container & {
+      categoryId?: string;
+    };
+    // Сохраняем categoryId в данных контейнера для последующего использования
+    container.categoryId = category.id;
 
     // Фон кнопки (отцентрован в контейнере)
     const bg = this.scene.add.rectangle(
@@ -221,29 +223,19 @@ export class TopBar extends UIComponent {
     // Обработчики событий
     const handlePointerOver = (): void => {
       bg.setFillStyle(0x4a90e2);
-      // Отменяем скрытие подполосы, если оно было запланировано
-      this.cancelHideSubbar();
-      // Показываем подполосу для этой категории
-      this.showToolsSubbar(category);
     };
 
     const handlePointerOut = (): void => {
-      bg.setFillStyle(0x404040);
-      // Сбрасываем hoveredCategoryId только если это была активная категория
-      // Если мышка перейдет на подполосу или другую категорию, hoveredCategoryId будет обновлен
-      if (this.hoveredCategoryId === category.id) {
-        this.hoveredCategoryId = null;
-      }
-      // Начинаем отсчет задержки скрытия подполосы
-      // Если мышка перейдет на подполосу или другую категорию, таймер будет отменен
-      this.scheduleHideSubbar();
+      // Если категория активна (подполоса открыта), подсвечиваем её
+      bg.setFillStyle(this.activeCategoryId === category.id ? 0x4a90e2 : 0x404040);
     };
 
     const handlePointerDown = (): void => {
-      // При клике на категорию можно активировать первый инструмент или просто показать подполосу
-      if (category.tools.length > 0) {
-        const firstTool = category.tools[0];
-        this.activateTool(firstTool.id);
+      // Переключаем подполосу: если уже открыта для этой категории - закрываем, иначе открываем
+      if (this.activeCategoryId === category.id) {
+        this.hideToolsSubbar();
+      } else {
+        this.showToolsSubbar(category);
       }
     };
 
@@ -263,11 +255,11 @@ export class TopBar extends UIComponent {
   }
 
   private showToolsSubbar(category: ToolCategory): void {
-    // Отменяем таймер скрытия, если он был запущен
-    this.cancelHideSubbar();
-
     // Обновляем активную категорию
-    this.hoveredCategoryId = category.id;
+    this.activeCategoryId = category.id;
+
+    // Обновляем визуальное состояние кнопок категорий
+    this.updateCategoryButtonsDisplay();
 
     const { width } = this.scene.scale;
     const toolsSubbarY = Math.max(0, this.topBarY - this.TOOLS_SUBBAR_HEIGHT);
@@ -339,87 +331,14 @@ export class TopBar extends UIComponent {
       currentX += buttonWidth + this.BUTTON_SPACING;
     });
 
-    // Настраиваем интерактивность для фона и контейнера подполосы
-    // Это позволит отслеживать, когда курсор находится в пределах подполосы
-    this.toolsSubbarBackground.setInteractive();
-    this.toolsSubbarContainer.setInteractive();
-
-    // Подписываемся на события мыши для скрытия подполосы при уходе курсора
-    this.setupSubbarHoverHandlers();
-  }
-
-  private setupSubbarHoverHandlers(): void {
-    if (!this.toolsSubbarBackground || !this.toolsSubbarContainer) {
-      return;
-    }
-
-    // Очищаем предыдущие обработчики
-    this.toolsSubbarBackground.removeAllListeners();
-    this.toolsSubbarContainer.removeAllListeners();
-
-    // Обработчики для показа подполосы при наведении на неё
-    const handleSubbarPointerOver = (): void => {
-      // Мышка наведена на подполосу - отменяем скрытие
-      this.isMouseOverSubbar = true;
-      this.cancelHideSubbar();
-    };
-
-    // Скрываем подполосу при уходе курсора (с задержкой)
-    const handleSubbarPointerOut = (): void => {
-      // Мышка ушла с подполосы (фон или контейнер)
-      // Сбрасываем флаг и запускаем таймер скрытия
-      // Если мышка вернется на любой элемент подполосы (включая кнопки),
-      // флаг установится обратно и таймер отменится
-      this.isMouseOverSubbar = false;
-      this.scheduleHideSubbar();
-    };
-
-    this.toolsSubbarBackground.on('pointerover', handleSubbarPointerOver);
-    this.toolsSubbarContainer.on('pointerover', handleSubbarPointerOver);
-    this.toolsSubbarBackground.on('pointerout', handleSubbarPointerOut);
-    this.toolsSubbarContainer.on('pointerout', handleSubbarPointerOut);
-  }
-
-  /**
-   * Запланировать скрытие подполосы с задержкой.
-   * Если мышка вернется на категорию или подполосу, таймер будет отменен.
-   *
-   * Следуем лучшим практикам UX для выпадающих меню:
-   * - Задержка перед закрытием (300ms)
-   * - Меню остается открытым пока курсор над ним или над триггером
-   * - Меню закрывается только когда курсор ушел и с триггера, и с самого меню
-   */
-  private scheduleHideSubbar(): void {
-    // Отменяем предыдущий таймер, если он был
-    this.cancelHideSubbar();
-
-    // Устанавливаем новый таймер с задержкой для комфортной навигации
-    this.hideSubbarTimeout = window.setTimeout(() => {
-      // Проверяем, что мышка действительно ушла и с категории, и с подполосы (включая кнопки)
-      if (!this.isMouseOverSubbar && this.hoveredCategoryId === null) {
-        this.hideToolsSubbar();
-      }
-      this.hideSubbarTimeout = null;
-    }, 300) as unknown as number; // 300ms - стандартная задержка для выпадающих меню
-  }
-
-  /**
-   * Отменить запланированное скрытие подполосы.
-   */
-  private cancelHideSubbar(): void {
-    if (this.hideSubbarTimeout !== null) {
-      window.clearTimeout(this.hideSubbarTimeout);
-      this.hideSubbarTimeout = null;
-    }
   }
 
   private hideToolsSubbar(): void {
-    // Отменяем таймер скрытия
-    this.cancelHideSubbar();
+    // Сбрасываем активную категорию
+    this.activeCategoryId = null;
 
-    // Сбрасываем флаги
-    this.hoveredCategoryId = null;
-    this.isMouseOverSubbar = false;
+    // Обновляем визуальное состояние кнопок категорий
+    this.updateCategoryButtonsDisplay();
 
     if (this.toolsSubbarBackground) {
       this.toolsSubbarBackground.setVisible(false);
@@ -507,18 +426,12 @@ export class TopBar extends UIComponent {
     // Обработчики событий
     const handlePointerOver = (): void => {
       bg.setFillStyle(0x5aa0f2);
-      // Важно: мышка над кнопкой инструмента - отменяем скрытие меню
-      this.isMouseOverSubbar = true;
-      this.cancelHideSubbar();
     };
 
     const handlePointerOut = (): void => {
       const toolManager = this.core.getToolManager();
       const isActive = toolManager.isToolActive(tool.id);
       bg.setFillStyle(isActive ? 0x4a90e2 : 0x505050);
-      // Мышка ушла с кнопки - сбрасываем флаг
-      // Если мышка не перейдет на другой элемент подполосы, таймер скрытия запустится
-      this.isMouseOverSubbar = false;
     };
 
     const handlePointerDown = (): void => {
@@ -572,6 +485,23 @@ export class TopBar extends UIComponent {
 
     // Обновляем видимость кнопки отмены инструмента
     this.updateCancelToolButtonVisibility();
+  }
+
+  /**
+   * Обновление визуального состояния кнопок категорий.
+   */
+  private updateCategoryButtonsDisplay(): void {
+    this.categoryButtons.forEach((buttonContainer) => {
+      const bg = buttonContainer.list[0] as Phaser.GameObjects.Rectangle;
+      if (!bg) return;
+
+      // Получаем categoryId из данных контейнера
+      const categoryId = (buttonContainer as Phaser.GameObjects.Container & { categoryId?: string }).categoryId;
+      if (!categoryId) return;
+
+      // Подсвечиваем активную категорию
+      bg.setFillStyle(categoryId === this.activeCategoryId ? 0x4a90e2 : 0x404040);
+    });
   }
 
   /**
@@ -678,6 +608,20 @@ export class TopBar extends UIComponent {
     this.updateToolButtonsDisplay();
   }
 
+  /**
+   * Проверка, видима ли подполоса инструментов.
+   */
+  isSubbarVisible(): boolean {
+    return this.activeCategoryId !== null && this.toolsSubbarBackground !== null && this.toolsSubbarBackground.visible;
+  }
+
+  /**
+   * Публичный метод для закрытия подполосы инструментов (используется из bottom_bar).
+   */
+  public closeSubbar(): void {
+    this.hideToolsSubbar();
+  }
+
   private subscribeToEvents(): void {
     const eventBus = this.core.getEventBus();
 
@@ -723,10 +667,10 @@ export class TopBar extends UIComponent {
       this.toolsSubbarContainer.setPosition(0, toolsSubbarY);
 
       // Пересоздаём кнопки инструментов с учетом нового размера экрана
-      const hoveredCategory = this.hoveredCategoryId
-        ? this.core.getToolManager().getCategory(this.hoveredCategoryId)
+      const activeCategory = this.activeCategoryId
+        ? this.core.getToolManager().getCategory(this.activeCategoryId)
         : null;
-      if (hoveredCategory) {
+      if (activeCategory) {
         // Очищаем старые кнопки
         this.toolButtons.forEach((btn) => btn.destroy());
         this.toolButtons = [];
@@ -741,7 +685,7 @@ export class TopBar extends UIComponent {
         const maxRows = Math.floor(this.TOOLS_SUBBAR_HEIGHT / rowHeight);
         let currentRow = 0;
 
-        hoveredCategory.tools.forEach((tool) => {
+        activeCategory.tools.forEach((tool) => {
           // Вычисляем ширину кнопки на основе текста
           const buttonWidth = this.calculateToolButtonWidth(tool.name);
 
