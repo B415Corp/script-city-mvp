@@ -1,6 +1,5 @@
 import { GameCore } from '@/core/game_core/game_core';
 import { DebugModule } from '@/modules/debug/debug_module';
-import { GridModule } from '@/modules/grid/grid_module';
 import { BottomBarModule } from '@/modules/ui/bottom_bar_module';
 
 import Phaser from 'phaser';
@@ -38,8 +37,7 @@ export class GameScene extends Phaser.Scene {
     // ⬇️ РЕГИСТРАЦИЯ МОДУЛЕЙ
     moduleManager.registerModule(new DebugModule());
     moduleManager.registerModule(new BottomBarModule());
-    // moduleManager.registerModule(new SpeedIndicatorModule());
-    moduleManager.registerModule(new GridModule());
+    // moduleManager.registerModule(new GridModule());
 
     // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();
