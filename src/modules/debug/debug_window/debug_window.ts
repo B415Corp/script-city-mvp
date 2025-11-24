@@ -13,6 +13,7 @@ export class DebugWindow extends UIComponent {
   private toggleButtonText!: Phaser.GameObjects.Text;
   private contentContainer!: Phaser.GameObjects.Container;
   private tickText!: Phaser.GameObjects.Text;
+  private toolText!: Phaser.GameObjects.Text;
   private modulesText!: Phaser.GameObjects.Text;
   private eventsText!: Phaser.GameObjects.Text;
   private isVisible: boolean = true;
@@ -82,6 +83,17 @@ export class DebugWindow extends UIComponent {
       })
       .setOrigin(0, 0);
     this.contentContainer.add(this.tickText);
+
+    // Текст активного инструмента - позиция будет обновляться динамически
+    this.toolText = this.scene.add
+      .text(0, 0, '', {
+        fontSize: this.FONT_SIZE,
+        color: '#90ee90',
+        fontFamily: 'Arial',
+        lineSpacing: 2,
+      })
+      .setOrigin(0, 0);
+    this.contentContainer.add(this.toolText);
 
     // Текст модулей - позиция будет обновляться динамически
     this.modulesText = this.scene.add
@@ -184,6 +196,10 @@ export class DebugWindow extends UIComponent {
     this.tickText.setY(currentY);
     currentY += this.getTextHeight(this.tickText) + this.SECTION_SPACING;
 
+    // Позиционируем активный инструмент
+    this.toolText.setY(currentY);
+    currentY += this.getTextHeight(this.toolText) + this.SECTION_SPACING;
+
     // Позиционируем модули
     this.modulesText.setY(currentY);
     currentY += this.getTextHeight(this.modulesText) + this.SECTION_SPACING;
@@ -208,6 +224,27 @@ export class DebugWindow extends UIComponent {
     this.tickText.setText(
       `Tick: ${currentTick}\nRate: ${tickRate}/s\nEffective: ${effectiveTickRate.toFixed(1)}/s\nActual: ${ticksPerSecond}/s\nSpeed: ${isPaused ? '⏸' : `${speed}x`}`,
     );
+
+    // Информация об активном инструменте
+    try {
+      const toolManager = this.core.getToolManager();
+      const activeTool = toolManager.getActiveTool();
+      if (activeTool.toolId) {
+        const tool = toolManager.getTool(activeTool.toolId);
+        if (tool) {
+          this.toolText.setText(
+            `Tool: ${tool.icon} ${tool.name}\nType: ${tool.type}\nCategory: ${tool.categoryId}`,
+          );
+        } else {
+          this.toolText.setText('Tool: Unknown');
+        }
+      } else {
+        this.toolText.setText('Tool: None');
+      }
+    } catch {
+      // ToolManager может быть не инициализирован
+      this.toolText.setText('Tool: N/A');
+    }
 
     // Информация о модулях
     const modules = moduleManager.getAllModules();

@@ -58,10 +58,23 @@ export interface SetSimulationSpeedCommand extends ICommand {
   speedLevel: number;
 }
 
+export interface ZoneTileCommand extends ICommand {
+  type: 'ZoneTile';
+  position: { x: number; y: number };
+  zoneType: 'residential_low' | 'commercial_low' | 'industrial_low';
+}
+
+export interface RemoveZoneCommand extends ICommand {
+  type: 'RemoveZone';
+  position: { x: number; y: number };
+}
+
 /** Тип объединения всех команд */
 export type Command =
   | BuildBuildingCommand
   | BulldozeAreaCommand
   | ChangeTaxRateCommand
   | SetPolicyCommand
-  | SetSimulationSpeedCommand;
+  | SetSimulationSpeedCommand
+  | ZoneTileCommand
+  | RemoveZoneCommand;

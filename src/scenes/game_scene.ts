@@ -2,6 +2,8 @@ import { GameCore } from '@/core/game_core/game_core';
 import { DebugModule } from '@/modules/debug/debug_module';
 import { GridModule } from '@/modules/grid/grid_module';
 import { BottomBarModule } from '@/modules/ui/bottom_bar_module';
+import { ToolsModule } from '@/modules/tools/tools_module';
+import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
 
 import Phaser from 'phaser';
 
@@ -36,9 +38,12 @@ export class GameScene extends Phaser.Scene {
     const moduleManager = this.core.getModuleManager();
 
     // ⬇️ РЕГИСТРАЦИЯ МОДУЛЕЙ
+    // ToolsModule должен быть зарегистрирован первым, так как другие модули инструментов зависят от него
+    moduleManager.registerModule(new ToolsModule());
     moduleManager.registerModule(new DebugModule());
     moduleManager.registerModule(new BottomBarModule());
     moduleManager.registerModule(new GridModule());
+    moduleManager.registerModule(new ZoningToolsModule());
 
     // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();
