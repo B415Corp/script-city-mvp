@@ -22,7 +22,6 @@ export class DebugModule implements IModule {
 
   async initialize(core: GameCore): Promise<void> {
     this.core = core;
-    console.warn('🐛 DebugModule initialized');
   }
 
   /**
@@ -46,16 +45,15 @@ export class DebugModule implements IModule {
 
     // Очистка при выключении сцены
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
-
-    console.warn('🐛 DebugModule attached to scene', scene.scene.key);
   }
 
   /**
    * Обновление окна отладки (подписка на Phaser.Scene.update).
+   * Обновление происходит на основе реального времени, независимо от скорости игры.
    */
-  private handleSceneUpdate(_: number, delta: number): void {
+  private handleSceneUpdate(): void {
     if (this.debugWindow) {
-      this.debugWindow.update(delta);
+      this.debugWindow.update();
     }
   }
 
@@ -72,8 +70,6 @@ export class DebugModule implements IModule {
       this.scene.events.off('update', this.handleSceneUpdate, this);
       this.scene = undefined;
     }
-
-    console.warn('🐛 DebugModule detached from scene');
   }
 
   /**
@@ -95,6 +91,5 @@ export class DebugModule implements IModule {
     // Если по каким-то причинам ядро уничтожается раньше сцены —
     // подчистим за собой.
     this.handleSceneShutdown();
-    console.warn('🐛 DebugModule destroyed');
   }
 }

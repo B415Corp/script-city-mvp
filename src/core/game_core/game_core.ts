@@ -4,6 +4,7 @@ import { Events } from '../event_bus/events';
 import { ModuleManager } from '../module_manager/module_manager';
 import { CommandProcessor } from '../command_processor/command_processor';
 import { TickManager } from '../tick_manager/tick_manager';
+import { ToolManager } from '@/modules/tools/tool_manager';
 import { CoreConfig } from './types';
 
 export class GameCore {
@@ -12,6 +13,7 @@ export class GameCore {
   private eventBus!: EventBus;
   private moduleManager!: ModuleManager;
   private commandProcessor!: CommandProcessor;
+  private toolManager?: ToolManager;
   private config?: CoreConfig;
 
   constructor() {
@@ -26,6 +28,7 @@ export class GameCore {
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
+    // ToolManager создается модулем ToolsModule, а не здесь
 
     this.tickManager = new TickManager({
       tickRate: config?.tickRate ?? 10,
@@ -104,6 +107,33 @@ export class GameCore {
 
   public getCommandProcessor(): CommandProcessor {
     return this.commandProcessor;
+  }
+
+  /**
+   * Получение ToolManager.
+   * ToolManager создается модулем ToolsModule и должен быть зарегистрирован перед использованием.
+   *
+   * @returns экземпляр ToolManager
+   * @throws {Error} если ToolManager еще не инициализирован модулем ToolsModule
+   */
+  public getToolManager(): ToolManager {
+    if (!this.toolManager) {
+      throw new Error(
+        'ToolManager is not initialized. Make sure ToolsModule is registered and initialized before using tools.',
+      );
+    }
+    return this.toolManager;
+  }
+
+  /**
+   * Установка ToolManager.
+   * Вызывается модулем ToolsModule при инициализации.
+   * Этот метод не предназначен для использования вне модулей.
+   *
+   * @param toolManager - экземпляр ToolManager
+   */
+  public setToolManager(toolManager: ToolManager): void {
+    this.toolManager = toolManager;
   }
 
   public lockSpeedChange(lockId: string, reason?: string): void {

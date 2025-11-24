@@ -1,251 +1,329 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { UIComponent } from '@/core/ui/ui_component';
+import { Events } from '@/core/event_bus/events';
 
 /**
- * Окно отладки с информацией о тиках, скорости и подписках
+ * Боковой сайдбар отладки с информацией о тиках, модулях и событиях
  * Теги: arch:ui, debug:info, tech:phaser
  */
 export class DebugWindow extends UIComponent {
   private background!: Phaser.GameObjects.Rectangle;
-  private titleText!: Phaser.GameObjects.Text;
-  private collapseButton!: Phaser.GameObjects.Text;
+  private toggleButton!: Phaser.GameObjects.Rectangle;
+  private toggleButtonText!: Phaser.GameObjects.Text;
+  private contentContainer!: Phaser.GameObjects.Container;
   private tickText!: Phaser.GameObjects.Text;
-  private speedText!: Phaser.GameObjects.Text;
+  private toolText!: Phaser.GameObjects.Text;
   private modulesText!: Phaser.GameObjects.Text;
-  private subscriptionsText!: Phaser.GameObjects.Text;
-  private isVisible: boolean = false;
-  private isCollapsed: boolean = false;
+  private eventsText!: Phaser.GameObjects.Text;
+  private isVisible: boolean = true;
 
   // Константы
-  private readonly WINDOW_WIDTH = 400;
-  private readonly WINDOW_HEIGHT = 500;
-  private readonly COLLAPSED_HEIGHT = 50; // высота свернутого окна
-  private readonly PADDING = 20;
-  private readonly LINE_HEIGHT = 22; // высота одной строки текста
-  private readonly SECTION_SPACING = 15; // отступ между секциями
-  private readonly UPDATE_INTERVAL = 100; // обновление каждые 100ms
+  private readonly SIDEBAR_WIDTH = 280;
+  private readonly TOGGLE_BUTTON_WIDTH = 30;
+  private readonly TOGGLE_BUTTON_HEIGHT = 60;
+  private readonly PADDING = 12;
+  private readonly FONT_SIZE = '11px';
+  private readonly UPDATE_INTERVAL = 100; // обновление каждые 100ms реального времени
+  private readonly SECTION_SPACING = 10; // отступ между секциями
 
-  private updateTimer: number = 0;
-  private contentElements: (Phaser.GameObjects.Text | Phaser.GameObjects.Rectangle)[] = [];
+  /**
+   * События, которые не нужно показывать в debug панели.
+   * Используется Set для быстрой проверки исключений.
+   */
+  private readonly EXCLUDED_EVENTS = new Set<string>([Events.TickStarted, Events.TickEnded]);
+
+  private lastUpdateTime: number = 0; // время последнего обновления в реальном времени
 
   constructor(scene: Phaser.Scene, core: GameCore) {
     super(scene, core);
   }
 
   create(): void {
-    const { width } = this.scene.scale;
-    const x = width - this.WINDOW_WIDTH - 20;
-    const y = 20;
+    const { width, height } = this.scene.scale;
 
     // Создаём контейнер с depth для панелей
-    super.createContainer(x, y, UIComponent.DEPTH.UI_PANELS);
-    // Окно видимо по умолчанию для отладки
-    this.isVisible = true;
-    this.container.setVisible(true);
+    super.createContainer(0, 0, UIComponent.DEPTH.UI_PANELS);
+    this.container.setVisible(this.isVisible);
 
-    // Фон окна
+    // Фон сайдбара
+    const sidebarX = width - this.SIDEBAR_WIDTH;
     this.background = this.scene.add.rectangle(
-      this.WINDOW_WIDTH / 2,
-      this.WINDOW_HEIGHT / 2,
-      this.WINDOW_WIDTH,
-      this.WINDOW_HEIGHT,
+      sidebarX + this.SIDEBAR_WIDTH / 2,
+      height / 2,
+      this.SIDEBAR_WIDTH,
+      height,
       0x1a1a1a,
       0.95,
     );
     this.background.setStrokeStyle(2, 0x4a90e2, 1);
     this.container.add(this.background);
 
+    // Контейнер для контента
+    this.contentContainer = this.scene.add.container(sidebarX + this.PADDING, this.PADDING);
+    this.container.add(this.contentContainer);
+
     // Заголовок
-    const titleY = this.PADDING;
-    this.titleText = this.scene.add
-      .text(this.PADDING, titleY, '🐛 Debug Info', {
-        fontSize: '24px',
+    const titleText = this.scene.add
+      .text(0, 0, '🐛 Debug', {
+        fontSize: '14px',
         color: '#4a90e2',
         fontFamily: 'Arial',
       })
       .setOrigin(0, 0);
-    this.container.add(this.titleText);
+    this.contentContainer.add(titleText);
 
-    // Кнопка сворачивания/разворачивания
-    this.collapseButton = this.scene.add
-      .text(this.WINDOW_WIDTH - this.PADDING - 20, titleY + 5, '▼', {
-        fontSize: '20px',
-        color: '#4a90e2',
-        fontFamily: 'Arial',
-      })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true });
-    this.collapseButton.on('pointerdown', () => this.toggleCollapse());
-    this.container.add(this.collapseButton);
-
-    // Текст тиков (3 строки: Tick, Game Time, Real Time)
-    const tickY = titleY + 35 + this.SECTION_SPACING;
+    // Текст тиков - позиция будет обновляться динамически
     this.tickText = this.scene.add
-      .text(this.PADDING, tickY, '', {
-        fontSize: '16px',
+      .text(0, 0, '', {
+        fontSize: this.FONT_SIZE,
         color: '#ffffff',
         fontFamily: 'Arial',
-        lineSpacing: 4,
+        lineSpacing: 2,
       })
       .setOrigin(0, 0);
-    this.container.add(this.tickText);
-    this.contentElements.push(this.tickText);
+    this.contentContainer.add(this.tickText);
 
-    // Текст скорости (2-3 строки: Speed, Locked, Locks)
-    const speedY = tickY + this.LINE_HEIGHT * 3 + this.SECTION_SPACING;
-    this.speedText = this.scene.add
-      .text(this.PADDING, speedY, '', {
-        fontSize: '16px',
-        color: '#ffffff',
+    // Текст активного инструмента - позиция будет обновляться динамически
+    this.toolText = this.scene.add
+      .text(0, 0, '', {
+        fontSize: this.FONT_SIZE,
+        color: '#90ee90',
         fontFamily: 'Arial',
-        lineSpacing: 4,
+        lineSpacing: 2,
       })
       .setOrigin(0, 0);
-    this.container.add(this.speedText);
-    this.contentElements.push(this.speedText);
+    this.contentContainer.add(this.toolText);
 
-    // Текст модулей
-    const modulesY = speedY + this.LINE_HEIGHT * 3 + this.SECTION_SPACING;
+    // Текст модулей - позиция будет обновляться динамически
     this.modulesText = this.scene.add
-      .text(this.PADDING, modulesY, '', {
-        fontSize: '14px',
+      .text(0, 0, '', {
+        fontSize: this.FONT_SIZE,
         color: '#ffffff',
         fontFamily: 'Arial',
-        wordWrap: { width: this.WINDOW_WIDTH - this.PADDING * 2 },
-        lineSpacing: 3,
+        wordWrap: { width: this.SIDEBAR_WIDTH - this.PADDING * 2 },
+        lineSpacing: 2,
       })
       .setOrigin(0, 0);
-    this.container.add(this.modulesText);
-    this.contentElements.push(this.modulesText);
+    this.contentContainer.add(this.modulesText);
 
-    // Текст подписок
-    const subscriptionsY = modulesY + this.LINE_HEIGHT * 4 + this.SECTION_SPACING;
-    this.subscriptionsText = this.scene.add
-      .text(this.PADDING, subscriptionsY, '', {
-        fontSize: '14px',
+    // Текст событий - позиция будет обновляться динамически
+    this.eventsText = this.scene.add
+      .text(0, 0, '', {
+        fontSize: this.FONT_SIZE,
         color: '#cccccc',
         fontFamily: 'Arial',
-        wordWrap: { width: this.WINDOW_WIDTH - this.PADDING * 2 },
-        lineSpacing: 3,
+        wordWrap: { width: this.SIDEBAR_WIDTH - this.PADDING * 2 },
+        lineSpacing: 2,
       })
       .setOrigin(0, 0);
-    this.container.add(this.subscriptionsText);
-    this.contentElements.push(this.subscriptionsText);
+    this.contentContainer.add(this.eventsText);
+
+    // Кнопка переключения видимости
+    this.toggleButton = this.scene.add.rectangle(
+      0,
+      height / 2,
+      this.TOGGLE_BUTTON_WIDTH,
+      this.TOGGLE_BUTTON_HEIGHT,
+      0x2a2a2a,
+      0.9,
+    );
+    this.toggleButton.setStrokeStyle(2, 0x4a90e2, 1);
+    this.toggleButton.setInteractive({ useHandCursor: true });
+    this.toggleButton.on('pointerdown', () => this.toggle());
+    this.container.add(this.toggleButton);
+
+    this.toggleButtonText = this.scene.add
+      .text(0, height / 2, '◀', {
+        fontSize: '16px',
+        color: '#4a90e2',
+        fontFamily: 'Arial',
+      })
+      .setOrigin(0.5);
+    this.container.add(this.toggleButtonText);
 
     // Подписка на клавишу для переключения (F3)
     this.scene.input.keyboard?.on('keydown-F3', () => {
       this.toggle();
     });
 
-    // Первоначальное обновление
+    // Первоначальное позиционирование и обновление
+    this.updateVisibility();
+    this.lastUpdateTime = Date.now();
     this.updateInfo();
   }
 
-  update(delta: number): void {
+  update(): void {
+    // Обновление происходит на основе реального времени, независимо от скорости игры
+    // Это гарантирует, что debug панель обновляется с постоянной частотой
     if (!this.isVisible) {
       return;
     }
 
-    this.updateTimer += delta;
-    if (this.updateTimer >= this.UPDATE_INTERVAL) {
+    const currentTime = Date.now();
+    const timeSinceLastUpdate = currentTime - this.lastUpdateTime;
+
+    if (timeSinceLastUpdate >= this.UPDATE_INTERVAL) {
       this.updateInfo();
-      this.updateTimer = 0;
+      this.lastUpdateTime = currentTime;
     }
   }
 
-  private updateInfo(): void {
-    if (this.isCollapsed) {
-      return; // Не обновляем информацию когда свернуто
+  /**
+   * Вычисляет высоту текстового элемента с учетом переносов строк.
+   */
+  private getTextHeight(textObject: Phaser.GameObjects.Text): number {
+    const text = textObject.text;
+    if (!text) {
+      return 0;
     }
+    const lines = text.split('\n').length;
+    const lineHeight = textObject.style.fontSize
+      ? parseInt(textObject.style.fontSize.toString().replace('px', ''))
+      : 11;
+    // lineSpacing задается при создании текста, используем значение по умолчанию
+    const lineSpacing = 2;
+    return lines * (lineHeight + lineSpacing);
+  }
 
+  /**
+   * Позиционирует элементы друг под другом динамически.
+   */
+  private layoutElements(): void {
+    let currentY = 25; // Начальная позиция после заголовка
+
+    // Позиционируем тики
+    this.tickText.setY(currentY);
+    currentY += this.getTextHeight(this.tickText) + this.SECTION_SPACING;
+
+    // Позиционируем активный инструмент
+    this.toolText.setY(currentY);
+    currentY += this.getTextHeight(this.toolText) + this.SECTION_SPACING;
+
+    // Позиционируем модули
+    this.modulesText.setY(currentY);
+    currentY += this.getTextHeight(this.modulesText) + this.SECTION_SPACING;
+
+    // Позиционируем события
+    this.eventsText.setY(currentY);
+  }
+
+  private updateInfo(): void {
     const tickManager = this.core.getTickManager();
     const eventBus = this.core.getEventBus();
     const moduleManager = this.core.getModuleManager();
 
     // Информация о тиках
     const currentTick = tickManager.getCurrentTick();
-    const gameTime = tickManager.getGameTime();
-    const realTime = tickManager.getRealTime();
-    this.tickText.setText(
-      `Tick: ${currentTick}\nGame Time: ${gameTime}\nReal Time: ${(realTime / 1000).toFixed(2)}s`,
-    );
-
-    // Информация о скорости
+    const tickRate = tickManager.getTickRate();
+    const effectiveTickRate = tickManager.getEffectiveTickRate();
+    const ticksPerSecond = tickManager.getTicksPerSecond();
     const speed = tickManager.getSpeed();
     const isPaused = !tickManager.isActive();
-    const isLocked = tickManager.isSpeedChangeLocked();
-    const locks = tickManager.getSpeedChangeLocks();
 
-    let speedInfo = `Speed: ${isPaused ? '⏸ Paused' : `${speed}x`}\nLocked: ${isLocked ? 'Yes' : 'No'}`;
-    if (locks.length > 0) {
-      speedInfo += `\nLocks: ${locks.join(', ')}`;
+    this.tickText.setText(
+      `Tick: ${currentTick}\nRate: ${tickRate}/s\nEffective: ${effectiveTickRate.toFixed(1)}/s\nActual: ${ticksPerSecond}/s\nSpeed: ${isPaused ? '⏸' : `${speed}x`}`,
+    );
+
+    // Информация об активном инструменте
+    try {
+      const toolManager = this.core.getToolManager();
+      const activeTool = toolManager.getActiveTool();
+      if (activeTool.toolId) {
+        const tool = toolManager.getTool(activeTool.toolId);
+        if (tool) {
+          this.toolText.setText(
+            `Tool: ${tool.icon} ${tool.name}\nType: ${tool.type}\nCategory: ${tool.categoryId}`,
+          );
+        } else {
+          this.toolText.setText('Tool: Unknown');
+        }
+      } else {
+        this.toolText.setText('Tool: None');
+      }
+    } catch {
+      // ToolManager может быть не инициализирован
+      this.toolText.setText('Tool: N/A');
     }
-    this.speedText.setText(speedInfo);
 
     // Информация о модулях
     const modules = moduleManager.getAllModules();
-    let modulesInfo = `Modules: ${modules.length}`;
-    if (modules.length > 0) {
-      modulesInfo += '\n\n';
-      modulesInfo += modules
-        .map((module) => {
-          const deps =
-            module.dependencies && module.dependencies.length > 0
-              ? ` (deps: ${module.dependencies.join(', ')})`
-              : '';
-          return `${module.id}${deps}`;
-        })
-        .join('\n');
+    if (modules.length === 0) {
+      this.modulesText.setText('Modules:\n(no modules)');
     } else {
-      modulesInfo += '\n\nNo modules registered';
-    }
-    this.modulesText.setText(modulesInfo);
-
-    // Информация о подписках
-    const subscriptions = eventBus.getSubscriptions();
-    const eventTypes = Object.keys(subscriptions);
-    const totalSubscriptions = eventTypes.reduce((sum, type) => sum + subscriptions[type].count, 0);
-
-    let subscriptionsInfo = `Subscriptions: ${totalSubscriptions}`;
-    if (eventTypes.length > 0) {
-      subscriptionsInfo += '\n\n';
-      subscriptionsInfo += eventTypes
-        .map((type) => {
-          const sub = subscriptions[type];
-          return `${type}: ${sub.count}${sub.once > 0 ? ` (${sub.once} once)` : ''}`;
-        })
-        .join('\n');
-    } else {
-      subscriptionsInfo += '\n\nNo active subscriptions';
+      const modulesList = modules.map((module) => `• ${module.id}`).join('\n');
+      this.modulesText.setText(`Modules (${modules.length}):\n${modulesList}`);
     }
 
-    this.subscriptionsText.setText(subscriptionsInfo);
+    // Информация о последних событиях (исключая события тиков)
+    const eventHistory = eventBus.getEventHistory();
+    const filteredEvents = eventHistory.filter(
+      (entry) => !this.EXCLUDED_EVENTS.has(entry.eventType),
+    );
+
+    if (filteredEvents.length === 0) {
+      this.eventsText.setText('Events:\n(no events yet)');
+    } else {
+      const eventsList = filteredEvents
+        .slice()
+        .reverse() // Показываем последние сверху
+        .slice(0, 10) // Показываем максимум 10 событий
+        .map((entry, index) => {
+          const timeAgo = Date.now() - entry.timestamp;
+          const timeStr = timeAgo < 1000 ? `${timeAgo}ms` : `${(timeAgo / 1000).toFixed(1)}s`;
+          return `${index + 1}. ${entry.eventType} (${timeStr})`;
+        })
+        .join('\n');
+      this.eventsText.setText(`Events (last ${filteredEvents.length}):\n${eventsList}`);
+    }
+
+    // Обновляем позиции элементов после изменения текста
+    this.layoutElements();
   }
 
   toggle(): void {
     this.isVisible = !this.isVisible;
-    this.container.setVisible(this.isVisible);
+    this.updateVisibility();
   }
 
-  toggleCollapse(): void {
-    this.isCollapsed = !this.isCollapsed;
-    this.updateCollapseState();
+  private updateVisibility(): void {
+    const { width, height } = this.scene.scale;
+    this.background.setVisible(this.isVisible);
+    this.contentContainer.setVisible(this.isVisible);
+
+    // Позиционируем кнопку в зависимости от состояния
+    if (this.isVisible) {
+      // Когда сайдбар открыт - кнопка слева от сайдбара
+      const sidebarX = width - this.SIDEBAR_WIDTH;
+      const toggleX = sidebarX - this.TOGGLE_BUTTON_WIDTH / 2;
+      this.toggleButton.setPosition(toggleX, height / 2);
+      this.toggleButtonText.setPosition(toggleX, height / 2);
+      this.toggleButtonText.setText('◀');
+    } else {
+      // Когда сайдбар закрыт - кнопка справа экрана
+      const toggleX = width - this.TOGGLE_BUTTON_WIDTH / 2;
+      this.toggleButton.setPosition(toggleX, height / 2);
+      this.toggleButtonText.setPosition(toggleX, height / 2);
+      this.toggleButtonText.setText('▶');
+    }
   }
 
-  private updateCollapseState(): void {
-    // Обновляем иконку кнопки
-    this.collapseButton.setText(this.isCollapsed ? '▶' : '▼');
+  /**
+   * Обновление позиций при изменении размера экрана.
+   */
+  resize(): void {
+    const { width, height } = this.scene.scale;
+    const sidebarX = width - this.SIDEBAR_WIDTH;
 
-    // Скрываем/показываем контент
-    this.contentElements.forEach((element) => {
-      element.setVisible(!this.isCollapsed);
-    });
+    // Обновляем позицию фона сайдбара
+    this.background.setPosition(sidebarX + this.SIDEBAR_WIDTH / 2, height / 2);
+    this.background.setSize(this.SIDEBAR_WIDTH, height);
 
-    // Изменяем размер окна
-    const newHeight = this.isCollapsed ? this.COLLAPSED_HEIGHT : this.WINDOW_HEIGHT;
-    this.background.setSize(this.WINDOW_WIDTH, newHeight);
-    this.background.setPosition(this.WINDOW_WIDTH / 2, newHeight / 2);
+    // Обновляем позицию контента
+    this.contentContainer.setPosition(sidebarX + this.PADDING, this.PADDING);
+
+    // Обновляем позицию кнопки в зависимости от состояния
+    this.updateVisibility();
   }
 
   destroy(): void {

@@ -12,15 +12,16 @@ export class TickManager {
   private speedLocks: Map<string, string | undefined> = new Map(); // lockId -> reason
   private accumulatedTime: number = 0; // накопленное время для фиксированного шага
   private tickInterval: number; // интервал одного тика в миллисекундах
+  private ticksPerSecondCounter: number = 0; // счетчик тиков за последнюю секунду
+  private ticksPerSecondTimer: number = 0; // таймер для подсчета тиков в секунду
 
   constructor(config: TickManagerConfig) {
     this.config = config;
     this.tickInterval = 1000 / config.tickRate; // миллисекунды на тик
-    console.warn('⏱️ TickManager initialized', { tickRate: config.tickRate });
   }
 
-  update(delta: number): void {
-    console.warn('TickManager updated', delta);
+  update(): void {
+    // Метод для совместимости, не используется в MVP
   }
 
   /**
@@ -34,7 +35,8 @@ export class TickManager {
     this.isRunning = true;
     this.isPaused = false;
     this.realTime = 0;
-    console.warn('⏱️ TickManager started');
+    this.ticksPerSecondCounter = 0;
+    this.ticksPerSecondTimer = 0;
   }
 
   /**
@@ -46,7 +48,6 @@ export class TickManager {
     }
     this.isRunning = false;
     this.isPaused = false;
-    console.warn('⏱️ TickManager stopped');
   }
 
   /**
@@ -58,7 +59,6 @@ export class TickManager {
     }
     this.isPaused = true;
     this.config.eventBus.emit(Events.SimulationPaused);
-    console.warn('⏱️ TickManager paused');
   }
 
   /**
@@ -70,7 +70,6 @@ export class TickManager {
     }
     this.isPaused = false;
     this.config.eventBus.emit(Events.SimulationResumed);
-    console.warn('⏱️ TickManager resumed');
   }
 
   /**
@@ -80,7 +79,6 @@ export class TickManager {
    */
   setSpeed(multiplier: number): boolean {
     if (this.isSpeedChangeLocked()) {
-      console.warn('⏱️ TickManager: speed change blocked', this.getSpeedChangeLocks());
       return false;
     }
 
@@ -105,11 +103,18 @@ export class TickManager {
     const pauseStateChanged = wasPaused !== this.isPaused;
 
     if (speedChanged || pauseStateChanged) {
+      // Нормализуем accumulatedTime при изменении скорости
+      // Это предотвращает артефакты от накопленного времени со старой скоростью
+      if (speedChanged && oldSpeed > 0 && this.speedMultiplier > 0) {
+        // Масштабируем accumulatedTime пропорционально изменению скорости
+        // Это сохраняет правильное соотношение времени при изменении скорости
+        this.accumulatedTime = (this.accumulatedTime / oldSpeed) * this.speedMultiplier;
+      }
+
       this.config.eventBus.emit(Events.SpeedChanged, {
         oldSpeed,
         newSpeed: this.speedMultiplier,
       });
-      console.warn('⏱️ TickManager: speed changed', oldSpeed, '->', this.speedMultiplier);
     }
 
     return true;
@@ -127,6 +132,14 @@ export class TickManager {
 
     // Обновляем реальное время
     this.realTime += deltaMs;
+
+    // Обновляем счетчик тиков в секунду
+    this.ticksPerSecondTimer += deltaMs;
+    if (this.ticksPerSecondTimer >= 1000) {
+      // Сбрасываем счетчик каждую секунду
+      this.ticksPerSecondCounter = 0;
+      this.ticksPerSecondTimer = 0;
+    }
 
     // Учитываем множитель скорости
     const scaledDelta = deltaMs * this.speedMultiplier;
@@ -148,11 +161,6 @@ export class TickManager {
 
     // Сохраняем остаток времени для следующего кадра
     this.accumulatedTime -= ticksToExecute * this.tickInterval;
-
-    // Если накопилось слишком много времени (лаги), предупреждаем
-    if (this.accumulatedTime > this.tickInterval * 2) {
-      console.warn('⏱️ TickManager: lag detected, accumulated time:', this.accumulatedTime);
-    }
   }
 
   /**
@@ -160,6 +168,9 @@ export class TickManager {
    * Вызывается внутренне из updateFromPhaser.
    */
   private tick(): void {
+    // Увеличиваем счетчик тиков в секунду
+    this.ticksPerSecondCounter++;
+
     // Публикуем событие начала тика
     this.config.eventBus.emit(Events.TickStarted, {
       tick: this.currentTick,
@@ -220,7 +231,6 @@ export class TickManager {
 
     this.speedLocks.set(lockId, reason);
     this.config.eventBus.emit(Events.SpeedChangeLocked, { lockId, reason });
-    console.warn('⏱️ TickManager: speed change locked', lockId, reason);
   }
 
   /**
@@ -234,7 +244,6 @@ export class TickManager {
 
     this.speedLocks.delete(lockId);
     this.config.eventBus.emit(Events.SpeedChangeUnlocked, { lockId });
-    console.warn('⏱️ TickManager: speed change unlocked', lockId);
   }
 
   /**
@@ -263,5 +272,29 @@ export class TickManager {
    */
   isActive(): boolean {
     return this.isRunning && !this.isPaused;
+  }
+
+  /**
+   * Получение базового tick rate (тиков в секунду при скорости 1x).
+   */
+  getTickRate(): number {
+    return this.config.tickRate;
+  }
+
+  /**
+   * Получение эффективного tick rate (тиков в секунду с учетом скорости).
+   */
+  getEffectiveTickRate(): number {
+    if (this.isPaused) {
+      return 0;
+    }
+    return this.config.tickRate * this.speedMultiplier;
+  }
+
+  /**
+   * Получение количества тиков в секунду (реальное значение).
+   */
+  getTicksPerSecond(): number {
+    return this.ticksPerSecondCounter;
   }
 }

@@ -44,6 +44,10 @@ export enum Events {
   ChangeTaxRequested = 'ChangeTaxRequested',
   /** Запрос на изменение политики */
   PolicyChangeRequested = 'PolicyChangeRequested',
+  /** Запрос на зонирование тайла */
+  ZoneTileRequested = 'ZoneTileRequested',
+  /** Запрос на удаление зонирования */
+  RemoveZoneRequested = 'RemoveZoneRequested',
 
   // ========== Обработка команд ==========
   /** Команда отклонена */
@@ -60,4 +64,18 @@ export enum Events {
   TileUnhovered = 'TileUnhovered',
   /** Произошёл клик по тайлу */
   TileClicked = 'TileClicked',
+  /** Камера перемещена (drag или стрелки) */
+  CameraMoved = 'CameraMoved',
+  /** Камера увеличена/уменьшена (zoom) */
+  CameraZoomed = 'CameraZoomed',
+  /** Карта центрирована */
+  MapCentered = 'MapCentered',
+
+  // ========== События инструментов ==========
+  /** Инструмент зарегистрирован */
+  ToolRegistered = 'ToolRegistered',
+  /** Инструмент активирован */
+  ToolActivated = 'ToolActivated',
+  /** Инструмент деактивирован */
+  ToolDeactivated = 'ToolDeactivated',
 }

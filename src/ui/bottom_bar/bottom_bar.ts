@@ -1,25 +1,30 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { UIComponent } from '@/core/ui/ui_component';
-import { Events } from '@/core/event_bus/events';
+import { SpeedControls } from '@/ui/speed_controls/speed_controls';
+import { TopBar } from './top_bar';
+import { StatisticsBar } from './statistics_bar';
 
 /**
- * Нижняя панель управления (как в Cities: Skylines)
- * Содержит управление временем (тиками)
- * Теги: arch:ui, gameplay:time-control, tech:phaser
+ * Нижняя панель управления (в стиле Cities: Skylines)
+ * Состоит из двух полос:
+ * - Верхняя полоса: категории инструментов (при клике показывается подполоса с инструментами НАД верхней полосой)
+ * - Нижняя полоса: управление скоростью (первым), игровое время, статистика города
+ *
+ * Теги: arch:ui, gameplay:time-control, gameplay:editor, tech:phaser
  */
 export class BottomBar extends UIComponent {
-  private background!: Phaser.GameObjects.Rectangle;
-  private speedButtons: Phaser.GameObjects.Text[] = [];
-  private currentSpeed: number = 1.0;
-  private isPaused: boolean = false;
+  // Константы размеров
+  readonly TOP_BAR_HEIGHT = 60;
+  readonly BOTTOM_BAR_HEIGHT = 80;
 
-  // Константы
-  private readonly BAR_HEIGHT = 80;
-  private readonly BUTTON_WIDTH = 60;
-  private readonly BUTTON_HEIGHT = 50;
-  private readonly BUTTON_SPACING = 10;
-  private readonly BUTTON_Y_OFFSET = 15;
+  // Компоненты полос
+  private topBar!: TopBar;
+  private statisticsBar!: StatisticsBar;
+
+  // Элементы нижней полосы (управление и статистика)
+  private bottomBarBackground!: Phaser.GameObjects.Rectangle;
+  private speedControls!: SpeedControls;
 
   constructor(scene: Phaser.Scene, core: GameCore) {
     super(scene, core);
@@ -27,233 +32,119 @@ export class BottomBar extends UIComponent {
 
   create(): void {
     const { width, height } = this.scene.scale;
-    const barY = height - this.BAR_HEIGHT;
 
     // Создаём контейнер с depth для панелей
     super.createContainer(0, 0, UIComponent.DEPTH.UI_PANELS);
 
-    // Фон панели (темный полупрозрачный)
-    this.background = this.scene.add.rectangle(
+    // Создаём верхнюю полосу (инструменты)
+    this.topBar = new TopBar(this.scene, this.core, this.BOTTOM_BAR_HEIGHT);
+    this.topBar.create();
+
+    // Создаём нижнюю полосу (управление и статистика)
+    this.createBottomBar(width, height);
+
+    // Подписка на события клавиатуры для обработки ESC
+    this.subscribeToKeyboardEvents();
+  }
+
+  private createBottomBar(width: number, height: number): void {
+    const bottomBarY = height - this.BOTTOM_BAR_HEIGHT;
+
+    // Фон нижней полосы
+    this.bottomBarBackground = this.scene.add.rectangle(
       width / 2,
-      barY + this.BAR_HEIGHT / 2,
+      bottomBarY + this.BOTTOM_BAR_HEIGHT / 2,
       width,
-      this.BAR_HEIGHT,
+      this.BOTTOM_BAR_HEIGHT,
       0x1a1a1a,
       0.95,
     );
-    this.container.add(this.background);
+    this.container.add(this.bottomBarBackground);
 
-    // Кнопки управления временем
-    this.createSpeedButtons(barY);
+    // Создаём компонент управления скоростью
+    this.speedControls = new SpeedControls(this.scene, this.core);
+    this.speedControls.create();
 
-    // Подписка на события изменения скорости
-    this.subscribeToEvents();
+    // Позиционируем кнопки скорости первыми (слева)
+    const speedControlsX = 20;
+    const speedControlsY = bottomBarY + this.BOTTOM_BAR_HEIGHT / 2;
+    this.speedControls.setPosition(speedControlsX, speedControlsY);
 
-    // Синхронизация начального состояния с TickManager
-    const tickManager = this.core.getTickManager();
-    this.currentSpeed = tickManager.getSpeed();
-    this.isPaused = !tickManager.isActive();
-
-    // Установка начального состояния
-    this.updateSpeedDisplay();
+    // Создаём компонент статистики
+    const statisticsStartX = speedControlsX + this.speedControls.getWidth() + 30;
+    this.statisticsBar = new StatisticsBar(this.scene, this.core);
+    this.statisticsBar.initialize(bottomBarY, statisticsStartX);
+    this.statisticsBar.create();
   }
 
-  private createSpeedButtons(barY: number): void {
-    const { width } = this.scene.scale;
-    const startX = width / 2 - (this.BUTTON_WIDTH * 2 + this.BUTTON_SPACING * 1.5);
+  resize(): void {
+    const { width, height } = this.scene.scale;
+    const bottomBarY = height - this.BOTTOM_BAR_HEIGHT;
 
-    // Кнопка паузы (⏸)
-    const pauseButton = this.createButton(
-      startX,
-      barY + this.BUTTON_Y_OFFSET + this.BUTTON_HEIGHT / 2,
-      '⏸',
-      () => this.onPauseClick(),
-    );
-    this.speedButtons.push(pauseButton);
+    // Обновление верхней полосы
+    this.topBar.resize(width, height);
 
-    // Кнопка 1x
-    const speed1xButton = this.createButton(
-      startX + this.BUTTON_WIDTH + this.BUTTON_SPACING,
-      barY + this.BUTTON_Y_OFFSET + this.BUTTON_HEIGHT / 2,
-      '1x',
-      () => this.onSpeedClick(1.0),
-    );
-    this.speedButtons.push(speed1xButton);
+    // Обновление нижней полосы
+    this.bottomBarBackground.setSize(width, this.BOTTOM_BAR_HEIGHT);
+    this.bottomBarBackground.setPosition(width / 2, bottomBarY + this.BOTTOM_BAR_HEIGHT / 2);
 
-    // Кнопка 2x
-    const speed2xButton = this.createButton(
-      startX + (this.BUTTON_WIDTH + this.BUTTON_SPACING) * 2,
-      barY + this.BUTTON_Y_OFFSET + this.BUTTON_HEIGHT / 2,
-      '2x',
-      () => this.onSpeedClick(2.0),
-    );
-    this.speedButtons.push(speed2xButton);
+    // Обновление позиции кнопок скорости
+    const speedControlsX = 20;
+    const speedControlsY = bottomBarY + this.BOTTOM_BAR_HEIGHT / 2;
+    this.speedControls.setPosition(speedControlsX, speedControlsY);
 
-    // Кнопка 3x
-    const speed3xButton = this.createButton(
-      startX + (this.BUTTON_WIDTH + this.BUTTON_SPACING) * 3,
-      barY + this.BUTTON_Y_OFFSET + this.BUTTON_HEIGHT / 2,
-      '3x',
-      () => this.onSpeedClick(3.0),
-    );
-    this.speedButtons.push(speed3xButton);
-
-    this.container.add(this.speedButtons);
+    // Обновление элементов статистики
+    const statisticsStartX = speedControlsX + this.speedControls.getWidth() + 30;
+    this.statisticsBar.resize(bottomBarY, statisticsStartX);
   }
 
-  private createButton(
-    x: number,
-    y: number,
-    text: string,
-    onClick: () => void,
-  ): Phaser.GameObjects.Text {
-    // Фон кнопки
-    const bg = this.scene.add.rectangle(x, y, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, 0x34495e, 1);
-
-    // Текст кнопки
-    const buttonText = this.scene.add
-      .text(x, y, text, {
-        fontSize: '20px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-      })
-      .setOrigin(0.5);
-
-    // Делаем интерактивным
-    bg.setInteractive({ useHandCursor: true });
-    buttonText.setInteractive({ useHandCursor: true });
-
-    // Обработчики событий
-    const handlePointerOver = () => {
-      bg.setFillStyle(0x2c3e50);
-    };
-
-    const handlePointerOut = () => {
-      bg.setFillStyle(0x34495e);
-    };
-
-    const handlePointerDown = () => {
-      onClick();
-    };
-
-    bg.on('pointerover', handlePointerOver);
-    bg.on('pointerout', handlePointerOut);
-    bg.on('pointerdown', handlePointerDown);
-
-    buttonText.on('pointerover', handlePointerOver);
-    buttonText.on('pointerout', handlePointerOut);
-    buttonText.on('pointerdown', handlePointerDown);
-
-    this.container.add([bg, buttonText]);
-
-    return buttonText;
+  /**
+   * Подписка на события клавиатуры для обработки ESC.
+   */
+  private subscribeToKeyboardEvents(): void {
+    this.scene.input.keyboard?.on('keydown-ESC', () => {
+      this.handleEscapeKey();
+    });
   }
 
-  private onPauseClick(): void {
-    // Проверяем состояние напрямую из TickManager
-    const tickManager = this.core.getTickManager();
-    const isCurrentlyPaused = !tickManager.isActive();
-    const currentSpeed = tickManager.getSpeed();
+  /**
+   * Обработка нажатия клавиши ESC.
+   * Приоритет действий:
+   * 1. Если открыта подполоса инструментов - закрываем её
+   * 2. Если активен инструмент - деактивируем его
+   */
+  private handleEscapeKey(): void {
+    // Проверяем, открыта ли подполоса инструментов
+    if (this.topBar.isSubbarVisible()) {
+      this.topBar.closeSubbar();
+      return;
+    }
 
-    if (isCurrentlyPaused) {
-      // Возобновление - устанавливаем скорость 1x (или предыдущую скорость, если она была > 0)
-      const resumeSpeed = currentSpeed > 0 ? currentSpeed : 1.0;
-      this.sendSpeedCommand(resumeSpeed);
-    } else {
-      // Пауза - сохраняем текущую скорость и устанавливаем 0
-      // Сохраняем текущую скорость для возобновления
-      if (currentSpeed > 0) {
-        this.currentSpeed = currentSpeed;
-      }
-      this.sendSpeedCommand(0.0);
+    const toolManager = this.core.getToolManager();
+    const activeTool = toolManager.getActiveTool();
+
+    if (activeTool.toolId !== null) {
+      // Если активен инструмент - деактивируем его
+      toolManager.deactivateTool();
     }
   }
 
-  private onSpeedClick(speed: number): void {
-    this.sendSpeedCommand(speed);
-  }
-
-  private sendSpeedCommand(speed: number): void {
-    // Отправляем событие напрямую, минуя очередь команд
-    // Это необходимо, т.к. на паузе тики не выполняются и команды из очереди не обрабатываются
-    this.core.getEventBus().emit(Events.SetSimulationSpeedRequested, {
-      speedLevel: speed,
-    });
-  }
-
-  private subscribeToEvents(): void {
-    const eventBus = this.core.getEventBus();
-
-    // Подписка на изменение скорости
-    eventBus.on<{ oldSpeed: number; newSpeed: number }>(Events.SpeedChanged, (payload) => {
-      if (payload) {
-        this.currentSpeed = payload.newSpeed;
-        this.isPaused = payload.newSpeed === 0.0;
-        this.updateSpeedDisplay();
-      }
-    });
-
-    // Подписка на паузу/возобновление
-    eventBus.on(Events.SimulationPaused, () => {
-      this.isPaused = true;
-      this.updateSpeedDisplay();
-    });
-
-    eventBus.on(Events.SimulationResumed, () => {
-      this.isPaused = false;
-      this.updateSpeedDisplay();
-    });
-  }
-
-  private updateSpeedDisplay(): void {
-    // Обновляем визуальное состояние кнопок
-    this.speedButtons.forEach((button, index) => {
-      const bg = button.parentContainer?.list[0] as Phaser.GameObjects.Rectangle;
-      if (!bg) return;
-
-      let isActive = false;
-
-      if (index === 0) {
-        // Кнопка паузы
-        isActive = this.isPaused;
-        button.setText(this.isPaused ? '▶' : '⏸');
-      } else if (index === 1) {
-        // 1x
-        isActive = !this.isPaused && this.currentSpeed === 1.0;
-      } else if (index === 2) {
-        // 2x
-        isActive = !this.isPaused && this.currentSpeed === 2.0;
-      } else if (index === 3) {
-        // 3x
-        isActive = !this.isPaused && this.currentSpeed === 3.0;
-      }
-
-      // Подсветка активной кнопки
-      if (isActive) {
-        bg.setFillStyle(0x4a90e2);
-      } else {
-        bg.setFillStyle(0x34495e);
-      }
-    });
-  }
-
-  // Обновление при изменении размера экрана
-  resize(): void {
-    const { width, height } = this.scene.scale;
-    const barY = height - this.BAR_HEIGHT;
-
-    this.background.setSize(width, this.BAR_HEIGHT);
-    this.background.setPosition(width / 2, barY + this.BAR_HEIGHT / 2);
-
-    // Пересоздаем кнопки на новых позициях
-    this.speedButtons.forEach((button) => {
-      button.destroy();
-    });
-    this.speedButtons = [];
-    this.createSpeedButtons(barY);
-  }
-
   destroy(): void {
+    // Отписываемся от событий клавиатуры
+    this.scene.input.keyboard?.off('keydown-ESC');
+
+    if (this.topBar) {
+      this.topBar.destroy();
+    }
+
+    if (this.statisticsBar) {
+      this.statisticsBar.destroy();
+    }
+
+    if (this.speedControls) {
+      this.speedControls.destroy();
+    }
+
     super.destroy();
   }
 }

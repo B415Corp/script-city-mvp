@@ -29,12 +29,24 @@ import { Events } from './events';
  * // Отписка
  * sub.unsubscribe();
  */
+export interface EventHistoryEntry {
+  eventType: string;
+  timestamp: number;
+  payload?: unknown;
+}
+
 export class EventBus {
   /**
    * Хранилище обработчиков событий.
    * Ключ - тип события (строка), значение - множество обработчиков для этого события.
    */
   private handlers: Map<string, Set<HandlerInfo>> = new Map();
+
+  /**
+   * История последних событий (для отладки).
+   */
+  private eventHistory: EventHistoryEntry[] = [];
+  private readonly MAX_HISTORY_SIZE = 10;
 
   /**
    * Создаёт новый экземпляр EventBus.
@@ -61,6 +73,9 @@ export class EventBus {
    * eventBus.emit(Events.TickStarted); // событие без данных
    */
   emit<T = unknown>(eventType: Events | string, payload?: T): void {
+    // Добавляем событие в историю
+    this.addToHistory(eventType, payload);
+
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers || eventHandlers.size === 0) {
       return;
@@ -85,6 +100,22 @@ export class EventBus {
         }
       }
     });
+  }
+
+  /**
+   * Добавляет событие в историю.
+   */
+  private addToHistory(eventType: string, payload?: unknown): void {
+    this.eventHistory.push({
+      eventType,
+      timestamp: Date.now(),
+      payload,
+    });
+
+    // Ограничиваем размер истории
+    if (this.eventHistory.length > this.MAX_HISTORY_SIZE) {
+      this.eventHistory.shift();
+    }
   }
 
   /**
@@ -262,5 +293,14 @@ export class EventBus {
     }
 
     return result;
+  }
+
+  /**
+   * Получение истории последних событий (для отладки).
+   *
+   * @returns массив последних событий (от старых к новым)
+   */
+  getEventHistory(): EventHistoryEntry[] {
+    return [...this.eventHistory];
   }
 }

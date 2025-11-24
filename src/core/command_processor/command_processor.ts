@@ -8,6 +8,8 @@ import {
   ICommand,
   SetPolicyCommand,
   SetSimulationSpeedCommand,
+  ZoneTileCommand,
+  RemoveZoneCommand,
   ValidationResult,
 } from './types';
 
@@ -26,11 +28,11 @@ import {
 export class CommandProcessor {
   private commandQueue: ICommand[] = [];
   private eventBus: EventBus;
-  private ecsManager: ECSManager;
+  private _ecsManager: ECSManager;
 
   constructor(eventBus: EventBus, ecsManager: ECSManager) {
     this.eventBus = eventBus;
-    this.ecsManager = ecsManager;
+    this._ecsManager = ecsManager;
     console.warn('⚙️ CommandProcessor initialized');
   }
 
@@ -137,6 +139,10 @@ export class CommandProcessor {
         return this.validateSetPolicyCommand(command);
       case 'SetSimulationSpeed':
         return this.validateSetSimulationSpeedCommand(command);
+      case 'ZoneTile':
+        return this.validateZoneTileCommand(command);
+      case 'RemoveZone':
+        return this.validateRemoveZoneCommand(command);
       default:
         // Неизвестный тип команды - считаем валидной для расширяемости
         return { valid: true };
@@ -165,6 +171,12 @@ export class CommandProcessor {
         break;
       case 'SetSimulationSpeed':
         this.applySetSimulationSpeedCommand(command);
+        break;
+      case 'ZoneTile':
+        this.applyZoneTileCommand(command);
+        break;
+      case 'RemoveZone':
+        this.applyRemoveZoneCommand(command);
         break;
       default:
         console.warn('⚙️ CommandProcessor: unknown command type', command.type);
@@ -260,6 +272,35 @@ export class CommandProcessor {
     return { valid: true };
   }
 
+  private validateZoneTileCommand(command: ICommand): ValidationResult {
+    const cmd = command as ZoneTileCommand;
+    if (!cmd.position || typeof cmd.position.x !== 'number' || typeof cmd.position.y !== 'number') {
+      return {
+        valid: false,
+        error: 'ZoneTile command requires valid position {x, y}',
+      };
+    }
+    const validZoneTypes = ['residential_low', 'commercial_low', 'industrial_low'];
+    if (!cmd.zoneType || !validZoneTypes.includes(cmd.zoneType)) {
+      return {
+        valid: false,
+        error: `ZoneTile command requires zoneType one of: ${validZoneTypes.join(', ')}`,
+      };
+    }
+    return { valid: true };
+  }
+
+  private validateRemoveZoneCommand(command: ICommand): ValidationResult {
+    const cmd = command as RemoveZoneCommand;
+    if (!cmd.position || typeof cmd.position.x !== 'number' || typeof cmd.position.y !== 'number') {
+      return {
+        valid: false,
+        error: 'RemoveZone command requires valid position {x, y}',
+      };
+    }
+    return { valid: true };
+  }
+
   // Применение конкретных типов команд
 
   private applyBuildBuildingCommand(command: ICommand): void {
@@ -303,6 +344,24 @@ export class CommandProcessor {
     // Применение через TickManager (через событие)
     this.eventBus.emit(Events.SetSimulationSpeedRequested, {
       speedLevel: cmd.speedLevel,
+    });
+  }
+
+  private applyZoneTileCommand(command: ICommand): void {
+    const cmd = command as ZoneTileCommand;
+    // TODO: Применение через систему зонирования
+    // В будущем это будет работать через ECS системы
+    this.eventBus.emit(Events.ZoneTileRequested, {
+      position: cmd.position,
+      zoneType: cmd.zoneType,
+    });
+  }
+
+  private applyRemoveZoneCommand(command: ICommand): void {
+    const cmd = command as RemoveZoneCommand;
+    // TODO: Применение через систему зонирования
+    this.eventBus.emit(Events.RemoveZoneRequested, {
+      position: cmd.position,
     });
   }
 }
