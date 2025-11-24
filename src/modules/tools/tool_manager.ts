@@ -196,4 +196,3 @@ export class ToolManager {
     this.tools.clear();
   }
 }
-

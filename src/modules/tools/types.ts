@@ -80,4 +80,3 @@ export interface ToolRegistration {
   /** Инструмент для регистрации */
   tool: Tool;
 }
-

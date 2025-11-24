@@ -23,7 +23,9 @@ export class ZoningToolsModule implements IModule {
   private registerTools(): void {
     const toolManager = this.core!.getToolManager();
     if (!toolManager) {
-      throw new Error('ToolManager is not available. ToolsModule must be initialized before ZoningToolsModule.');
+      throw new Error(
+        'ToolManager is not available. ToolsModule must be initialized before ZoningToolsModule.',
+      );
     }
 
     // Категория зонирования

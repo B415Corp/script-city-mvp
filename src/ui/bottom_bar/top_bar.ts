@@ -14,10 +14,14 @@ export class TopBar extends UIComponent {
   // Константы размеров
   readonly TOP_BAR_HEIGHT = 60;
   readonly TOOLS_SUBBAR_HEIGHT = 70;
-  readonly BUTTON_WIDTH = 60;
+  readonly BUTTON_MIN_WIDTH = 60;
+  readonly BUTTON_MAX_WIDTH = 120;
   readonly BUTTON_HEIGHT = 50;
-  readonly CATEGORY_BUTTON_WIDTH = 80;
+  readonly BUTTON_PADDING = 8; // Отступы слева и справа от текста для кнопок инструментов
+  readonly CATEGORY_BUTTON_MIN_WIDTH = 80;
+  readonly CATEGORY_BUTTON_MAX_WIDTH = 150;
   readonly CATEGORY_BUTTON_HEIGHT = 50;
+  readonly CATEGORY_BUTTON_PADDING = 12; // Отступы слева и справа от текста для кнопок категорий
   readonly BUTTON_SPACING = 10;
 
   // Элементы верхней полосы
@@ -79,41 +83,94 @@ export class TopBar extends UIComponent {
 
     const { width } = this.scene.scale;
     const startX = 20;
-    // Учитываем место для кнопки отмены инструмента: отступ справа + ширина кнопки + отступ между
-    const rightMargin = 20 + this.CATEGORY_BUTTON_WIDTH + 20;
+    // Учитываем место для кнопки отмены инструмента: отступ справа + минимальная ширина кнопки + отступ между
+    const rightMargin = 20 + this.CATEGORY_BUTTON_MIN_WIDTH + 20;
     let currentX = startX;
+    let currentY = this.topBarY + this.TOP_BAR_HEIGHT / 2;
+    const rowHeight = this.CATEGORY_BUTTON_HEIGHT + this.BUTTON_SPACING;
 
     categories.forEach((category) => {
+      // Вычисляем ширину кнопки на основе текста
+      const buttonWidth = this.calculateCategoryButtonWidth(category.name);
+
       // Проверяем, чтобы кнопки не выходили за правый край экрана (с учетом кнопки отмены)
-      if (currentX + this.CATEGORY_BUTTON_WIDTH > width - rightMargin) {
-        return; // Прекращаем создание кнопок, если они выходят за экран
+      if (currentX + buttonWidth > width - rightMargin) {
+        // Переносим на новую строку, если есть место по вертикали
+        const newY = currentY - rowHeight;
+        if (newY >= this.topBarY - this.TOP_BAR_HEIGHT / 2 + this.CATEGORY_BUTTON_HEIGHT / 2) {
+          currentX = startX;
+          currentY = newY;
+        } else {
+          // Если нет места для новой строки, прекращаем создание кнопок
+          return;
+        }
       }
 
-      const button = this.createCategoryButton(
-        currentX,
-        this.topBarY + this.TOP_BAR_HEIGHT / 2,
-        category,
-      );
+      const button = this.createCategoryButton(currentX, currentY, category, buttonWidth);
       this.categoryButtons.push(button);
       this.container.add(button);
 
-      currentX += this.CATEGORY_BUTTON_WIDTH + this.BUTTON_SPACING;
+      currentX += buttonWidth + this.BUTTON_SPACING;
     });
+  }
+
+  /**
+   * Вычисляет ширину кнопки категории на основе текста.
+   * Учитывает минимальную и максимальную ширину для единообразия.
+   */
+  private calculateCategoryButtonWidth(text: string): number {
+    // Создаем временный текст для измерения ширины
+    const tempText = this.scene.add.text(0, 0, text, {
+      fontSize: '12px',
+      fontFamily: 'Arial',
+    });
+    const textWidth = tempText.width;
+    tempText.destroy();
+
+    // Вычисляем ширину с учетом отступов
+    const buttonWidth = textWidth + this.CATEGORY_BUTTON_PADDING * 2;
+
+    // Ограничиваем минимальной и максимальной шириной
+    return Math.max(
+      this.CATEGORY_BUTTON_MIN_WIDTH,
+      Math.min(buttonWidth, this.CATEGORY_BUTTON_MAX_WIDTH),
+    );
+  }
+
+  /**
+   * Вычисляет ширину кнопки инструмента на основе текста.
+   * Учитывает минимальную и максимальную ширину для единообразия.
+   */
+  private calculateToolButtonWidth(text: string): number {
+    // Создаем временный текст для измерения ширины
+    const tempText = this.scene.add.text(0, 0, text, {
+      fontSize: '10px',
+      fontFamily: 'Arial',
+    });
+    const textWidth = tempText.width;
+    tempText.destroy();
+
+    // Вычисляем ширину с учетом отступов
+    const buttonWidth = textWidth + this.BUTTON_PADDING * 2;
+
+    // Ограничиваем минимальной и максимальной шириной
+    return Math.max(this.BUTTON_MIN_WIDTH, Math.min(buttonWidth, this.BUTTON_MAX_WIDTH));
   }
 
   private createCategoryButton(
     x: number,
     y: number,
     category: ToolCategory,
+    buttonWidth: number,
   ): Phaser.GameObjects.Container {
     // Позиционируем контейнер так, чтобы центр кнопки был в указанной позиции
-    const container = this.scene.add.container(x + this.CATEGORY_BUTTON_WIDTH / 2, y);
+    const container = this.scene.add.container(x + buttonWidth / 2, y);
 
     // Фон кнопки (отцентрован в контейнере)
     const bg = this.scene.add.rectangle(
       0,
       0,
-      this.CATEGORY_BUTTON_WIDTH,
+      buttonWidth,
       this.CATEGORY_BUTTON_HEIGHT,
       0x404040,
       1,
@@ -129,8 +186,25 @@ export class TopBar extends UIComponent {
       .setOrigin(0.5, 0.5);
 
     // Название категории (отцентровано по горизонтали, смещено вниз)
+    // Обрезаем текст если он не помещается в кнопку
+    const maxTextWidth = buttonWidth - this.CATEGORY_BUTTON_PADDING * 2;
+    let displayText = category.name;
+    const tempText = this.scene.add.text(0, 0, displayText, {
+      fontSize: '12px',
+      fontFamily: 'Arial',
+    });
+    if (tempText.width > maxTextWidth) {
+      // Обрезаем текст с многоточием
+      while (tempText.width > maxTextWidth && displayText.length > 0) {
+        displayText = displayText.slice(0, -1);
+        tempText.setText(displayText + '...');
+      }
+      displayText = displayText + '...';
+    }
+    tempText.destroy();
+
     const label = this.scene.add
-      .text(0, 12, category.name, {
+      .text(0, 12, displayText, {
         fontSize: '12px',
         color: '#cccccc',
         fontFamily: 'Arial',
@@ -230,25 +304,39 @@ export class TopBar extends UIComponent {
     this.toolButtons.forEach((btn) => btn.destroy());
     this.toolButtons = [];
 
-    // Создаём кнопки инструментов с проверкой границ
+    // Создаём кнопки инструментов с проверкой границ и поддержкой переноса на новую строку
     const startX = 20;
     const rightMargin = 20;
     const centerY = this.TOOLS_SUBBAR_HEIGHT / 2; // Центр подполосы по вертикали
     let currentX = startX;
+    let currentY = centerY;
+    const rowHeight = this.BUTTON_HEIGHT + this.BUTTON_SPACING;
+    const maxRows = Math.floor(this.TOOLS_SUBBAR_HEIGHT / rowHeight);
+    let currentRow = 0;
 
     category.tools.forEach((tool) => {
+      // Вычисляем ширину кнопки на основе текста
+      const buttonWidth = this.calculateToolButtonWidth(tool.name);
+
       // Проверяем, чтобы кнопки не выходили за правый край экрана
-      if (currentX + this.BUTTON_WIDTH > width - rightMargin) {
-        return;
+      if (currentX + buttonWidth > width - rightMargin) {
+        // Переносим на новую строку, если есть место
+        currentRow++;
+        if (currentRow >= maxRows) {
+          // Если нет места для новой строки, прекращаем создание кнопок
+          return;
+        }
+        currentX = startX;
+        currentY = centerY - currentRow * rowHeight;
       }
 
-      const button = this.createToolButton(currentX, centerY, tool);
+      const button = this.createToolButton(currentX, currentY, tool, buttonWidth);
       this.toolButtons.push(button);
       if (this.toolsSubbarContainer) {
         this.toolsSubbarContainer.add(button);
       }
 
-      currentX += this.BUTTON_WIDTH + this.BUTTON_SPACING;
+      currentX += buttonWidth + this.BUTTON_SPACING;
     });
 
     // Настраиваем интерактивность для фона и контейнера подполосы
@@ -355,10 +443,15 @@ export class TopBar extends UIComponent {
     }
   }
 
-  private createToolButton(x: number, y: number, tool: Tool): Phaser.GameObjects.Container {
+  private createToolButton(
+    x: number,
+    y: number,
+    tool: Tool,
+    buttonWidth: number,
+  ): Phaser.GameObjects.Container {
     // Позиционируем контейнер так, чтобы центр кнопки был в указанной позиции
     const container = this.scene.add.container(
-      x + this.BUTTON_WIDTH / 2,
+      x + buttonWidth / 2,
       y,
     ) as Phaser.GameObjects.Container & {
       toolId?: string;
@@ -367,7 +460,7 @@ export class TopBar extends UIComponent {
     container.toolId = tool.id;
 
     // Фон кнопки (отцентрован в контейнере)
-    const bg = this.scene.add.rectangle(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT, 0x505050, 1);
+    const bg = this.scene.add.rectangle(0, 0, buttonWidth, this.BUTTON_HEIGHT, 0x505050, 1);
 
     // Иконка инструмента (отцентрована по горизонтали, смещена вверх)
     const icon = this.scene.add
@@ -379,8 +472,25 @@ export class TopBar extends UIComponent {
       .setOrigin(0.5, 0.5);
 
     // Название инструмента (отцентровано по горизонтали, смещено вниз)
+    // Обрезаем текст если он не помещается в кнопку
+    const maxTextWidth = buttonWidth - this.BUTTON_PADDING * 2;
+    let displayText = tool.name;
+    const tempText = this.scene.add.text(0, 0, displayText, {
+      fontSize: '10px',
+      fontFamily: 'Arial',
+    });
+    if (tempText.width > maxTextWidth) {
+      // Обрезаем текст с многоточием
+      while (tempText.width > maxTextWidth && displayText.length > 0) {
+        displayText = displayText.slice(0, -1);
+        tempText.setText(displayText + '...');
+      }
+      displayText = displayText + '...';
+    }
+    tempText.destroy();
+
     const label = this.scene.add
-      .text(0, 15, tool.name, {
+      .text(0, 15, displayText, {
         fontSize: '10px',
         color: '#cccccc',
         fontFamily: 'Arial',
@@ -469,7 +579,7 @@ export class TopBar extends UIComponent {
    * Кнопка показывается только когда есть активный инструмент.
    */
   private createCancelToolButton(width: number): void {
-    const buttonX = width - 20 - this.CATEGORY_BUTTON_WIDTH / 2; // Справа с отступом
+    const buttonX = width - 20 - this.CATEGORY_BUTTON_MIN_WIDTH / 2; // Справа с отступом
     const buttonY = this.topBarY + this.TOP_BAR_HEIGHT / 2;
 
     const container = this.scene.add.container(buttonX, buttonY);
@@ -478,7 +588,7 @@ export class TopBar extends UIComponent {
     const bg = this.scene.add.rectangle(
       0,
       0,
-      this.CATEGORY_BUTTON_WIDTH,
+      this.CATEGORY_BUTTON_MIN_WIDTH,
       this.CATEGORY_BUTTON_HEIGHT,
       0xdc2626, // Красный цвет для кнопки отмены
       1,
@@ -597,7 +707,7 @@ export class TopBar extends UIComponent {
 
     // Обновляем позицию кнопки отмены инструмента
     if (this.cancelToolButton) {
-      const buttonX = width - 20 - this.CATEGORY_BUTTON_WIDTH / 2;
+      const buttonX = width - 20 - this.CATEGORY_BUTTON_MIN_WIDTH / 2;
       const buttonY = this.topBarY + this.TOP_BAR_HEIGHT / 2;
       this.cancelToolButton.setPosition(buttonX, buttonY);
     }
@@ -621,23 +731,38 @@ export class TopBar extends UIComponent {
         this.toolButtons.forEach((btn) => btn.destroy());
         this.toolButtons = [];
 
-        // Создаём новые кнопки с проверкой границ
+        // Создаём новые кнопки с проверкой границ и поддержкой переноса на новую строку
         const startX = 20;
         const rightMargin = 20;
+        const centerY = this.TOOLS_SUBBAR_HEIGHT / 2;
         let currentX = startX;
+        let currentY = centerY;
+        const rowHeight = this.BUTTON_HEIGHT + this.BUTTON_SPACING;
+        const maxRows = Math.floor(this.TOOLS_SUBBAR_HEIGHT / rowHeight);
+        let currentRow = 0;
 
         hoveredCategory.tools.forEach((tool) => {
-          if (currentX + this.BUTTON_WIDTH > width - rightMargin) {
-            return;
+          // Вычисляем ширину кнопки на основе текста
+          const buttonWidth = this.calculateToolButtonWidth(tool.name);
+
+          if (currentX + buttonWidth > width - rightMargin) {
+            // Переносим на новую строку, если есть место
+            currentRow++;
+            if (currentRow >= maxRows) {
+              // Если нет места для новой строки, прекращаем создание кнопок
+              return;
+            }
+            currentX = startX;
+            currentY = centerY - currentRow * rowHeight;
           }
 
-          const button = this.createToolButton(currentX, this.TOOLS_SUBBAR_HEIGHT / 2, tool);
+          const button = this.createToolButton(currentX, currentY, tool, buttonWidth);
           this.toolButtons.push(button);
           if (this.toolsSubbarContainer) {
             this.toolsSubbarContainer.add(button);
           }
 
-          currentX += this.BUTTON_WIDTH + this.BUTTON_SPACING;
+          currentX += buttonWidth + this.BUTTON_SPACING;
         });
       }
     }
@@ -656,4 +781,3 @@ export class TopBar extends UIComponent {
     super.destroy();
   }
 }
-

@@ -53,22 +53,33 @@ export class StatisticsBar extends UIComponent {
 
   private createStatisticsElements(startX: number = 20): void {
     const spacing = 30;
+    const { width } = this.scene.scale;
+    const rightMargin = 20; // Отступ справа от края экрана
     let currentX = startX;
+    const centerY = this.barY + this.BOTTOM_BAR_HEIGHT / 2;
 
     // Игровое время
+    const dateStr = `${this.gameDate.year}-${String(this.gameDate.month).padStart(2, '0')}-${String(this.gameDate.day).padStart(2, '0')}`;
     this.gameTimeText = this.scene.add
-      .text(currentX, this.barY + this.BOTTOM_BAR_HEIGHT / 2, '2024-01-01', {
+      .text(currentX, centerY, dateStr, {
         fontSize: '16px',
         color: '#ffffff',
         fontFamily: 'Arial',
       })
       .setOrigin(0, 0.5);
     this.container.add(this.gameTimeText);
-    currentX += this.gameTimeText.width + spacing;
+
+    // Проверяем, помещается ли элемент, и обновляем позицию
+    if (this.gameTimeText.x + this.gameTimeText.width > width - rightMargin) {
+      // Если не помещается, обрезаем или уменьшаем шрифт
+      this.gameTimeText.setVisible(false);
+    } else {
+      currentX += this.gameTimeText.width + spacing;
+    }
 
     // Название города
     this.cityNameText = this.scene.add
-      .text(currentX, this.barY + this.BOTTOM_BAR_HEIGHT / 2, this.mockCityName, {
+      .text(currentX, centerY, this.mockCityName, {
         fontSize: '16px',
         color: '#ffffff',
         fontFamily: 'Arial',
@@ -76,38 +87,55 @@ export class StatisticsBar extends UIComponent {
       })
       .setOrigin(0, 0.5);
     this.container.add(this.cityNameText);
-    currentX += this.cityNameText.width + spacing;
+
+    // Проверяем границы и обрезаем текст если нужно
+    const maxCityNameWidth = width - currentX - rightMargin - spacing * 2;
+    if (this.cityNameText.width > maxCityNameWidth) {
+      // Обрезаем текст с многоточием
+      let truncatedName = this.mockCityName;
+      while (this.cityNameText.width > maxCityNameWidth && truncatedName.length > 0) {
+        truncatedName = truncatedName.slice(0, -1);
+        this.cityNameText.setText(truncatedName + '...');
+      }
+    }
+
+    if (this.cityNameText.x + this.cityNameText.width > width - rightMargin) {
+      this.cityNameText.setVisible(false);
+    } else {
+      currentX += this.cityNameText.width + spacing;
+    }
 
     // Финансы
+    const financesStr = `💰 ${formatMoney(this.mockFinances)}`;
     this.financesText = this.scene.add
-      .text(
-        currentX,
-        this.barY + this.BOTTOM_BAR_HEIGHT / 2,
-        `💰 ${formatMoney(this.mockFinances)}`,
-        {
-          fontSize: '16px',
-          color: '#4ade80',
-          fontFamily: 'Arial',
-        },
-      )
+      .text(currentX, centerY, financesStr, {
+        fontSize: '16px',
+        color: '#4ade80',
+        fontFamily: 'Arial',
+      })
       .setOrigin(0, 0.5);
     this.container.add(this.financesText);
-    currentX += this.financesText.width + spacing;
+
+    if (this.financesText.x + this.financesText.width > width - rightMargin) {
+      this.financesText.setVisible(false);
+    } else {
+      currentX += this.financesText.width + spacing;
+    }
 
     // Население
+    const populationStr = `👥 ${formatPopulation(this.mockPopulation)}`;
     this.populationText = this.scene.add
-      .text(
-        currentX,
-        this.barY + this.BOTTOM_BAR_HEIGHT / 2,
-        `👥 ${formatPopulation(this.mockPopulation)}`,
-        {
-          fontSize: '16px',
-          color: '#ffffff',
-          fontFamily: 'Arial',
-        },
-      )
+      .text(currentX, centerY, populationStr, {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'Arial',
+      })
       .setOrigin(0, 0.5);
     this.container.add(this.populationText);
+
+    if (this.populationText.x + this.populationText.width > width - rightMargin) {
+      this.populationText.setVisible(false);
+    }
   }
 
   private subscribeToEvents(): void {
@@ -143,25 +171,73 @@ export class StatisticsBar extends UIComponent {
   }
 
   private updateStatistics(): void {
+    const { width } = this.scene.scale;
+    const spacing = 30;
+    const rightMargin = 20;
+    let currentX = this.startX;
+
     // Обновление игрового времени
     const dateStr = `${this.gameDate.year}-${String(this.gameDate.month).padStart(2, '0')}-${String(this.gameDate.day).padStart(2, '0')}`;
     this.gameTimeText.setText(dateStr);
+    this.gameTimeText.setPosition(currentX, this.barY + this.BOTTOM_BAR_HEIGHT / 2);
+
+    if (this.gameTimeText.x + this.gameTimeText.width > width - rightMargin) {
+      this.gameTimeText.setVisible(false);
+    } else {
+      this.gameTimeText.setVisible(true);
+      currentX += this.gameTimeText.width + spacing;
+    }
+
+    // Обновление названия города
+    this.cityNameText.setText(this.mockCityName);
+    this.cityNameText.setPosition(currentX, this.barY + this.BOTTOM_BAR_HEIGHT / 2);
+
+    // Проверяем границы и обрезаем текст если нужно
+    const maxCityNameWidth = width - currentX - rightMargin - spacing * 2;
+    if (this.cityNameText.width > maxCityNameWidth) {
+      let truncatedName = this.mockCityName;
+      while (this.cityNameText.width > maxCityNameWidth && truncatedName.length > 0) {
+        truncatedName = truncatedName.slice(0, -1);
+        this.cityNameText.setText(truncatedName + '...');
+      }
+    }
+
+    if (this.cityNameText.x + this.cityNameText.width > width - rightMargin) {
+      this.cityNameText.setVisible(false);
+    } else {
+      this.cityNameText.setVisible(true);
+      currentX += this.cityNameText.width + spacing;
+    }
 
     // Обновление финансов
-    this.financesText.setText(`💰 ${formatMoney(this.mockFinances)}`);
+    const financesStr = `💰 ${formatMoney(this.mockFinances)}`;
+    this.financesText.setText(financesStr);
+    this.financesText.setPosition(currentX, this.barY + this.BOTTOM_BAR_HEIGHT / 2);
+
+    if (this.financesText.x + this.financesText.width > width - rightMargin) {
+      this.financesText.setVisible(false);
+    } else {
+      this.financesText.setVisible(true);
+      currentX += this.financesText.width + spacing;
+    }
 
     // Обновление населения
-    this.populationText.setText(`👥 ${formatPopulation(this.mockPopulation)}`);
+    const populationStr = `👥 ${formatPopulation(this.mockPopulation)}`;
+    this.populationText.setText(populationStr);
+    this.populationText.setPosition(currentX, this.barY + this.BOTTOM_BAR_HEIGHT / 2);
+
+    if (this.populationText.x + this.populationText.width > width - rightMargin) {
+      this.populationText.setVisible(false);
+    } else {
+      this.populationText.setVisible(true);
+    }
   }
 
   resize(barY: number, startX: number): void {
     this.barY = barY;
+    this.startX = startX;
 
-    // Пересоздаём элементы статистики
-    this.gameTimeText.destroy();
-    this.cityNameText.destroy();
-    this.financesText.destroy();
-    this.populationText.destroy();
-    this.createStatisticsElements(startX);
+    // Обновляем позиции элементов на основе их реальной ширины
+    this.updateStatistics();
   }
 }

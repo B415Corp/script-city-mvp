@@ -18,7 +18,6 @@ export class ToolsModule implements IModule {
   private toolManager?: ToolManager;
 
   async initialize(core: GameCore): Promise<void> {
-
     // Создаем ToolManager
     const eventBus = core.getEventBus();
     this.toolManager = new ToolManager(eventBus);
@@ -49,4 +48,3 @@ export class ToolsModule implements IModule {
     return this.toolManager;
   }
 }
-
