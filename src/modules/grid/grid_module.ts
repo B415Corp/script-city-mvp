@@ -192,11 +192,23 @@ export class GridModule implements IModule {
       return;
     }
 
-    const worldX = (pointer.x - this.container.x) / this.container.scale;
-    const worldY = (pointer.y - this.container.y) / this.container.scale;
-    const tile = this.isometricMath.screenToTile(worldX, worldY);
+    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
+    const containerX = (pointer.x - this.container.x) / this.container.scale;
+    const containerY = (pointer.y - this.container.y) / this.container.scale;
+
+    // Получаем приблизительный тайл
+    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+
+    // Проверяем точное попадание в тайл
+    const tile = this.findTileAtPoint(
+      containerX,
+      containerY,
+      approximateTile.tileX,
+      approximateTile.tileY,
+    );
 
     if (
+      tile &&
       tile.tileX >= 0 &&
       tile.tileX < this.gridWidth &&
       tile.tileY >= 0 &&
@@ -231,11 +243,23 @@ export class GridModule implements IModule {
       return;
     }
 
-    const worldX = (pointer.x - this.container.x) / this.container.scale;
-    const worldY = (pointer.y - this.container.y) / this.container.scale;
-    const tile = this.isometricMath.screenToTile(worldX, worldY);
+    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
+    const containerX = (pointer.x - this.container.x) / this.container.scale;
+    const containerY = (pointer.y - this.container.y) / this.container.scale;
+
+    // Получаем приблизительный тайл
+    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+
+    // Проверяем точное попадание в тайл и соседние тайлы
+    const tile = this.findTileAtPoint(
+      containerX,
+      containerY,
+      approximateTile.tileX,
+      approximateTile.tileY,
+    );
 
     if (
+      tile &&
       tile.tileX >= 0 &&
       tile.tileX < this.gridWidth &&
       tile.tileY >= 0 &&
@@ -266,6 +290,42 @@ export class GridModule implements IModule {
     } else {
       this.clearHighlight();
     }
+  }
+
+  /** Поиск тайла в точке с проверкой соседних тайлов */
+  private findTileAtPoint(
+    screenX: number,
+    screenY: number,
+    centerTileX: number,
+    centerTileY: number,
+  ): { tileX: number; tileY: number } | null {
+    if (!this.isometricMath) return null;
+
+    // Проверяем центральный тайл и соседние (включая диагональные)
+    const offsets = [
+      [0, 0], // Центральный
+      [-1, 0], // Слева
+      [1, 0], // Справа
+      [0, -1], // Сверху
+      [0, 1], // Снизу
+      [-1, -1], // Слева-сверху
+      [1, -1], // Справа-сверху
+      [-1, 1], // Слева-снизу
+      [1, 1], // Справа-снизу
+    ];
+
+    for (const [dx, dy] of offsets) {
+      const tileX = centerTileX + dx;
+      const tileY = centerTileY + dy;
+
+      if (tileX >= 0 && tileX < this.gridWidth && tileY >= 0 && tileY < this.gridHeight) {
+        if (this.isometricMath.isPointInTile(screenX, screenY, tileX, tileY)) {
+          return { tileX, tileY };
+        }
+      }
+    }
+
+    return null;
   }
 
   /** Камера: zoom + drag + стрелки */
