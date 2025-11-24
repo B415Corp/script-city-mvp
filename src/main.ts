@@ -15,7 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: window.innerHeight,
   parent: 'game-root',
   backgroundColor: '#2c3e50',
-  scene: [MenuScene, GameScene],
+  scene: [GameScene, MenuScene],
   physics: {
     default: 'arcade',
     arcade: {

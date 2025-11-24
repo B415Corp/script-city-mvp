@@ -234,10 +234,10 @@ export class GridModule implements IModule {
       for (let x = 0; x < this.gridWidth; x++) {
         const center = this.isometricMath.tileToScreen(x, y);
         this.drawIsometricTileOutline(this.gridGraphics, center.x, center.y);
+        // Вызываем strokePath после каждого тайла, иначе path перезаписывается
+        this.gridGraphics.strokePath();
       }
     }
-
-    this.gridGraphics.strokePath();
   }
 
   /**
@@ -252,7 +252,7 @@ export class GridModule implements IModule {
     const halfHeight = this.tileHeight / 2;
 
     // Устанавливаем стиль заливки для каждого тайла
-    graphics.fillStyle(0x2d3748, 1.0);
+    graphics.fillStyle(0x2d4837, 1.0);
     graphics.beginPath();
     graphics.moveTo(centerX, centerY - halfHeight); // Верх
     graphics.lineTo(centerX + halfWidth, centerY); // Право
@@ -359,7 +359,7 @@ export class GridModule implements IModule {
     const halfHeight = this.tileHeight / 2;
 
     // Рисуем заливку ромба
-    this.highlightGraphics.fillStyle(0xffffff, 0.3);
+    this.highlightGraphics.fillStyle(0xffffff, 0.1);
     this.highlightGraphics.beginPath();
     this.highlightGraphics.moveTo(center.x, center.y - halfHeight);
     this.highlightGraphics.lineTo(center.x + halfWidth, center.y);
@@ -369,7 +369,7 @@ export class GridModule implements IModule {
     this.highlightGraphics.fillPath();
 
     // Рисуем обводку
-    this.highlightGraphics.lineStyle(2, 0xffffff, 0.8);
+    this.highlightGraphics.lineStyle(2, 0xffffff, 0.1);
     this.highlightGraphics.beginPath();
     this.highlightGraphics.moveTo(center.x, center.y - halfHeight);
     this.highlightGraphics.lineTo(center.x + halfWidth, center.y);
