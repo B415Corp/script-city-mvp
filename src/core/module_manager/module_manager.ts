@@ -34,7 +34,7 @@ export class ModuleManager {
    * @param dependencies - список ID модулей-зависимостей (опционально)
    * @throws {Error} если модуль с таким ID уже зарегистрирован
    */
-  registerModule(module: IModule, dependencies?: string[]): void {
+  private registerModule(module: IModule, dependencies?: string[]): void {
     if (this.modules.has(module.id)) {
       throw new Error(`Module with id "${module.id}" is already registered`);
     }
@@ -51,6 +51,18 @@ export class ModuleManager {
     console.warn('📦 ModuleManager registered module', module.id, {
       dependencies: moduleDependencies,
     });
+  }
+
+  /**
+   * Регистрация последовательности модулей.
+   *
+   * @param modules - массив модулей для регистрации
+   */
+  registerModuleSequence(modules: IModule[] = []): void {
+    for(const module of modules){
+      this.registerModule(module);
+    }
+    console.warn('📦 ModuleManager registered module sequence', modules.map((module) => module.id));
   }
 
   /**

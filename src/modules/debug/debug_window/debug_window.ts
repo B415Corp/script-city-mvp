@@ -264,17 +264,68 @@ export class DebugWindow extends UIComponent {
     if (filteredEvents.length === 0) {
       this.eventsText.setText('Events:\n(no events yet)');
     } else {
-      const eventsList = filteredEvents
-        .slice()
-        .reverse() // Показываем последние сверху
-        .slice(0, 10) // Показываем максимум 10 событий
-        .map((entry, index) => {
-          const timeAgo = Date.now() - entry.timestamp;
+      // Разворачиваем массив, чтобы последние события были первыми
+      const reversedEvents = filteredEvents.slice().reverse();
+
+      // Группируем повторяющиеся события подряд
+      interface GroupedEvent {
+        eventType: string;
+        count: number;
+        lastTimestamp: number;
+        lastPayload?: unknown;
+      }
+
+      const groupedEvents: GroupedEvent[] = [];
+      for (const entry of reversedEvents) {
+        const lastGroup = groupedEvents[groupedEvents.length - 1];
+        if (lastGroup && lastGroup.eventType === entry.eventType) {
+          // Увеличиваем счетчик повторений
+          lastGroup.count++;
+          lastGroup.lastTimestamp = entry.timestamp;
+          lastGroup.lastPayload = entry.payload;
+        } else {
+          // Новое уникальное событие
+          groupedEvents.push({
+            eventType: entry.eventType,
+            count: 1,
+            lastTimestamp: entry.timestamp,
+            lastPayload: entry.payload,
+          });
+        }
+      }
+
+      // Формируем список событий (максимум 10 уникальных)
+      const eventsList = groupedEvents
+        .slice(0, 10)
+        .map((group, index) => {
+          const timeAgo = Date.now() - group.lastTimestamp;
           const timeStr = timeAgo < 1000 ? `${timeAgo}ms` : `${(timeAgo / 1000).toFixed(1)}s`;
-          return `${index + 1}. ${entry.eventType} (${timeStr})`;
+          const countStr = group.count > 1 ? ` (${group.count})` : '';
+          return `${index + 1}. ${group.eventType}${countStr} (${timeStr})`;
         })
         .join('\n');
-      this.eventsText.setText(`Events (last ${filteredEvents.length}):\n${eventsList}`);
+
+      // Получаем данные последнего события
+      const lastEvent = reversedEvents[0];
+      let lastEventData = '';
+      if (lastEvent && lastEvent.payload !== undefined) {
+        try {
+          const payloadStr = JSON.stringify(lastEvent.payload, null, 2);
+          // Ограничиваем длину данных для читаемости
+          const maxLength = 200;
+          const truncatedPayload =
+            payloadStr.length > maxLength
+              ? payloadStr.substring(0, maxLength) + '...'
+              : payloadStr;
+          lastEventData = `\n\nLast event data:\n${truncatedPayload}`;
+        } catch {
+          lastEventData = `\n\nLast event data:\n(cannot serialize)`;
+        }
+      }
+
+      this.eventsText.setText(
+        `Events (${filteredEvents.length} total):\n${eventsList}${lastEventData}`,
+      );
     }
 
     // Обновляем позиции элементов после изменения текста
