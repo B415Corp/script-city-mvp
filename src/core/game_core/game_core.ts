@@ -6,6 +6,7 @@ import { CommandProcessor } from '../command_processor/command_processor';
 import { TickManager } from '../tick_manager/tick_manager';
 import { ToolManager } from '@/modules/tools/tool_manager';
 import { CoreConfig } from './types';
+import { SaveManager } from '../save_manager/save_manager';
 
 export class GameCore {
   private tickManager!: TickManager;
@@ -13,6 +14,7 @@ export class GameCore {
   private eventBus!: EventBus;
   private moduleManager!: ModuleManager;
   private commandProcessor!: CommandProcessor;
+  private saveManager!: SaveManager;
   private toolManager?: ToolManager;
   private config?: CoreConfig;
 
@@ -28,7 +30,7 @@ export class GameCore {
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
-    // ToolManager создается модулем ToolsModule, а не здесь
+    this.saveManager = new SaveManager();
 
     this.tickManager = new TickManager({
       tickRate: config?.tickRate ?? 10,
@@ -107,6 +109,21 @@ export class GameCore {
 
   public getCommandProcessor(): CommandProcessor {
     return this.commandProcessor;
+  }
+
+  public getSaveManager(): SaveManager {
+    return this.saveManager;
+  }
+
+  public setSaveManager(saveManager: SaveManager): void {
+    this.saveManager = saveManager;
+  }
+
+  public getConfig(): CoreConfig {
+    if (!this.config) {
+      throw new Error('Config is not initialized');
+    }
+    return this.config;
   }
 
   /**
