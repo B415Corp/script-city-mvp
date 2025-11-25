@@ -29,7 +29,6 @@ export interface IModule {
    *
    * @param core - экземпляр GameCore для доступа к менеджерам
    */
-  // eslint-disable-next-line -- параметр core является частью сигнатуры типа функции
   initialize(core: GameCore): Promise<void>;
 
   /**
@@ -44,8 +43,24 @@ export interface IModule {
    *
    * @param ecs - экземпляр ECSManager для регистрации систем
    */
-  // eslint-disable-next-line -- параметр ecs является частью сигнатуры типа функции
   registerSystems?(ecs: ECSManager): void;
+
+  /**
+   * Сериализация данных модуля.
+   * Опциональный метод для модулей, которые хотят участвовать в сохранении.
+   * Должен возвращать только простые данные (без функций, ссылок на объекты).
+   *
+   * @returns сериализованные данные модуля
+   */
+  serialize?(): unknown;
+
+  /**
+   * Десериализация данных модуля.
+   * Опциональный метод для восстановления состояния модуля из сохранения.
+   *
+   * @param data - сериализованные данные модуля
+   */
+  deserialize?(data: unknown): void;
 }
 
 /**

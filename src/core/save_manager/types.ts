@@ -38,7 +38,10 @@ export interface ECSData {
   components: SerializedComponents;
 }
 
-export interface ModuleData {}
+export interface ModuleData {
+  // Словарь: moduleId -> сериализованные данные модуля
+  [moduleId: string]: unknown;
+}
 
 export interface SerializedComponents {
   [entityId: string]: {

@@ -157,6 +157,16 @@ export class SaveManager {
         module: moduleSaveData,
       };
 
+      // Отладка: проверяем что данные можно сериализовать
+      if (this.config?.enableDebug) {
+        console.warn('💾 SaveManager: saveGame structure:', {
+          metadata: Object.keys(metadata),
+          coreKeys: Object.keys(coreSaveData),
+          ecsEntitiesCount: ecsSaveData.entities.length,
+          moduleKeys: Object.keys(moduleSaveData),
+        });
+      }
+
       await this.storageProvider.saveGame(saveId, saveGame);
       console.warn(`💾 Game saved successfully with ID: ${saveId}`);
     } catch (error) {
@@ -233,8 +243,20 @@ export class SaveManager {
           const componentKey =
             typeof componentType === 'symbol' ? componentType.toString() : String(componentType);
 
-          // сериализовать компонент
-          serializedComponents[entityId][componentKey] = componentData;
+          // сериализовать компонент безопасно (удаляем функции и несериализуемые объекты)
+          try {
+            // JSON.parse(JSON.stringify()) автоматически убирает функции, undefined, символы
+            // и другие типы, которые не поддерживаются IndexedDB
+            serializedComponents[entityId][componentKey] = JSON.parse(
+              JSON.stringify(componentData),
+            );
+          } catch (error) {
+            console.warn(
+              `💾 SaveManager: не удалось сериализовать компонент "${componentKey}" для сущности ${entityId}`,
+              error,
+            );
+            // Пропускаем проблемный компонент - он не будет сохранён
+          }
         }
       }
     }
@@ -297,19 +319,50 @@ export class SaveManager {
   private deserializeModuleState(state: ModuleData): void {
     if (!this.core) throw new Error('Core not initialized');
 
-    // TODO: Реализовать восстановление состояния модулей
-    // Пока просто логируем для отладки
-    console.warn('💾 Deserializing module state:', state);
+    const moduleManager = this.core.getModuleManager();
+
+    // Восстанавливаем данные для каждого модуля
+    for (const [moduleId, data] of Object.entries(state)) {
+      const module = moduleManager.getModule(moduleId);
+      if (module !== null && typeof module.deserialize === 'function') {
+        try {
+          module.deserialize(data);
+          console.warn(`💾 SaveManager: восстановлен модуль "${moduleId}"`);
+        } catch (error) {
+          console.error(`💾 SaveManager: ошибка восстановления модуля "${moduleId}"`, error);
+        }
+      } else if (module === null) {
+        console.warn(`💾 SaveManager: модуль "${moduleId}" не найден при загрузке сохранения`);
+      }
+    }
   }
 
+  /**
+   * Сериализует состояние модулей.
+   * @returns сериализованные данные модулей
+   */
   private serializeModuleState(): ModuleData {
     if (!this.core) throw new Error('Core not initialized');
 
     const moduleManager = this.core.getModuleManager();
+    const modules = moduleManager.getAllModules();
+    const moduleData: ModuleData = {};
 
-    return {
-      modules: moduleManager.getAllModules(),
-    };
+    // Сериализуем только те модули, которые реализуют serialize()
+    for (const module of modules) {
+      if (typeof module.serialize === 'function') {
+        try {
+          const data = module.serialize();
+          // Проверяем, что данные можно сериализовать через JSON
+          moduleData[module.id] = JSON.parse(JSON.stringify(data));
+          console.warn(`💾 SaveManager: сериализован модуль "${module.id}"`);
+        } catch (error) {
+          console.warn(`💾 SaveManager: не удалось сериализовать модуль "${module.id}"`, error);
+        }
+      }
+    }
+
+    return moduleData;
   }
 
   /**
