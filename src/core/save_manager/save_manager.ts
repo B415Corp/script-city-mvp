@@ -1,6 +1,8 @@
 import { EventBus } from '../event_bus/event_bus';
 import { GameCore } from '../game_core/game_core';
 import { CoreConfig } from '../game_core/types';
+import { IStorageProvider } from './storage/types';
+import { IndexedDBStorageProvider } from './storage/indexeddb_storage_provider';
 import {
   CoreSaveData,
   ECSData,
@@ -9,16 +11,15 @@ import {
   SaveMetadata,
   SaveOptions,
   SerializedComponents,
-} from './type';
+} from './types';
 
 const SAVE_VERSION = '1.0.0'; // Версия формата сохранений
-const STORAGE_KEY_PREFIX = 'script_city_save_';
-const STORAGE_KEY_LIST = 'script_city_saves_list';
 
 export class SaveManager {
   private core?: GameCore;
   private eventBus?: EventBus;
   private config?: CoreConfig;
+  private storageProvider?: IStorageProvider;
 
   constructor() {
     console.warn('💾 SaveManager initialized');
@@ -28,28 +29,61 @@ export class SaveManager {
    * Инициализирует SaveManager.
    * @param core GameCore
    * @param eventBus EventBus
+   * @param storageProvider опциональный провайдер хранения (по умолчанию IndexedDB)
    */
-  public initialize(core: GameCore, eventBus: EventBus): void {
+  public initialize(core: GameCore, eventBus: EventBus, storageProvider?: IStorageProvider): void {
     this.core = core;
     this.eventBus = eventBus;
     this.config = core.getConfig();
+    this.storageProvider = storageProvider || new IndexedDBStorageProvider();
     console.warn('💾 SaveManager initialized');
   }
 
   /**
-   * Сохраняет игру.
+   * Сохраняет игру (использует автосохранение).
    * @returns Promise<void>
    */
   public async save(): Promise<void> {
-    console.warn('💾 SaveManager saved');
+    console.warn('💾 SaveManager saving');
+    await this.autoSave();
   }
 
   /**
-   * Загружает игру.
+   * Загружает игру по ID сохранения.
+   * @param saveId ID сохранения для загрузки
    * @returns Promise<void>
    */
-  public async load(): Promise<void> {
-    console.warn('💾 SaveManager loaded');
+  public async load(saveId: string): Promise<void> {
+    console.warn('💾 SaveManager loading game', saveId);
+    if (!this.core) {
+      console.error('💾 SaveManager core not initialized');
+      return;
+    }
+    if (!this.eventBus) {
+      console.error('💾 SaveManager eventBus not initialized');
+      return;
+    }
+    if (!this.storageProvider) {
+      console.error('💾 SaveManager storage provider not initialized');
+      return;
+    }
+
+    try {
+      const saveGame = await this.storageProvider.loadGame(saveId);
+      if (!saveGame) {
+        throw new Error(`Save with ID ${saveId} not found`);
+      }
+
+      // Восстанавливаем состояние в обратном порядке
+      this.deserializeModuleState(saveGame.module);
+      this.deserializeECSState(saveGame.ecs);
+      this.deserializeCoreState(saveGame.core);
+
+      console.warn(`💾 Game loaded successfully from save: ${saveId}`);
+    } catch (error) {
+      console.error('💾 SaveManager error loading game', error);
+      throw error;
+    }
   }
 
   /**
@@ -57,7 +91,22 @@ export class SaveManager {
    * @returns Promise<void>
    */
   public async autoSave(): Promise<void> {
-    console.warn('💾 SaveManager auto saved');
+    console.warn('💾 SaveManager auto saving');
+    if (!this.storageProvider) {
+      console.error('💾 SaveManager storage provider not initialized');
+      return;
+    }
+
+    try {
+      await this.saveGame({
+        saveName: 'AutoSave',
+        autoSave: true,
+      });
+      console.warn('💾 Auto save completed');
+    } catch (error) {
+      console.error('💾 Auto save failed:', error);
+      throw error;
+    }
   }
 
   /**
@@ -77,6 +126,10 @@ export class SaveManager {
     }
     if (!this.eventBus) {
       console.error('💾 SaveManager eventBus not initialized');
+      return;
+    }
+    if (!this.storageProvider) {
+      console.error('💾 SaveManager storage provider not initialized');
       return;
     }
 
@@ -103,9 +156,12 @@ export class SaveManager {
         ecs: ecsSaveData,
         module: moduleSaveData,
       };
+
+      await this.storageProvider.saveGame(saveId, saveGame);
+      console.warn(`💾 Game saved successfully with ID: ${saveId}`);
     } catch (error) {
       console.error('💾 SaveManager error saving game', error);
-      return;
+      throw error;
     }
   }
 
@@ -113,16 +169,15 @@ export class SaveManager {
    * Получение списка всех сохранений
    */
   public async getSavesList(): Promise<SaveMetadata[]> {
-    const listJson = localStorage.getItem(STORAGE_KEY_LIST);
-    if (!listJson) {
+    if (!this.storageProvider) {
+      console.error('💾 SaveManager storage provider not initialized');
       return [];
     }
 
     try {
-      const list = JSON.parse(listJson) as Record<string, SaveMetadata>;
-      return Object.values(list);
+      return await this.storageProvider.getSavesList();
     } catch (error) {
-      console.error('Failed to parse saves list:', error);
+      console.error('Failed to get saves list:', error);
       return [];
     }
   }
@@ -193,31 +248,58 @@ export class SaveManager {
   }
 
   /**
-   * Сериализует состояние Core.
-   * @returns сериализованные данные Core
-   */
-  private serializeCoreSaveData(): CoreSaveData {
-    if (!this.core) throw new Error('Core not initialized');
-
-    const tickManager = this.core.getTickManager();
-
-    return {
-      tickRate: tickManager.getTickRate(),
-      currentTick: tickManager.getCurrentTick(),
-      gameSpeed: tickManager.getSpeed(),
-    };
-  }
-
-  /**
    * Десериализует состояние Core.
    * @param state сериализованные данные Core
    */
-  private deserializeCoreSaveData(state: CoreSaveData): void {
+  private deserializeCoreState(state: CoreSaveData): void {
     if (!this.core) throw new Error('Core not initialized');
 
     const tickManager = this.core.getTickManager();
     tickManager.setSpeed(state.gameSpeed);
     // TODO: Восстановить currentTick если нужно
+  }
+
+  /**
+   * Десериализует состояние ECS.
+   * @param state сериализованные данные ECS
+   */
+  private deserializeECSState(state: ECSData): void {
+    if (!this.core) throw new Error('Core not initialized');
+
+    const ecsManager = this.core.getECSManager();
+
+    // Очищаем текущее состояние ECS
+    ecsManager.clear();
+
+    // Восстанавливаем счетчик ID сущностей
+    ecsManager.setEntityIdCounter(state.entityIdCounter);
+
+    // Восстанавливаем компоненты для каждой сущности
+    for (const entityId of state.entities) {
+      const entityComponents = state.components[entityId.toString()];
+      if (entityComponents) {
+        for (const [componentType, componentData] of Object.entries(entityComponents)) {
+          // Преобразуем строку обратно в Symbol если нужно
+          const componentKey: string | symbol = componentType.startsWith('Symbol(')
+            ? Symbol(componentType.slice(7, -1))
+            : componentType;
+
+          ecsManager.addComponent(entityId, componentData, componentKey);
+        }
+      }
+    }
+  }
+
+  /**
+   * Десериализует состояние модулей.
+   * @param state сериализованные данные модулей
+   */
+  private deserializeModuleState(state: ModuleData): void {
+    if (!this.core) throw new Error('Core not initialized');
+
+    // TODO: Реализовать восстановление состояния модулей
+    // Пока просто логируем для отладки
+    console.warn('💾 Deserializing module state:', state);
   }
 
   private serializeModuleState(): ModuleData {
@@ -231,9 +313,50 @@ export class SaveManager {
   }
 
   /**
+   * Удаляет сохранение по ID.
+   * @param saveId ID сохранения для удаления
+   */
+  public async deleteSave(saveId: string): Promise<void> {
+    if (!this.storageProvider) {
+      console.error('💾 SaveManager storage provider not initialized');
+      return;
+    }
+
+    try {
+      await this.storageProvider.deleteGame(saveId);
+      console.warn(`💾 Save deleted: ${saveId}`);
+    } catch (error) {
+      console.error('💾 Failed to delete save:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Проверяет существует ли сохранение.
+   * @param saveId ID сохранения для проверки
+   */
+  public async saveExists(saveId: string): Promise<boolean> {
+    if (!this.storageProvider) {
+      console.error('💾 SaveManager storage provider not initialized');
+      return false;
+    }
+
+    try {
+      return await this.storageProvider.exists(saveId);
+    } catch (error) {
+      console.error('💾 Failed to check save existence:', error);
+      return false;
+    }
+  }
+
+  /**
    * Уничтожает SaveManager.
    */
   destroy(): void {
+    // Закрываем соединение если провайдер поддерживает это (IndexedDB)
+    if (this.storageProvider && 'close' in this.storageProvider) {
+      (this.storageProvider as IndexedDBStorageProvider).close();
+    }
     console.warn('💾 SaveManager destroyed');
   }
 }
