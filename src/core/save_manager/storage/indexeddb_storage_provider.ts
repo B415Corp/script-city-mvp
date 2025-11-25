@@ -25,18 +25,18 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = () => {
+      request.onerror = (): void => {
         console.error('IndexedDB error:', request.error);
         reject(request.error);
       };
 
-      request.onsuccess = () => {
+      request.onsuccess = (): void => {
         this.db = request.result;
-        console.log('IndexedDB initialized successfully');
+        console.warn('IndexedDB initialized successfully');
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = (event): void => {
         const db = (event.target as IDBOpenDBRequest).result;
 
         // Создаем object store для сохранений
@@ -77,7 +77,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         ...saveGame,
       });
 
-      saveRequest.onerror = () => reject(saveRequest.error);
+      saveRequest.onerror = (): void => reject(saveRequest.error);
 
       // Сохраняем метаданные отдельно для быстрого доступа
       const metadataRequest = transaction.objectStore(METADATA_STORE).put({
@@ -85,10 +85,10 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         ...saveGame.metadata,
       });
 
-      metadataRequest.onerror = () => reject(metadataRequest.error);
+      metadataRequest.onerror = (): void => reject(metadataRequest.error);
 
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      transaction.oncomplete = (): void => resolve();
+      transaction.onerror = (): void => reject(transaction.error);
     });
   }
 
@@ -102,7 +102,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       const request = this.db!.transaction(SAVES_STORE).objectStore(SAVES_STORE).get(saveId);
 
-      request.onsuccess = () => {
+      request.onsuccess = (): void => {
         if (request.result) {
           const saveGame = { ...request.result };
           delete saveGame.saveId;
@@ -112,7 +112,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         }
       };
 
-      request.onerror = () => reject(request.error);
+      request.onerror = (): void => reject(request.error);
     });
   }
 
@@ -128,14 +128,14 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       // Удаляем из основного хранилища
       const saveRequest = transaction.objectStore(SAVES_STORE).delete(saveId);
-      saveRequest.onerror = () => reject(saveRequest.error);
+      saveRequest.onerror = (): void => reject(saveRequest.error);
 
       // Удаляем из метаданных
       const metadataRequest = transaction.objectStore(METADATA_STORE).delete(saveId);
-      metadataRequest.onerror = () => reject(metadataRequest.error);
+      metadataRequest.onerror = (): void => reject(metadataRequest.error);
 
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      transaction.oncomplete = (): void => resolve();
+      transaction.onerror = (): void => reject(transaction.error);
     });
   }
 
@@ -149,7 +149,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       const request = this.db!.transaction(METADATA_STORE).objectStore(METADATA_STORE).getAll();
 
-      request.onsuccess = () => {
+      request.onsuccess = (): void => {
         const metadataList: SaveMetadata[] = [];
         for (const item of request.result) {
           const metadata = { ...item };
@@ -159,7 +159,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         resolve(metadataList);
       };
 
-      request.onerror = () => reject(request.error);
+      request.onerror = (): void => reject(request.error);
     });
   }
 
@@ -173,8 +173,8 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       const request = this.db!.transaction(SAVES_STORE).objectStore(SAVES_STORE).getKey(saveId);
 
-      request.onsuccess = () => resolve(!!request.result);
-      request.onerror = () => reject(request.error);
+      request.onsuccess = (): void => resolve(!!request.result);
+      request.onerror = (): void => reject(request.error);
     });
   }
 
@@ -190,14 +190,14 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       // Очищаем основное хранилище
       const saveRequest = transaction.objectStore(SAVES_STORE).clear();
-      saveRequest.onerror = () => reject(saveRequest.error);
+      saveRequest.onerror = (): void => reject(saveRequest.error);
 
       // Очищаем метаданные
       const metadataRequest = transaction.objectStore(METADATA_STORE).clear();
-      metadataRequest.onerror = () => reject(metadataRequest.error);
+      metadataRequest.onerror = (): void => reject(metadataRequest.error);
 
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      transaction.oncomplete = (): void => resolve();
+      transaction.onerror = (): void => reject(transaction.error);
     });
   }
 

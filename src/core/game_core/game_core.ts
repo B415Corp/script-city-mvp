@@ -40,6 +40,9 @@ export class GameCore {
       ecsManager: this.ecsManager,
     });
 
+    // Инициализация SaveManager
+    this.saveManager.initialize(this, this.eventBus);
+
     // 2. Регистрация базовых систем (если есть)
     // TODO: регистрация базовых систем
 
@@ -87,7 +90,10 @@ export class GameCore {
     // 4. Очистка всех модулей
     this.moduleManager.clear();
 
-    // 5. Освобождение ресурсов
+    // 5. Закрытие SaveManager
+    this.saveManager.destroy();
+
+    // 6. Освобождение ресурсов
     console.warn('👾 GameCore destroyed');
   }
 
