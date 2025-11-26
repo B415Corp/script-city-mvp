@@ -74,12 +74,6 @@ export class BottomBar extends UIComponent {
     // Создаём кнопку сохранения
     const saveButtonX = speedControlsX + this.speedControls.getWidth() + 30;
     this.createSaveButton(saveButtonX, speedControlsY);
-
-    // Создаём компонент статистики
-    const statisticsStartX = saveButtonX + 100;
-    this.statisticsBar = new StatisticsBar(this.scene, this.core);
-    this.statisticsBar.initialize(bottomBarY, statisticsStartX);
-    this.statisticsBar.create();
   }
 
   private createSaveButton(x: number, y: number): void {
@@ -188,10 +182,6 @@ export class BottomBar extends UIComponent {
     // Обновление позиции кнопки сохранения
     const saveButtonX = speedControlsX + this.speedControls.getWidth() + 30;
     this.saveButton.setPosition(saveButtonX, speedControlsY);
-
-    // Обновление элементов статистики
-    const statisticsStartX = saveButtonX + 100;
-    this.statisticsBar.resize(bottomBarY, statisticsStartX);
   }
 
   /**

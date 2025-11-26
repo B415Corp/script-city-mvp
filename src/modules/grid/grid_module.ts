@@ -167,6 +167,112 @@ export class GridModule implements IModule {
     this.highlightedTile = null;
   }
 
+  /** Обработка зума */
+  private handleZoom(pointer: Phaser.Input.Pointer, deltaY: number): void {
+    if (!this.container) return;
+
+    const oldScale = this.container.scale;
+    const zoomSpeed = 0.001;
+
+    const newScale = Phaser.Math.Clamp(oldScale - deltaY * zoomSpeed, 0.1, 2.0);
+
+    const worldX = (pointer.x - this.container.x) / oldScale;
+    const worldY = (pointer.y - this.container.y) / oldScale;
+
+    const newX = pointer.x - worldX * newScale;
+    const newY = pointer.y - worldY * newScale;
+
+    this.container.setScale(newScale);
+    this.container.setPosition(newX, newY);
+
+    // Эмитим событие изменения зума камеры
+    this.eventBus?.emit(Events.CameraZoomed, {
+      scale: newScale,
+      x: newX,
+      y: newY,
+    });
+  }
+
+  /** Публичные методы для управления камерой из UI */
+  public zoomIn(): void {
+    if (!this.container || !this.scene) return;
+
+    const oldScale = this.container.scale;
+    const newScale = Phaser.Math.Clamp(oldScale + 0.1, 0.1, 2.0);
+
+    // Зумим к центру экрана
+    const centerX = this.scene.cameras.main.width / 2;
+    const centerY = this.scene.cameras.main.height / 2;
+
+    const worldX = (centerX - this.container.x) / oldScale;
+    const worldY = (centerY - this.container.y) / oldScale;
+
+    const newX = centerX - worldX * newScale;
+    const newY = centerY - worldY * newScale;
+
+    this.container.setScale(newScale);
+    this.container.setPosition(newX, newY);
+
+    this.eventBus?.emit(Events.CameraZoomed, {
+      scale: newScale,
+      x: newX,
+      y: newY,
+    });
+  }
+
+  public zoomOut(): void {
+    if (!this.container || !this.scene) return;
+
+    const oldScale = this.container.scale;
+    const newScale = Phaser.Math.Clamp(oldScale - 0.1, 0.1, 2.0);
+
+    // Зумим от центра экрана
+    const centerX = this.scene.cameras.main.width / 2;
+    const centerY = this.scene.cameras.main.height / 2;
+
+    const worldX = (centerX - this.container.x) / oldScale;
+    const worldY = (centerY - this.container.y) / oldScale;
+
+    const newX = centerX - worldX * newScale;
+    const newY = centerY - worldY * newScale;
+
+    this.container.setScale(newScale);
+    this.container.setPosition(newX, newY);
+
+    this.eventBus?.emit(Events.CameraZoomed, {
+      scale: newScale,
+      x: newX,
+      y: newY,
+    });
+  }
+
+  public moveCamera(direction: 'up' | 'down' | 'left' | 'right'): void {
+    if (!this.container) return;
+
+    const speed = 50;
+
+    switch (direction) {
+      case 'up':
+        this.container.y += speed;
+        break;
+      case 'down':
+        this.container.y -= speed;
+        break;
+      case 'left':
+        this.container.x += speed;
+        break;
+      case 'right':
+        this.container.x -= speed;
+        break;
+    }
+
+    this.eventBus?.emit(Events.CameraMoved, {
+      x: this.container.x,
+      y: this.container.y,
+      scale: this.container.scale,
+    });
+  }
+
   /** Обработка клика по тайлу */
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
     if (this.isDragging) return;
@@ -334,30 +440,19 @@ export class GridModule implements IModule {
 
     this.scene.input.mouse?.disableContextMenu();
 
-    // Zoom
-    this.scene.input.on('wheel', (pointer: Phaser.Input.Pointer, deltaY: number) => {
-      const container = this.container!;
-      const oldScale = container.scale;
-      const zoomSpeed = 0.001;
-
-      const newScale = Phaser.Math.Clamp(oldScale - deltaY * zoomSpeed, 0.1, 2.0);
-
-      const worldX = (pointer.x - container.x) / oldScale;
-      const worldY = (pointer.y - container.y) / oldScale;
-
-      const newX = pointer.x - worldX * newScale;
-      const newY = pointer.y - worldY * newScale;
-
-      container.setScale(newScale);
-      container.setPosition(newX, newY);
-
-      // Эмитим событие изменения зума камеры
-      this.eventBus?.emit(Events.CameraZoomed, {
-        scale: newScale,
-        x: newX,
-        y: newY,
-      });
-    });
+    // Zoom - правильная подписка на событие колесика
+    this.scene.input.on(
+      'wheel',
+      (
+        pointer: Phaser.Input.Pointer,
+        _currentlyOver: Phaser.GameObjects.GameObject[],
+        deltaX: number,
+        deltaY: number,
+        _deltaZ: number,
+      ) => {
+        this.handleZoom(pointer, deltaY);
+      },
+    );
 
     // Drag
     this.scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {

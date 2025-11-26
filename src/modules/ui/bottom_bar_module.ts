@@ -9,7 +9,7 @@ import Phaser from 'phaser';
  */
 export class BottomBarModule implements IModule {
   id = 'bottom_bar';
-  dependencies?: string[];
+  dependencies = ['grid'];
 
   private core?: GameCore;
   private bottomBar?: BottomBar;
