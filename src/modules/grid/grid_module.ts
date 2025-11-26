@@ -52,6 +52,33 @@ export class GridModule implements IModule {
   // Текущий подсвеченный тайл
   private highlightedTile: { x: number; y: number } | null = null;
 
+  /**
+   * Получить информацию о тайле по координатам
+   */
+  public getTileInfo(
+    tileX: number,
+    tileY: number,
+  ): {
+    x: number;
+    y: number;
+    type: number;
+    typeName: string;
+  } | null {
+    if (tileX < 0 || tileX >= this.gridWidth || tileY < 0 || tileY >= this.gridHeight) {
+      return null;
+    }
+
+    const tileType = DEFAULT_MAP.tiles[tileY][tileX];
+    const typeName = TextureType[tileType] || 'UNKNOWN';
+
+    return {
+      x: tileX,
+      y: tileY,
+      type: tileType,
+      typeName,
+    };
+  }
+
   async initialize(core: GameCore): Promise<void> {
     this.eventBus = core.getEventBus();
     this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
@@ -387,10 +414,15 @@ export class GridModule implements IModule {
         this.highlightedTile = { x: tile.tileX, y: tile.tileY };
         this.drawHighlight(tile.tileX, tile.tileY);
 
+        // Получаем информацию о тайле
+        const tileInfo = this.getTileInfo(tile.tileX, tile.tileY);
+
         // Эмитим событие наведения на тайл
         this.eventBus?.emit(Events.TileHovered, {
           tileX: tile.tileX,
           tileY: tile.tileY,
+          tileType: tileInfo?.type,
+          tileTypeName: tileInfo?.typeName,
         });
       }
     } else {
