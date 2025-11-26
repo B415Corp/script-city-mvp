@@ -24,7 +24,7 @@ export class TestSimulationModule implements IModule {
     ecs.registerSystem(createLevelUpSystem());
 
     // Создаем 100 домов со случайным временем повышения уровня от 50 до 100 тиков
-    const HOUSE_COUNT = 500;
+    const HOUSE_COUNT = 1000;
     const MIN_TICKS = 50;
     const MAX_TICKS = 100;
 
