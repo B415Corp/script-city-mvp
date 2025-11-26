@@ -51,9 +51,9 @@ export const createLevelUpSystem = (): ISystem => ({
           });
 
           // Также выводим информацию в консоль для наглядности
-          console.log(
-            `🏠 [LEVEL UP] ${entityName}: уровень повышен до ${level.level} (интервал: ${timer.ticksPerLevel} тиков)`,
-          );
+          // console.log(
+          //   `🏠 [LEVEL UP] ${entityName}: уровень повышен до ${level.level} (интервал: ${timer.ticksPerLevel} тиков)`,
+          // );
         }
       }
     }
