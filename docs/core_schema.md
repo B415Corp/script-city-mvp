@@ -153,12 +153,19 @@ graph TB
     GameCore -->|#5: создает| SaveManager
     GameCore -->|#51: создает| ToolManager
 
+    SaveManager -.->|#24: читает состояние| GameCore
+    SaveManager -.->|#25-26: сохранение/загрузка| TickManager
+    SaveManager -.->|#27-28: сохранение/загрузка| ECSManager
+    SaveManager -.->|#29-30: сохранение/загрузка| ModuleManager
+    SaveManager -.->|#31: использует| EventBus
+
     ModuleManager ==>|#36-38: управляет| BottomBarModule
     ModuleManager ==>|#36-38: управляет| SpeedIndicatorModule
     ModuleManager ==>|#36-38: управляет| DebugModule
     ModuleManager ==>|#36-38: управляет| ToolsModule
     ModuleManager ==>|#36-38: управляет| GridModule
     ModuleManager ==>|#36-38: управляет| ZoningToolsModule
+    ModuleManager -.->|#22: регистрация систем| ECSManager
 
     BottomBarModule -->|#42: создает| BottomBar
     SpeedIndicatorModule -->|#45: создает| SpeedIndicator
@@ -167,13 +174,27 @@ graph TB
     BottomBar -->|#58: создает| SpeedControls
     BottomBar -->|#59: создает| TopBar
     BottomBar -->|#60: создает| StatisticsBar
+    BottomBar -.->|#61: запрос сохранения| SaveManager
 
     GridModule -->|#54: использует| IsometricMath
     ZoningToolsModule -->|#71: регистрирует| ToolManager
+    ZoningToolsModule -.->|#72: создает команды| CommandProcessor
+
+    ToolManager -.->|#69: публикует| EventBus
+    ToolManager -.->|#70: подписывается| EventBus
+
+    SpeedControls -.->|#64: читает состояние| TickManager
+    DebugWindow -.->|#65-68: читает состояние| GameCore
+    DebugWindow -.->|#66: читает метрики| TickManager
+    DebugWindow -.->|#67: читает ECS| ECSManager
+    DebugWindow -.->|#68: читает события| EventBus
 
     TickManager -.->|#15: вызывает| CommandProcessor
     TickManager -.->|#16: вызывает| ECSManager
     CommandProcessor -.->|#20: валидирует| ECSManager
+
+    GameCore -.->|#8-11,40: управление| TickManager
+    GameCore -.->|#9: очистка| ECSManager
 
     EventBus -.->|#12-14: события| TickManager
     EventBus -.->|#17-19: события| CommandProcessor
@@ -181,11 +202,17 @@ graph TB
 
     linkStyle 0 stroke:#e53e3e,stroke-width:3px
     linkStyle 1,2,3,4,5,6,7 stroke:#3182ce,stroke-width:2px
-    linkStyle 8,9,10,11,12,13 stroke:#805ad5,stroke-width:2px
-    linkStyle 14,15,16 stroke:#dd6b20,stroke-width:2px
-    linkStyle 17,18,19 stroke:#2d3748,stroke-width:2px
-    linkStyle 20,21,22 stroke:#38a169,stroke-width:2px
-    linkStyle 23,24,25 stroke:#48bb78,stroke-width:2px,stroke-dasharray:5
+    linkStyle 8,9,10,11,12 stroke:#9f7aea,stroke-width:2px,stroke-dasharray:5
+    linkStyle 13 stroke:#805ad5,stroke-width:2px,stroke-dasharray:5
+    linkStyle 14,15,16,17,18,19 stroke:#805ad5,stroke-width:2px
+    linkStyle 20,21 stroke:#dd6b20,stroke-width:2px
+    linkStyle 22 stroke:#dd6b20,stroke-width:2px,stroke-dasharray:5
+    linkStyle 23,24 stroke:#ed8936,stroke-width:2px,stroke-dasharray:5
+    linkStyle 25,26,27,28,29 stroke:#718096,stroke-width:2px,stroke-dasharray:5
+    linkStyle 30,31 stroke:#2d3748,stroke-width:2px
+    linkStyle 32,33 stroke:#3182ce,stroke-width:2px,stroke-dasharray:5
+    linkStyle 34,35,36 stroke:#38a169,stroke-width:2px
+    linkStyle 37,38,39 stroke:#48bb78,stroke-width:2px,stroke-dasharray:5
 ```
 
 ### Потоки данных
@@ -215,9 +242,14 @@ graph LR
 
 - 🔴 Красный (толстая линия) — создание основных компонентов / входные команды от UI
 - 🔵 Синий — создание компонентов ядра
-- 🟣 Фиолетовый — управление модулями / обновления от TickManager
-- 🟠 Оранжевый — создание UI компонентов / передача команд
+- 🔵 Синий (пунктир) — управление жизненным циклом (GameCore → компоненты)
+- 🟣 Фиолетовый (пунктир) — взаимодействия SaveManager с компонентами (сохранение/загрузка)
+- 🟣 Фиолетовый (сплошной) — управление модулями через ModuleManager
+- 🟠 Оранжевый — создание UI компонентов
+- 🟠 Оранжевый (пунктир) — работа с инструментами (ToolManager, ZoningTools)
+- ⚪ Серый (пунктир) — чтение состояния (DebugWindow, SpeedControls)
 - ⚫ Темно-серый — использование инфраструктуры
+- 🟢 Зеленый — вызовы от TickManager к другим компонентам
 - 🟢 Зеленый (пунктир) — поток событий через EventBus
 
 ### Последовательность инициализации
@@ -230,8 +262,10 @@ sequenceDiagram
     box rgb(49, 130, 206) Core
     participant GC as GameCore
     participant EB as EventBus
+    participant EM as ECSManager
     participant MM as ModuleManager
     participant TM as TickManager
+    participant SM as SaveManager
     end
     box rgb(128, 90, 213) Extensions
     participant M as Modules
@@ -244,22 +278,23 @@ sequenceDiagram
 
     Note over GC: 2. Создание менеджеров (#1-6)
     GC->>+EB: #1: create EventBus
-    GC->>GC: #2: create ECSManager
+    GC->>+EM: #2: create ECSManager
     GC->>+MM: #3: create ModuleManager
     GC->>GC: #4: create CommandProcessor
-    GC->>GC: #5: create SaveManager
+    GC->>+SM: #5: create SaveManager
     GC->>+TM: #6: create TickManager
     deactivate GC
 
     Note over GS,MM: 3. Регистрация модулей (#36)
     GS->>MM: #36: registerModule(modules)
 
-    Note over GS,M: 4. Запуск (#7, #37)
+    Note over GS,M: 4. Запуск (#7, #21-22, #37)
     GS->>GC: #37: start()
     activate GC
     GC->>MM: #7: initializeModules()
     MM->>+M: #21: initialize()
     deactivate M
+    MM->>EM: #22: registerSystems()
     GC->>TM: #8: start()
     GC-->>EB: #10: emit(GameStarted)
     deactivate GC
@@ -279,6 +314,12 @@ sequenceDiagram
         TM-->>EB: #12: emit(TickEnded)
         deactivate TM
     end
+
+    Note over GS,GC: 7. Остановка (#40)
+    GS->>GC: #40: stop()
+    GC->>TM: #8: stop()
+    GC->>EM: #9: clear()
+    GC-->>EB: #10: emit(GameStopped)
 ```
 
 ### Цикл обработки команд
@@ -295,6 +336,7 @@ sequenceDiagram
     participant CP as CommandProcessor
     participant TM as TickManager
     participant EM as ECSManager
+    participant SM as SaveManager
     end
     box rgb(128, 90, 213) Simulation
     participant S as Systems
@@ -304,6 +346,10 @@ sequenceDiagram
     UI-->>EB: #62-63: emit(event)
     UI->>+CP: enqueueCommand()
     deactivate CP
+
+    Note right of UI: Сохранение (#61)
+    UI->>SM: #61: saveManager.save()
+    SM->>SM: #24-31: serialize state
 
     Note over TM,CP: 2️⃣ Начало тика (#12, #15)
     TM-->>EB: #12: emit(TickStarted)
