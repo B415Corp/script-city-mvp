@@ -29,6 +29,7 @@ export class DebugWindow extends UIComponent {
   private isVisible: boolean = true;
   private activeTab: TabName = 'common';
   private tabs: TabButton[] = [];
+  private hoveredTile: { x: number; y: number } | null = null;
 
   // Константы
   private readonly SIDEBAR_WIDTH = 280;
@@ -180,6 +181,17 @@ export class DebugWindow extends UIComponent {
       this.toggle();
     });
 
+    // Подписка на события тайлов
+    const eventBus = this.core.getEventBus();
+    eventBus.on(Events.TileHovered, (data?: { tileX: number; tileY: number }) => {
+      if (data) {
+        this.hoveredTile = { x: data.tileX, y: data.tileY };
+      }
+    });
+    eventBus.on(Events.TileUnhovered, () => {
+      this.hoveredTile = null;
+    });
+
     // Первоначальное позиционирование и обновление
     this.updateVisibility();
     this.lastUpdateTime = Date.now();
@@ -309,11 +321,17 @@ export class DebugWindow extends UIComponent {
         const ticksPerSecond = tickManager.getTicksPerSecond();
         const speed = tickManager.getSpeed();
         const isPaused = !tickManager.isActive();
+        const avgEventsPerTick = eventBus.getAverageEventsPerTick();
+
+        // Информация о выделенном тайле
+        const tileInfo = this.hoveredTile
+          ? `Tile: (${this.hoveredTile.x}, ${this.hoveredTile.y})`
+          : 'Tile: None';
 
         this.tickText.setVisible(true);
         this.tickText.setY(0);
         this.tickText.setText(
-          `Tick: ${currentTick}\nRate: ${tickRate}/s\nEffective: ${effectiveTickRate.toFixed(1)}/s\nActual: ${ticksPerSecond}/s\nSpeed: ${isPaused ? '⏸' : `${speed}x`}`,
+          `Tick: ${currentTick}\nRate: ${tickRate}/s\nEffective: ${effectiveTickRate.toFixed(1)}/s\nActual: ${ticksPerSecond}/s\nSpeed: ${isPaused ? '⏸' : `${speed}x`}\nAvg events: ${avgEventsPerTick}/tick\n\n${tileInfo}`,
         );
 
         // Информация об активном инструменте
@@ -352,12 +370,11 @@ export class DebugWindow extends UIComponent {
         const entitiesCount = ecs.getAllEntities().length;
         const systemsCount = ecs.getAllSystems().length;
         const eventsPerTick = eventBus.getEventsPerTick();
-        const avgEventsPerTick = eventBus.getAverageEventsPerTick();
 
         this.ecsText.setVisible(true);
         this.ecsText.setY(0);
         this.ecsText.setText(
-          `Entities: ${entitiesCount}\nSystems: ${systemsCount}\n\nEvents/tick: ${eventsPerTick}\nAvg events/tick: ${avgEventsPerTick}`,
+          `Entities: ${entitiesCount}\nSystems: ${systemsCount}\n\nEvents/tick: ${eventsPerTick}`,
         );
         break;
       }
