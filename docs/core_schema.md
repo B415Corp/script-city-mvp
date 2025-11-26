@@ -143,41 +143,41 @@
 
 ```mermaid
 graph TB
-    GameScene ==>|создает| GameCore
+    GameScene ==>|#34: создает| GameCore
 
-    GameCore -->|создает| EventBus
-    GameCore -->|создает| TickManager
-    GameCore -->|создает| CommandProcessor
-    GameCore -->|создает| ECSManager
-    GameCore -->|создает| ModuleManager
-    GameCore -->|создает| SaveManager
-    GameCore -->|создает| ToolManager
+    GameCore -->|#1: создает| EventBus
+    GameCore -->|#6: создает| TickManager
+    GameCore -->|#4: создает| CommandProcessor
+    GameCore -->|#2: создает| ECSManager
+    GameCore -->|#3: создает| ModuleManager
+    GameCore -->|#5: создает| SaveManager
+    GameCore -->|#51: создает| ToolManager
 
-    ModuleManager ==>|управляет| BottomBarModule
-    ModuleManager ==>|управляет| SpeedIndicatorModule
-    ModuleManager ==>|управляет| DebugModule
-    ModuleManager ==>|управляет| ToolsModule
-    ModuleManager ==>|управляет| GridModule
-    ModuleManager ==>|управляет| ZoningToolsModule
+    ModuleManager ==>|#36-38: управляет| BottomBarModule
+    ModuleManager ==>|#36-38: управляет| SpeedIndicatorModule
+    ModuleManager ==>|#36-38: управляет| DebugModule
+    ModuleManager ==>|#36-38: управляет| ToolsModule
+    ModuleManager ==>|#36-38: управляет| GridModule
+    ModuleManager ==>|#36-38: управляет| ZoningToolsModule
 
-    BottomBarModule -->|создает| BottomBar
-    SpeedIndicatorModule -->|создает| SpeedIndicator
-    DebugModule -->|создает| DebugWindow
+    BottomBarModule -->|#42: создает| BottomBar
+    SpeedIndicatorModule -->|#45: создает| SpeedIndicator
+    DebugModule -->|#48: создает| DebugWindow
 
-    BottomBar -->|создает| SpeedControls
-    BottomBar -->|создает| TopBar
-    BottomBar -->|создает| StatisticsBar
+    BottomBar -->|#58: создает| SpeedControls
+    BottomBar -->|#59: создает| TopBar
+    BottomBar -->|#60: создает| StatisticsBar
 
-    GridModule -->|использует| IsometricMath
-    ZoningToolsModule -->|регистрирует| ToolManager
+    GridModule -->|#54: использует| IsometricMath
+    ZoningToolsModule -->|#71: регистрирует| ToolManager
 
-    TickManager -.->|вызывает| CommandProcessor
-    TickManager -.->|вызывает| ECSManager
-    CommandProcessor -.->|валидирует| ECSManager
+    TickManager -.->|#15: вызывает| CommandProcessor
+    TickManager -.->|#16: вызывает| ECSManager
+    CommandProcessor -.->|#20: валидирует| ECSManager
 
-    EventBus -.->|события| TickManager
-    EventBus -.->|события| CommandProcessor
-    EventBus -.->|события| UI[UI Components]
+    EventBus -.->|#12-14: события| TickManager
+    EventBus -.->|#17-19: события| CommandProcessor
+    EventBus -.->|#62-63: события| UI[UI Components]
 
     linkStyle 0 stroke:#e53e3e,stroke-width:3px
     linkStyle 1,2,3,4,5,6,7 stroke:#3182ce,stroke-width:2px
@@ -192,16 +192,16 @@ graph TB
 
 ```mermaid
 graph LR
-    UI[UI Components] ==>|команды| EventBus
-    EventBus -->|передает| CommandProcessor
-    CommandProcessor -->|применяет| ECSManager
+    UI[UI Components] ==>|#62-63: команды| EventBus
+    EventBus -->|#17-19: передает| CommandProcessor
+    CommandProcessor -->|#20: применяет| ECSManager
 
-    TickManager ==>|обновляет| CommandProcessor
-    TickManager ==>|запускает| ECSManager
-    ECSManager -->|выполняет| Systems[ECS Systems]
+    TickManager ==>|#15: обновляет| CommandProcessor
+    TickManager ==>|#16: запускает| ECSManager
+    ECSManager -->|#23: выполняет| Systems[ECS Systems]
 
-    Systems -.->|изменения состояния| EventBus
-    EventBus -.->|уведомления| UI
+    Systems -.->|#23: изменения состояния| EventBus
+    EventBus -.->|#32-33: уведомления| UI
 
     linkStyle 0 stroke:#e53e3e,stroke-width:3px
     linkStyle 1 stroke:#ed8936,stroke-width:2px
@@ -238,45 +238,45 @@ sequenceDiagram
     participant UI as UI Components
     end
 
-    Note over GS,GC: 1. Создание ядра
-    GS->>+GC: create()
-    GS->>GC: initialize()
+    Note over GS,GC: 1. Создание ядра (#34-35)
+    GS->>+GC: #34: create()
+    GS->>GC: #35: initialize()
 
-    Note over GC: 2. Создание менеджеров
-    GC->>+EB: create
-    GC->>GC: create ECSManager
-    GC->>+MM: create
-    GC->>GC: create CommandProcessor
-    GC->>GC: create SaveManager
-    GC->>+TM: create
+    Note over GC: 2. Создание менеджеров (#1-6)
+    GC->>+EB: #1: create EventBus
+    GC->>GC: #2: create ECSManager
+    GC->>+MM: #3: create ModuleManager
+    GC->>GC: #4: create CommandProcessor
+    GC->>GC: #5: create SaveManager
+    GC->>+TM: #6: create TickManager
     deactivate GC
 
-    Note over GS,MM: 3. Регистрация модулей
-    GS->>MM: registerModule(modules)
+    Note over GS,MM: 3. Регистрация модулей (#36)
+    GS->>MM: #36: registerModule(modules)
 
-    Note over GS,M: 4. Запуск
-    GS->>GC: start()
+    Note over GS,M: 4. Запуск (#7, #37)
+    GS->>GC: #37: start()
     activate GC
-    GC->>MM: initializeModules()
-    MM->>+M: initialize()
+    GC->>MM: #7: initializeModules()
+    MM->>+M: #21: initialize()
     deactivate M
-    GC->>TM: start()
-    GC-->>EB: emit(GameStarted)
+    GC->>TM: #8: start()
+    GC-->>EB: #10: emit(GameStarted)
     deactivate GC
 
-    Note over GS,UI: 5. Привязка к сцене
-    GS->>MM: attachModulesToScene()
+    Note over GS,UI: 5. Привязка к сцене (#38, #42-48)
+    GS->>MM: #38: attachModulesToScene()
     MM->>M: attachToScene()
-    M->>+UI: create()
+    M->>+UI: #42-48: create UI
     deactivate UI
 
-    Note over GS,TM: 6. Игровой цикл
+    Note over GS,TM: 6. Игровой цикл (#39)
     loop Каждый кадр
-        GS->>+TM: updateFromPhaser(delta)
-        TM-->>EB: emit(TickStarted)
-        TM->>GC: processCommands()
-        TM->>GC: runSystems()
-        TM-->>EB: emit(TickEnded)
+        GS->>+TM: #39: updateFromPhaser(delta)
+        TM-->>EB: #12: emit(TickStarted)
+        TM->>GC: #15: processCommands()
+        TM->>GC: #16: runSystems()
+        TM-->>EB: #12: emit(TickEnded)
         deactivate TM
     end
 ```
@@ -300,29 +300,29 @@ sequenceDiagram
     participant S as Systems
     end
 
-    Note over UI,EB: 1️⃣ Пользовательский ввод
-    UI-->>EB: emit(event)
+    Note over UI,EB: 1️⃣ Пользовательский ввод (#62-63)
+    UI-->>EB: #62-63: emit(event)
     UI->>+CP: enqueueCommand()
     deactivate CP
 
-    Note over TM,CP: 2️⃣ Начало тика
-    TM-->>EB: emit(TickStarted)
-    TM->>+CP: processCommands()
+    Note over TM,CP: 2️⃣ Начало тика (#12, #15)
+    TM-->>EB: #12: emit(TickStarted)
+    TM->>+CP: #15: processCommands()
     CP->>CP: validateCommand()
-    CP-->>EB: emit(CommandProcessed)
+    CP-->>EB: #18: emit(CommandProcessed)
     deactivate CP
 
-    Note over TM,S: 3️⃣ Фаза симуляции
-    TM->>+EM: runSystems()
-    EM->>+S: update()
+    Note over TM,S: 3️⃣ Фаза симуляции (#16, #23)
+    TM->>+EM: #16: runSystems()
+    EM->>+S: #23: update()
     S->>S: modify state
-    S-->>EB: emit(state events)
+    S-->>EB: #23: emit(state events)
     deactivate S
     deactivate EM
 
-    Note over TM,UI: 4️⃣ Окончание тика
-    TM-->>EB: emit(TickEnded)
-    EB-->>UI: notify()
+    Note over TM,UI: 4️⃣ Окончание тика (#12, #32-33)
+    TM-->>EB: #12: emit(TickEnded)
+    EB-->>UI: #32-33: notify()
     UI->>UI: update display
 ```
 
@@ -337,6 +337,13 @@ sequenceDiagram
 
 - Сплошная стрелка (`->>`) — прямой вызов метода
 - Пунктирная стрелка (`-->>`) — публикация/подписка через EventBus
+
+**Нумерация взаимодействий:**
+
+- Номера на стрелках (например, `#34`) соответствуют строкам в таблицах взаимодействий выше
+- Диапазоны (например, `#1-7` или `#36-38`) означают последовательность связанных взаимодействий
+- Одинаковые номера (например, `#12`) на разных стрелках означают повторяющиеся взаимодействия одного типа
+- Эта нумерация позволяет легко найти детальное описание взаимодействия в соответствующей таблице
 
 ## Теги
 
