@@ -399,6 +399,19 @@ export class ECSManager {
     this.entityIdCounter = counter;
   }
 
+  /**
+   * Возвращает массив всех зарегистрированных систем.
+   *
+   * @returns Массив систем в порядке приоритета
+   *
+   * @example
+   * const systems = ecs.getAllSystems();
+   * console.log(`Registered systems: ${systems.length}`);
+   */
+  public getAllSystems(): ISystem[] {
+    return this.sortedSystems;
+  }
+
   // ==================== Внутренние методы ====================
 
   /**

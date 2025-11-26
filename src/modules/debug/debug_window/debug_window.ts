@@ -13,6 +13,7 @@ export class DebugWindow extends UIComponent {
   private toggleButtonText!: Phaser.GameObjects.Text;
   private contentContainer!: Phaser.GameObjects.Container;
   private tickText!: Phaser.GameObjects.Text;
+  private ecsText!: Phaser.GameObjects.Text;
   private toolText!: Phaser.GameObjects.Text;
   private modulesText!: Phaser.GameObjects.Text;
   private eventsText!: Phaser.GameObjects.Text;
@@ -83,6 +84,17 @@ export class DebugWindow extends UIComponent {
       })
       .setOrigin(0, 0);
     this.contentContainer.add(this.tickText);
+
+    // Текст ECS - позиция будет обновляться динамически
+    this.ecsText = this.scene.add
+      .text(0, 0, '', {
+        fontSize: this.FONT_SIZE,
+        color: '#ffcc66',
+        fontFamily: 'Arial',
+        lineSpacing: 2,
+      })
+      .setOrigin(0, 0);
+    this.contentContainer.add(this.ecsText);
 
     // Текст активного инструмента - позиция будет обновляться динамически
     this.toolText = this.scene.add
@@ -196,6 +208,10 @@ export class DebugWindow extends UIComponent {
     this.tickText.setY(currentY);
     currentY += this.getTextHeight(this.tickText) + this.SECTION_SPACING;
 
+    // Позиционируем ECS
+    this.ecsText.setY(currentY);
+    currentY += this.getTextHeight(this.ecsText) + this.SECTION_SPACING;
+
     // Позиционируем активный инструмент
     this.toolText.setY(currentY);
     currentY += this.getTextHeight(this.toolText) + this.SECTION_SPACING;
@@ -212,6 +228,7 @@ export class DebugWindow extends UIComponent {
     const tickManager = this.core.getTickManager();
     const eventBus = this.core.getEventBus();
     const moduleManager = this.core.getModuleManager();
+    const ecs = this.core.getECSManager();
 
     // Информация о тиках
     const currentTick = tickManager.getCurrentTick();
@@ -223,6 +240,15 @@ export class DebugWindow extends UIComponent {
 
     this.tickText.setText(
       `Tick: ${currentTick}\nRate: ${tickRate}/s\nEffective: ${effectiveTickRate.toFixed(1)}/s\nActual: ${ticksPerSecond}/s\nSpeed: ${isPaused ? '⏸' : `${speed}x`}`,
+    );
+
+    // Информация о ECS
+    const entitiesCount = ecs.getAllEntities().length;
+    const systemsCount = ecs.getAllSystems().length;
+    const eventsPerTick = eventBus.getEventsPerTick();
+    const avgEventsPerTick = eventBus.getAverageEventsPerTick();
+    this.ecsText.setText(
+      `ECS:\nEntities: ${entitiesCount}\nSystems: ${systemsCount}\nEvents/tick: ${eventsPerTick} (avg: ${avgEventsPerTick})`,
     );
 
     // Информация об активном инструменте

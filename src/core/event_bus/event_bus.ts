@@ -46,13 +46,46 @@ export class EventBus {
    * История последних событий (для отладки).
    */
   private eventHistory: EventHistoryEntry[] = [];
-  private readonly MAX_HISTORY_SIZE = 10;
+  private readonly MAX_HISTORY_SIZE = 50; // Увеличили для лучшего отслеживания событий
+
+  /**
+   * События, которые не нужно сохранять в историю (для отладки).
+   * Используется Set для быстрой проверки исключений.
+   */
+  private readonly EXCLUDED_FROM_HISTORY = new Set<string>([Events.TickStarted, Events.TickEnded]);
+
+  /**
+   * Счётчик событий за текущий тик.
+   */
+  private eventsPerTick: number = 0;
+  private lastTickEventsCount: number = 0;
+
+  /**
+   * История событий за последние N тиков для расчёта среднего значения.
+   */
+  private eventsPerTickHistory: number[] = [];
+  private readonly EVENTS_HISTORY_SIZE = 30; // Храним историю за 30 тиков
 
   /**
    * Создаёт новый экземпляр EventBus.
    */
   constructor() {
     console.warn('🚌 EventBus initialized');
+
+    // Подписываемся на события тиков для отслеживания событий за тик
+    this.on(Events.TickStarted, () => {
+      this.lastTickEventsCount = this.eventsPerTick;
+
+      // Добавляем в историю
+      this.eventsPerTickHistory.push(this.eventsPerTick);
+
+      // Ограничиваем размер истории
+      if (this.eventsPerTickHistory.length > this.EVENTS_HISTORY_SIZE) {
+        this.eventsPerTickHistory.shift();
+      }
+
+      this.eventsPerTick = 0;
+    });
   }
 
   /**
@@ -73,6 +106,9 @@ export class EventBus {
    * eventBus.emit(Events.TickStarted); // событие без данных
    */
   emit<T = unknown>(eventType: Events | string, payload?: T): void {
+    // Увеличиваем счётчик событий за тик
+    this.eventsPerTick++;
+
     // Добавляем событие в историю
     this.addToHistory(eventType, payload);
 
@@ -106,6 +142,11 @@ export class EventBus {
    * Добавляет событие в историю.
    */
   private addToHistory(eventType: string, payload?: unknown): void {
+    // Не добавляем исключенные события в историю
+    if (this.EXCLUDED_FROM_HISTORY.has(eventType)) {
+      return;
+    }
+
     this.eventHistory.push({
       eventType,
       timestamp: Date.now(),
@@ -302,5 +343,28 @@ export class EventBus {
    */
   getEventHistory(): EventHistoryEntry[] {
     return [...this.eventHistory];
+  }
+
+  /**
+   * Получение количества событий, зарегистрированных за последний тик.
+   *
+   * @returns количество событий за последний завершённый тик
+   */
+  getEventsPerTick(): number {
+    return this.lastTickEventsCount;
+  }
+
+  /**
+   * Получение среднего количества событий за последние N тиков.
+   *
+   * @returns среднее количество событий за тик
+   */
+  getAverageEventsPerTick(): number {
+    if (this.eventsPerTickHistory.length === 0) {
+      return 0;
+    }
+
+    const sum = this.eventsPerTickHistory.reduce((acc, count) => acc + count, 0);
+    return Math.round(sum / this.eventsPerTickHistory.length);
   }
 }

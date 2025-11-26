@@ -4,6 +4,7 @@ import { GridModule } from '@/modules/grid/grid_module';
 import { BottomBarModule } from '@/modules/ui/bottom_bar_module';
 import { ToolsModule } from '@/modules/tools/tools_module';
 import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
+import { TestSimulationModule } from '@/modules/building/test_simulation_module';
 
 import Phaser from 'phaser';
 
@@ -46,6 +47,7 @@ export class GameScene extends Phaser.Scene {
     moduleManager.registerModule(new BottomBarModule());
     moduleManager.registerModule(new GridModule());
     moduleManager.registerModule(new ZoningToolsModule());
+    moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
 
     // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();

@@ -78,4 +78,10 @@ export enum Events {
   ToolActivated = 'ToolActivated',
   /** Инструмент деактивирован */
   ToolDeactivated = 'ToolDeactivated',
+
+  // ========== События зданий ==========
+  /** Здание повысило уровень */
+  BuildingLevelUp = 'BuildingLevelUp',
+  /** Здание создано */
+  BuildingCreated = 'BuildingCreated',
 }
