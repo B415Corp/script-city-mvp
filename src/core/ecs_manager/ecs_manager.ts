@@ -256,6 +256,26 @@ export class ECSManager {
     return result;
   }
 
+  /**
+   * Возвращает Map всех компонентов для указанной сущности.
+   *
+   * @param entityId - Идентификатор сущности
+   * @returns Map с компонентами сущности или пустая Map, если компонентов нет
+   *
+   * @example
+   * const components = ecs.getAllComponentsForEntity(entityId);
+   * for (const [type, data] of components) {
+   *   console.log(type, data);
+   * }
+   */
+  getAllComponentsForEntity(entityId: EntityId): Map<ComponentType, unknown> {
+    if (!this.entities.has(entityId)) {
+      return new Map();
+    }
+
+    return this.components.get(entityId) ?? new Map();
+  }
+
   // ==================== Управление системами ====================
 
   /**
@@ -369,6 +389,14 @@ export class ECSManager {
     this.systemTickCounters.clear();
     this.entityIdCounter = 0;
     console.warn('🎮 ECSManager cleared');
+  }
+
+  public getEntityIdCounter(): number {
+    return this.entityIdCounter;
+  }
+
+  public setEntityIdCounter(counter: number): void {
+    this.entityIdCounter = counter;
   }
 
   // ==================== Внутренние методы ====================

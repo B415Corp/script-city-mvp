@@ -1,6 +1,6 @@
 # Script City (MVP) — градостроительный симулятор
 
-Последнее обновление: 2025-11-23
+Последнее обновление: 2025-11-26
 
 ### Краткое описание
 
@@ -82,6 +82,7 @@ npm run type-check  # Проверить типы TypeScript
 ### Техническая документация
 
 - **[Архитектура](./docs/development/architecture/index.md)** — игровое ядро, модули, ECS, рендерер
+- **[Схема взаимодействий ядра](./docs/core_schema.md)** — таблица взаимодействий между компонентами ядра (EventBus, TickManager, CommandProcessor, ECSManager, ModuleManager, SaveManager)
 - **[Технический стек](./docs/development/tech-stack/index.md)** — технологии, инструменты, производительность, интеграция с Phaser
 - **[Тики и симуляция](./docs/development/simulation/index.md)** — жизненный цикл тика, команды, события
 - **[План MVP и post-MVP](./docs/development/mvp-plan/index.md)** — 13 этапов разработки от фундамента до мультиплеера

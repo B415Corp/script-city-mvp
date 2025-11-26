@@ -25,6 +25,7 @@ export class BottomBar extends UIComponent {
   // Элементы нижней полосы (управление и статистика)
   private bottomBarBackground!: Phaser.GameObjects.Rectangle;
   private speedControls!: SpeedControls;
+  private saveButton!: Phaser.GameObjects.Container;
 
   constructor(scene: Phaser.Scene, core: GameCore) {
     super(scene, core);
@@ -70,11 +71,102 @@ export class BottomBar extends UIComponent {
     const speedControlsY = bottomBarY + this.BOTTOM_BAR_HEIGHT / 2;
     this.speedControls.setPosition(speedControlsX, speedControlsY);
 
+    // Создаём кнопку сохранения
+    const saveButtonX = speedControlsX + this.speedControls.getWidth() + 30;
+    this.createSaveButton(saveButtonX, speedControlsY);
+
     // Создаём компонент статистики
-    const statisticsStartX = speedControlsX + this.speedControls.getWidth() + 30;
+    const statisticsStartX = saveButtonX + 100;
     this.statisticsBar = new StatisticsBar(this.scene, this.core);
     this.statisticsBar.initialize(bottomBarY, statisticsStartX);
     this.statisticsBar.create();
+  }
+
+  private createSaveButton(x: number, y: number): void {
+    this.saveButton = this.scene.add.container(x, y);
+
+    // Фон кнопки
+    const background = this.scene.add.rectangle(0, 0, 80, 50, 0x2a7a2a, 1);
+    background.setInteractive({ useHandCursor: true });
+
+    // Текст кнопки
+    const text = this.scene.add.text(0, 0, '💾 Save', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    });
+    text.setOrigin(0.5);
+
+    // Добавляем элементы в контейнер
+    this.saveButton.add([background, text]);
+    this.container.add(this.saveButton);
+
+    // Обработчики событий
+    background.on('pointerover', () => {
+      background.setFillStyle(0x3a9a3a);
+    });
+
+    background.on('pointerout', () => {
+      background.setFillStyle(0x2a7a2a);
+    });
+
+    background.on('pointerdown', () => {
+      this.onSaveButtonClick();
+    });
+  }
+
+  private async onSaveButtonClick(): Promise<void> {
+    try {
+      const saveManager = this.core.getSaveManager();
+      const saveName = `Manual Save ${new Date().toLocaleString()}`;
+
+      await saveManager.saveGame({ saveName });
+
+      console.warn('💾 Game saved successfully!');
+
+      // Показываем уведомление об успешном сохранении
+      this.showSaveNotification('Game saved!', 0x2a7a2a);
+    } catch (error) {
+      console.error('💾 Failed to save game:', error);
+      this.showSaveNotification('Save failed!', 0xff0000);
+    }
+  }
+
+  private showSaveNotification(message: string, color: number): void {
+    const { width, height } = this.scene.scale;
+
+    // Создаём уведомление по центру экрана
+    const notification = this.scene.add.container(width / 2, height / 2);
+
+    const bg = this.scene.add.rectangle(0, 0, 200, 60, color, 0.9);
+    const text = this.scene.add.text(0, 0, message, {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    });
+    text.setOrigin(0.5);
+
+    notification.add([bg, text]);
+    notification.setDepth(UIComponent.DEPTH.UI_MODAL);
+
+    // Анимация появления и исчезновения
+    this.scene.tweens.add({
+      targets: notification,
+      alpha: { from: 0, to: 1 },
+      duration: 200,
+      onComplete: () => {
+        this.scene.time.delayedCall(1500, () => {
+          this.scene.tweens.add({
+            targets: notification,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+              notification.destroy();
+            },
+          });
+        });
+      },
+    });
   }
 
   resize(): void {
@@ -93,8 +185,12 @@ export class BottomBar extends UIComponent {
     const speedControlsY = bottomBarY + this.BOTTOM_BAR_HEIGHT / 2;
     this.speedControls.setPosition(speedControlsX, speedControlsY);
 
+    // Обновление позиции кнопки сохранения
+    const saveButtonX = speedControlsX + this.speedControls.getWidth() + 30;
+    this.saveButton.setPosition(saveButtonX, speedControlsY);
+
     // Обновление элементов статистики
-    const statisticsStartX = speedControlsX + this.speedControls.getWidth() + 30;
+    const statisticsStartX = saveButtonX + 100;
     this.statisticsBar.resize(bottomBarY, statisticsStartX);
   }
 
@@ -143,6 +239,10 @@ export class BottomBar extends UIComponent {
 
     if (this.speedControls) {
       this.speedControls.destroy();
+    }
+
+    if (this.saveButton) {
+      this.saveButton.destroy();
     }
 
     super.destroy();

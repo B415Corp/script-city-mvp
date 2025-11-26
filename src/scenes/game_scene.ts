@@ -34,6 +34,7 @@ export class GameScene extends Phaser.Scene {
       tickRate: 20,
       maxCatchUpTicks: 5,
       enableDebug: true,
+      playerName: 'default_player',
     });
 
     const moduleManager = this.core.getModuleManager();
