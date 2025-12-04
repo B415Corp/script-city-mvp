@@ -23,6 +23,7 @@ export class GameCore {
   }
 
   public async initialize(config?: CoreConfig): Promise<void> {
+    console.group('GameCore initialize');
     this.config = config;
 
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
@@ -51,6 +52,7 @@ export class GameCore {
 
     // 4. Подготовка к работе (но без запуска цикла тиков)
     console.warn('👾 GameCore initialized', this.config);
+    console.groupEnd();
   }
 
   public async start(): Promise<void> {
