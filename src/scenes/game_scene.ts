@@ -1,13 +1,10 @@
 import { GameCore } from '@/core/game_core/game_core';
 import { DebugModule } from '@/modules/debug/debug_module';
 import { GridModule } from '@/modules/grid/grid_module';
-import { BottomBarModule } from '@/modules/ui/bottom_bar_module';
 import { ToolsModule } from '@/modules/tools/tools_module';
 import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
-import { TestSimulationModule } from '@/modules/building/test_simulation_module';
 
 import Phaser from 'phaser';
-import { ControllPanelModule } from '@/modules/ui/controll_panel/controll_panel.module';
 
 /**
  * Основная игровая сцена с симуляцией
@@ -48,7 +45,6 @@ export class GameScene extends Phaser.Scene {
     moduleManager.registerModule(new ZoningToolsModule());
     moduleManager.registerModule(new DebugModule());
     // moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
-    moduleManager.registerModule(new ControllPanelModule());
 
     // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();
