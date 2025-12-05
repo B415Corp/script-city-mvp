@@ -47,7 +47,7 @@ export class GameCore {
     debugGroupEnd();
 
     // Инициализация SaveManager
-    this.saveManager.initialize(this, this.eventBus);
+    await this.saveManager.initialize(this, this.eventBus);
 
     // 2. Регистрация базовых систем (если есть)
     debugGroup('ECSManager: Регистрация базовых систем');

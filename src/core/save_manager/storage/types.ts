@@ -6,6 +6,12 @@ import { SaveGame, SaveMetadata } from '../types';
  */
 export interface IStorageProvider {
   /**
+   * Инициализирует провайдер хранения (опционально).
+   * Должен быть вызван перед использованием провайдера, если требуется асинхронная инициализация.
+   */
+  initialize?(): Promise<void>;
+
+  /**
    * Сохраняет игру по указанному ID
    * @param saveId уникальный идентификатор сохранения
    * @param saveGame данные для сохранения

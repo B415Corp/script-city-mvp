@@ -14,9 +14,22 @@ const METADATA_STORE = 'metadata';
  */
 export class IndexedDBStorageProvider implements IStorageProvider {
   private db: IDBDatabase | null = null;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initDB();
+    // Не инициализируем БД в конструкторе, ждём явного вызова initialize()
+  }
+
+  /**
+   * Явно инициализирует IndexedDB базу данных.
+   * Должен быть вызван перед использованием провайдера.
+   */
+  public async initialize(): Promise<void> {
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+    this.initPromise = this.initDB();
+    return this.initPromise;
   }
 
   /**
@@ -72,8 +85,14 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    */
   private async ensureDB(): Promise<void> {
     if (!this.db) {
-      debugLog('IndexedDB: база данных не инициализирована, выполняется инициализация');
-      await this.initDB();
+      if (!this.initPromise) {
+        debugWarn(
+          'IndexedDB: база данных не инициализирована, выполняется инициализация (должна была быть вызвана initialize())',
+        );
+        await this.initialize();
+      } else {
+        await this.initPromise;
+      }
     }
   }
 

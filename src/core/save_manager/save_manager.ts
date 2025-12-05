@@ -32,11 +32,22 @@ export class SaveManager {
    * @param eventBus EventBus
    * @param storageProvider опциональный провайдер хранения (по умолчанию IndexedDB)
    */
-  public initialize(core: GameCore, eventBus: EventBus, storageProvider?: IStorageProvider): void {
+  public async initialize(
+    core: GameCore,
+    eventBus: EventBus,
+    storageProvider?: IStorageProvider,
+  ): Promise<void> {
     this.core = core;
     this.eventBus = eventBus;
     this.config = core.getConfig();
     this.storageProvider = storageProvider || new IndexedDBStorageProvider();
+
+    // Инициализируем провайдер хранения, если он поддерживает явную инициализацию
+    if (this.storageProvider.initialize) {
+      debugLog('💾 SaveManager: инициализация провайдера хранения');
+      await this.storageProvider.initialize();
+    }
+
     debugLog('💾 SaveManager инициализирован');
   }
 

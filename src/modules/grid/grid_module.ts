@@ -6,6 +6,7 @@ import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '@/infrastructure/isometric_math/isometric_math';
 import Phaser from 'phaser';
 import { DEFAULT_MAP } from './default_map';
+import { debugLog } from '@/infrastructure/utils/logger';
 
 const TextureType: Record<number, string> = {
   1: 'GRASS_BASE_0',
@@ -82,7 +83,7 @@ export class GridModule implements IModule {
   async initialize(core: GameCore): Promise<void> {
     this.eventBus = core.getEventBus();
     this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
-    console.warn('🗺 GridModule initialized');
+    debugLog('🗺 GridModule initialized', { isometricMath: this.isometricMath });
   }
 
   attachToScene(scene: Phaser.Scene): void {
@@ -107,7 +108,7 @@ export class GridModule implements IModule {
     scene.input.on('pointerout', this.clearHighlight, this);
     scene.input.on('pointerdown', this.handlePointerDown, this);
 
-    console.warn('🗺 GridModule attached to scene');
+    debugLog('🗺 GridModule attached to scene', { scene: scene.scene.key });
   }
 
   /** Центрирование карты */
@@ -554,6 +555,6 @@ export class GridModule implements IModule {
 
     this.scene = undefined;
 
-    console.warn('🗺 GridModule destroyed');
+    debugLog('🗺 GridModule destroyed');
   }
 }

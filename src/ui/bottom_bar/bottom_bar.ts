@@ -4,6 +4,7 @@ import { UIComponent } from '@/core/ui/ui_component';
 import { SpeedControls } from '@/ui/speed_controls/speed_controls';
 import { TopBar } from './top_bar';
 import { StatisticsBar } from './statistics_bar';
+import { debugError, debugLog } from '@/infrastructure/utils/logger';
 
 /**
  * Нижняя панель управления (в стиле Cities: Skylines)
@@ -116,12 +117,12 @@ export class BottomBar extends UIComponent {
 
       await saveManager.saveGame({ saveName });
 
-      console.warn('💾 Game saved successfully!');
+      debugLog('💾 Game saved successfully!', { saveName });
 
       // Показываем уведомление об успешном сохранении
       this.showSaveNotification('Game saved!', 0x2a7a2a);
     } catch (error) {
-      console.error('💾 Failed to save game:', error);
+      debugError('💾 Failed to save game:', error);
       this.showSaveNotification('Save failed!', 0xff0000);
     }
   }
