@@ -1,5 +1,6 @@
 import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
+import { debugError, debugLog } from '@/infrastructure/utils/logger';
 import { BottomBar } from '@/ui/bottom_bar/bottom_bar';
 import Phaser from 'phaser';
 
@@ -17,12 +18,13 @@ export class BottomBarModule implements IModule {
 
   async initialize(core: GameCore): Promise<void> {
     this.core = core;
-    console.warn('📊 BottomBarModule initialized');
+    debugLog('📊 BottomBarModule инициализирован');
   }
 
   attachToScene(scene: Phaser.Scene): void {
     if (!this.core) {
-      throw new Error('BottomBarModule not initialized');
+      debugError('BottomBarModule not initialized', { core: this.core });
+      return;
     }
 
     this.scene = scene;
@@ -33,7 +35,7 @@ export class BottomBarModule implements IModule {
     scene.scale.on('resize', this.handleResize, this);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
 
-    console.warn('📊 BottomBarModule attached to scene', scene.scene.key);
+    debugLog('📊 BottomBarModule attached to scene', { scene: scene.scene.key });
   }
 
   private handleResize(): void {
@@ -53,11 +55,11 @@ export class BottomBarModule implements IModule {
       this.scene = undefined;
     }
 
-    console.warn('📊 BottomBarModule detached from scene');
+    debugLog('📊 BottomBarModule detached from scene');
   }
 
   destroy(): void {
     this.handleSceneShutdown();
-    console.warn('📊 BottomBarModule destroyed');
+    debugLog('📊 BottomBarModule уничтожен');
   }
 }

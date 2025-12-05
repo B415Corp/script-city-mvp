@@ -62,10 +62,10 @@ export class ToolManager {
     this.tools.set(tool.id, tool);
 
     // Публикуем событие о регистрации инструмента
-    this.eventBus.emit(Events.ToolRegistered, {
-      toolId: tool.id,
-      categoryId: category.id,
-    });
+    // this.eventBus.emit(Events.ToolRegistered, {
+    //   toolId: tool.id,
+    //   categoryId: category.id,
+    // });
   }
 
   /**

@@ -34,7 +34,7 @@ export class GameScene extends Phaser.Scene {
     await this.core.initialize({
       tickRate: 20,
       maxCatchUpTicks: 5,
-      enableDebug: true,
+      enableDebug: import.meta.env.VITE_DEBUG === 'true',
       playerName: 'default_player',
     });
 
@@ -47,7 +47,7 @@ export class GameScene extends Phaser.Scene {
     moduleManager.registerModule(new BottomBarModule());
     moduleManager.registerModule(new GridModule());
     moduleManager.registerModule(new ZoningToolsModule());
-    moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
+    // moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
 
     // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();

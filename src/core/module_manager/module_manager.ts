@@ -1,6 +1,7 @@
 import { GameCore } from '../game_core/game_core';
 import { IModule, ModuleEntry } from './types';
 import Phaser from 'phaser';
+import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 
 /**
  * Менеджер модулей симуляции.
@@ -24,7 +25,7 @@ export class ModuleManager {
   private modules: Map<string, ModuleEntry> = new Map();
 
   constructor() {
-    console.warn('📦 ModuleManager initialized');
+    debugLog('📦 ModuleManager создан');
   }
 
   /**
@@ -48,7 +49,8 @@ export class ModuleManager {
       initialized: false,
     });
 
-    console.warn('📦 ModuleManager registered module', module.id, {
+    debugLog('📦 ModuleManager: модуль зарегистрирован', {
+      moduleId: module.id,
       dependencies: moduleDependencies,
     });
   }
@@ -63,20 +65,27 @@ export class ModuleManager {
    * @throws {Error} если обнаружены циклические зависимости или отсутствующие зависимости
    */
   async initializeModules(core: GameCore): Promise<void> {
+    debugGroup('📦 ModuleManager: инициализация модулей');
     if (this.modules.size === 0) {
-      console.warn('📦 ModuleManager: no modules to initialize');
+      debugLog('Нет модулей для инициализации');
+      debugGroupEnd();
       return;
     }
 
     // Проверка наличия всех зависимостей
+    debugGroup('Проверка зависимостей');
     this.validateDependencies();
+    debugLog('Все зависимости найдены');
+    debugGroupEnd();
 
     // Топологическая сортировка для определения порядка инициализации
+    debugGroup('Топологическая сортировка');
     const initOrder = this.topologicalSort();
-
-    console.warn('📦 ModuleManager: initializing modules in order', initOrder);
+    debugLog('Порядок инициализации определён', { order: initOrder });
+    debugGroupEnd();
 
     // Инициализация модулей в правильном порядке
+    debugGroup('Инициализация модулей');
     for (const moduleId of initOrder) {
       const entry = this.modules.get(moduleId);
       if (!entry) {
@@ -84,30 +93,36 @@ export class ModuleManager {
       }
 
       if (entry.initialized) {
-        console.warn(`📦 ModuleManager: module "${moduleId}" already initialized, skipping`);
+        debugLog('Модуль уже инициализирован, пропускаем', { moduleId });
         continue;
       }
 
       try {
-        console.warn(`📦 ModuleManager: initializing module "${moduleId}"`);
+        debugGroup(`Инициализация модуля: ${moduleId}`);
+        debugLog('Вызов initialize()', { moduleId, dependencies: entry.dependencies });
         await entry.module.initialize(core);
 
         // Регистрация систем модуля, если метод определен
         if (entry.module.registerSystems) {
+          debugGroup('Регистрация систем модуля');
           const ecs = core.getECSManager();
           entry.module.registerSystems(ecs);
-          console.warn(`📦 ModuleManager: registered systems for module "${moduleId}"`);
+          debugLog('Системы зарегистрированы', { moduleId });
+          debugGroupEnd();
         }
 
         entry.initialized = true;
-        console.warn(`📦 ModuleManager: module "${moduleId}" initialized successfully`);
+        debugGroupEnd();
       } catch (error) {
-        console.error(`📦 ModuleManager: failed to initialize module "${moduleId}"`, error);
+        debugLog('Ошибка инициализации модуля', { moduleId, error });
+        debugGroupEnd();
         throw error;
       }
     }
+    debugGroupEnd();
 
-    console.warn('📦 ModuleManager: all modules initialized');
+    debugLog('📦 ModuleManager: все модули инициализированы', { count: this.modules.size });
+    debugGroupEnd();
   }
 
   /**
@@ -149,20 +164,19 @@ export class ModuleManager {
    * @param scene - Phaser сцена для прикрепления модулей
    */
   attachModulesToScene(scene: Phaser.Scene): void {
+    debugGroup('📦 ModuleManager: прикрепление модулей к сцене');
     for (const entry of this.modules.values()) {
       const module = entry.module as unknown as { attachToScene?: (scene: Phaser.Scene) => void };
       if (typeof module.attachToScene === 'function') {
         try {
           module.attachToScene(scene);
-          console.warn(`📦 ModuleManager: attached module "${entry.module.id}" to scene`);
+          debugLog('Модуль прикреплён к сцене', { moduleId: entry.module.id });
         } catch (error) {
-          console.error(
-            `📦 ModuleManager: failed to attach module "${entry.module.id}" to scene`,
-            error,
-          );
+          debugLog('Ошибка прикрепления модуля к сцене', { moduleId: entry.module.id, error });
         }
       }
     }
+    debugGroupEnd();
   }
 
   /**
@@ -171,22 +185,27 @@ export class ModuleManager {
    * Вызывает destroy() для всех инициализированных модулей.
    */
   clear(): void {
-    console.warn('📦 ModuleManager: clearing all modules');
+    debugGroup('📦 ModuleManager: очистка модулей');
+    const modulesCount = this.modules.size;
+    const initializedCount = Array.from(this.modules.values()).filter((e) => e.initialized).length;
 
     // Вызываем destroy() для всех инициализированных модулей
+    debugGroup('Уничтожение модулей');
     for (const entry of this.modules.values()) {
       if (entry.initialized) {
         try {
           entry.module.destroy();
-          console.warn(`📦 ModuleManager: destroyed module "${entry.module.id}"`);
+          debugLog('Модуль уничтожен', { moduleId: entry.module.id });
         } catch (error) {
-          console.error(`📦 ModuleManager: error destroying module "${entry.module.id}"`, error);
+          debugLog('Ошибка уничтожения модуля', { moduleId: entry.module.id, error });
         }
       }
     }
+    debugGroupEnd();
 
     this.modules.clear();
-    console.warn('📦 ModuleManager cleared');
+    debugLog('📦 ModuleManager очищен', { modulesCount, initializedCount });
+    debugGroupEnd();
   }
 
   /**

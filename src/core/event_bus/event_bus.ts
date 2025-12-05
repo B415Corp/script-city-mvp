@@ -1,5 +1,6 @@
 import { EventHandler, HandlerInfo, Subscription } from './types';
 import { Events } from './events';
+import { debugLog } from '@/infrastructure/utils/logger';
 
 /**
  * Событийная шина для межмодульной коммуникации без жёстких связей.
@@ -52,7 +53,21 @@ export class EventBus {
    * События, которые не нужно сохранять в историю (для отладки).
    * Используется Set для быстрой проверки исключений.
    */
-  private readonly EXCLUDED_FROM_HISTORY = new Set<string>([Events.TickStarted, Events.TickEnded]);
+  private readonly EXCLUDED_FROM_HISTORY = new Set<string>([
+    Events.TickStarted,
+    Events.TickEnded,
+    Events.BuildingLevelUp,
+  ]);
+
+  /**
+   * События, которые не нужно логировать (циклические события).
+   * Используется Set для быстрой проверки исключений.
+   */
+  private readonly EXCLUDED_FROM_LOGGING = new Set<string>([
+    Events.TickStarted,
+    Events.TickEnded,
+    Events.BuildingLevelUp,
+  ]);
 
   /**
    * Счётчик событий за текущий тик.
@@ -70,8 +85,6 @@ export class EventBus {
    * Создаёт новый экземпляр EventBus.
    */
   constructor() {
-    console.warn('🚌 EventBus initialized');
-
     // Подписываемся на события тиков для отслеживания событий за тик
     this.on(Events.TickStarted, () => {
       this.lastTickEventsCount = this.eventsPerTick;
@@ -114,6 +127,9 @@ export class EventBus {
 
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers || eventHandlers.size === 0) {
+      if (!this.EXCLUDED_FROM_LOGGING.has(eventType)) {
+        debugLog('EventBus: нет обработчиков для события', { eventType });
+      }
       return;
     }
 
@@ -183,6 +199,7 @@ export class EventBus {
    */
   on<T = unknown>(eventType: Events | string, handler: EventHandler<T>): Subscription {
     if (!this.handlers.has(eventType)) {
+      debugLog('EventBus on: обработчики не найдены, создаём новый набор', { eventType });
       this.handlers.set(eventType, new Set());
     }
 
@@ -193,8 +210,11 @@ export class EventBus {
 
     this.handlers.get(eventType)!.add(handlerInfo);
 
+    debugLog('EventBus on: подписка добавлена', { eventType, handlerInfo });
+
     return {
       unsubscribe: (): void => {
+        debugLog('EventBus on: отписка', { eventType, handlerInfo });
         this.off(eventType, handler);
       },
     };
@@ -225,6 +245,7 @@ export class EventBus {
    */
   once<T = unknown>(eventType: Events | string, handler: EventHandler<T>): Subscription {
     if (!this.handlers.has(eventType)) {
+      debugLog('EventBus once: обработчики не найдены, создаём новый набор', { eventType });
       this.handlers.set(eventType, new Set());
     }
 
@@ -235,8 +256,11 @@ export class EventBus {
 
     this.handlers.get(eventType)!.add(handlerInfo);
 
+    debugLog('EventBus once: одноразовая подписка добавлена', { eventType, handlerInfo });
+
     return {
       unsubscribe: (): void => {
+        debugLog('EventBus once: отписка', { eventType, handlerInfo });
         this.off(eventType, handler);
       },
     };
@@ -266,6 +290,7 @@ export class EventBus {
   off(eventType: Events | string, handler: Function): void {
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers) {
+      debugLog('EventBus off: обработчики не найдены', { eventType, handler });
       return;
     }
 
@@ -273,6 +298,7 @@ export class EventBus {
     for (const handlerInfo of eventHandlers) {
       if (handlerInfo.handler === handler) {
         eventHandlers.delete(handlerInfo);
+        debugLog('EventBus off: обработчик найден и удалён', { eventType, handlerInfo });
         break;
       }
     }
@@ -280,6 +306,7 @@ export class EventBus {
     // Если больше нет обработчиков для этого события, удаляем запись
     if (eventHandlers.size === 0) {
       this.handlers.delete(eventType);
+      debugLog('EventBus off: обработчиков не осталось, удаляем тип события', { eventType });
     }
   }
 

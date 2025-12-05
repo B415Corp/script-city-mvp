@@ -293,11 +293,11 @@ export class GridModule implements IModule {
         break;
     }
 
-    this.eventBus?.emit(Events.CameraMoved, {
-      x: this.container.x,
-      y: this.container.y,
-      scale: this.container.scale,
-    });
+    // this.eventBus?.emit(Events.CameraMoved, {
+    //   x: this.container.x,
+    //   y: this.container.y,
+    //   scale: this.container.scale,
+    // });
   }
 
   /** Обработка клика по тайлу */
@@ -500,11 +500,11 @@ export class GridModule implements IModule {
         this.isDragging = false;
         // Эмитим событие перемещения камеры после завершения drag
         if (this.container) {
-          this.eventBus?.emit(Events.CameraMoved, {
-            x: this.container.x,
-            y: this.container.y,
-            scale: this.container.scale,
-          });
+          // this.eventBus?.emit(Events.CameraMoved, {
+          //   x: this.container.x,
+          //   y: this.container.y,
+          //   scale: this.container.scale,
+          // });
         }
       }
     });
@@ -519,11 +519,11 @@ export class GridModule implements IModule {
         this.dragStartY = p.y;
 
         // Эмитим событие перемещения камеры во время drag
-        this.eventBus?.emit(Events.CameraMoved, {
-          x: this.container.x,
-          y: this.container.y,
-          scale: this.container.scale,
-        });
+        // this.eventBus?.emit(Events.CameraMoved, {
+        //   x: this.container.x,
+        //   y: this.container.y,
+        //   scale: this.container.scale,
+        // });
       }
     });
 

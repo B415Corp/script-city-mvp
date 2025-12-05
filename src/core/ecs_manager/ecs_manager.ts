@@ -1,5 +1,6 @@
 import { EventBus } from '../event_bus/event_bus';
 import { ComponentType, EntityId, ISystem } from './types';
+import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 
 /**
  * Менеджер Entity Component System (ECS) архитектуры.
@@ -56,7 +57,7 @@ export class ECSManager {
    * Создаёт новый экземпляр ECSManager.
    */
   constructor() {
-    console.warn('🎮 ECSManager initialized');
+    debugLog('🎮 ECSManager создан');
   }
 
   // ==================== Управление сущностями ====================
@@ -77,6 +78,7 @@ export class ECSManager {
     if (!this.components.has(entityId)) {
       this.components.set(entityId, new Map());
     }
+    debugLog('🎮 ECSManager: сущность создана', { entityId });
     return entityId;
   }
 
@@ -92,6 +94,7 @@ export class ECSManager {
    */
   destroyEntity(id: EntityId): void {
     if (!this.entities.has(id)) {
+      debugLog('🎮 ECSManager: попытка удалить несуществующую сущность', { entityId: id });
       return;
     }
 
@@ -99,6 +102,7 @@ export class ECSManager {
     this.components.delete(id);
     // Удаляем сущность из реестра
     this.entities.delete(id);
+    debugLog('🎮 ECSManager: сущность удалена', { entityId: id });
   }
 
   /**
@@ -156,7 +160,15 @@ export class ECSManager {
       this.components.set(entityId, new Map());
     }
 
+    const componentTypeStr =
+      typeof componentType === 'symbol' ? componentType.toString() : componentType;
+    const isReplacement = this.components.get(entityId)!.has(componentType);
     this.components.get(entityId)!.set(componentType, component);
+    debugLog('🎮 ECSManager: компонент добавлен', {
+      entityId,
+      componentType: componentTypeStr,
+      isReplacement,
+    });
   }
 
   /**
@@ -175,7 +187,10 @@ export class ECSManager {
 
     const entityComponents = this.components.get(entityId);
     if (entityComponents) {
+      const componentTypeStr =
+        typeof componentType === 'symbol' ? componentType.toString() : componentType;
       entityComponents.delete(componentType);
+      debugLog('🎮 ECSManager: компонент удалён', { entityId, componentType: componentTypeStr });
     }
   }
 
@@ -303,9 +318,16 @@ export class ECSManager {
       system.priority = priority;
     }
 
+    const isReplacement = this.systems.has(system.id);
     this.systems.set(system.id, system);
     this.systemTickCounters.set(system.id, 0);
     this.updateSortedSystems();
+    debugLog('🎮 ECSManager: система зарегистрирована', {
+      systemId: system.id,
+      priority: system.priority,
+      updateInterval: system.updateInterval,
+      isReplacement,
+    });
   }
 
   /**
@@ -317,9 +339,13 @@ export class ECSManager {
    * ecs.unregisterSystem('PopulationSystem');
    */
   unregisterSystem(systemId: string): void {
+    const existed = this.systems.has(systemId);
     this.systems.delete(systemId);
     this.systemTickCounters.delete(systemId);
     this.updateSortedSystems();
+    if (existed) {
+      debugLog('🎮 ECSManager: система удалена', { systemId });
+    }
   }
 
   /**
@@ -382,13 +408,17 @@ export class ECSManager {
    * ecs.clear(); // удаляет все сущности, компоненты и системы
    */
   clear(): void {
+    debugGroup('🎮 ECSManager: очистка');
+    const entitiesCount = this.entities.size;
+    const systemsCount = this.systems.size;
     this.entities.clear();
     this.components.clear();
     this.systems.clear();
     this.sortedSystems = [];
     this.systemTickCounters.clear();
     this.entityIdCounter = 0;
-    console.warn('🎮 ECSManager cleared');
+    debugLog('ECSManager очищен', { entitiesCount, systemsCount });
+    debugGroupEnd();
   }
 
   public getEntityIdCounter(): number {

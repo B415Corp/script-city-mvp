@@ -2,6 +2,7 @@ declare const indexedDB: IDBFactory;
 
 import { IStorageProvider } from './types';
 import { SaveGame, SaveMetadata } from '../types';
+import { debugError, debugLog, debugWarn } from '@/infrastructure/utils/logger';
 
 const DB_NAME = 'script_city_saves';
 const DB_VERSION = 1;
@@ -22,31 +23,45 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Инициализирует IndexedDB базу данных
    */
   private async initDB(): Promise<void> {
+    debugLog('IndexedDB: начата инициализация', { dbName: DB_NAME, version: DB_VERSION });
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = (): void => {
-        console.error('IndexedDB error:', request.error);
+        debugError('IndexedDB: ошибка при открытии базы данных', {
+          error: request.error,
+          dbName: DB_NAME,
+        });
         reject(request.error);
       };
 
       request.onsuccess = (): void => {
         this.db = request.result;
-        console.warn('IndexedDB initialized successfully');
+        debugLog('IndexedDB: база данных успешно инициализирована', {
+          dbName: DB_NAME,
+          version: DB_VERSION,
+          objectStores: Array.from(this.db.objectStoreNames),
+        });
         resolve();
       };
 
       request.onupgradeneeded = (event): void => {
         const db = (event.target as IDBOpenDBRequest).result;
+        debugLog('IndexedDB: выполняется обновление схемы базы данных', {
+          oldVersion: event.oldVersion,
+          newVersion: event.newVersion,
+        });
 
         // Создаем object store для сохранений
         if (!db.objectStoreNames.contains(SAVES_STORE)) {
           db.createObjectStore(SAVES_STORE, { keyPath: 'saveId' });
+          debugLog('IndexedDB: создан object store', { storeName: SAVES_STORE });
         }
 
         // Создаем object store для метаданных (для быстрого доступа)
         if (!db.objectStoreNames.contains(METADATA_STORE)) {
           db.createObjectStore(METADATA_STORE, { keyPath: 'saveId' });
+          debugLog('IndexedDB: создан object store', { storeName: METADATA_STORE });
         }
       };
     });
@@ -57,6 +72,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    */
   private async ensureDB(): Promise<void> {
     if (!this.db) {
+      debugLog('IndexedDB: база данных не инициализирована, выполняется инициализация');
       await this.initDB();
     }
   }
@@ -65,6 +81,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Сохраняет игру по указанному ID
    */
   async saveGame(saveId: string, saveGame: SaveGame): Promise<void> {
+    debugLog('IndexedDB: начало сохранения игры', { saveId, metadata: saveGame.metadata });
     await this.ensureDB();
     if (!this.db) throw new Error('Database not initialized');
 
@@ -77,7 +94,10 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         ...saveGame,
       });
 
-      saveRequest.onerror = (): void => reject(saveRequest.error);
+      saveRequest.onerror = (): void => {
+        debugError('IndexedDB: ошибка при сохранении игры', { saveId, error: saveRequest.error });
+        reject(saveRequest.error);
+      };
 
       // Сохраняем метаданные отдельно для быстрого доступа
       const metadataRequest = transaction.objectStore(METADATA_STORE).put({
@@ -85,10 +105,25 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         ...saveGame.metadata,
       });
 
-      metadataRequest.onerror = (): void => reject(metadataRequest.error);
+      metadataRequest.onerror = (): void => {
+        debugError('IndexedDB: ошибка при сохранении метаданных', {
+          saveId,
+          error: metadataRequest.error,
+        });
+        reject(metadataRequest.error);
+      };
 
-      transaction.oncomplete = (): void => resolve();
-      transaction.onerror = (): void => reject(transaction.error);
+      transaction.oncomplete = (): void => {
+        debugLog('IndexedDB: игра успешно сохранена', { saveId });
+        resolve();
+      };
+      transaction.onerror = (): void => {
+        debugError('IndexedDB: ошибка транзакции при сохранении', {
+          saveId,
+          error: transaction.error,
+        });
+        reject(transaction.error);
+      };
     });
   }
 
@@ -96,6 +131,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Загружает игру по указанному ID
    */
   async loadGame(saveId: string): Promise<SaveGame | null> {
+    debugLog('IndexedDB: начало загрузки игры', { saveId });
     await this.ensureDB();
     if (!this.db) throw new Error('Database not initialized');
 
@@ -106,13 +142,18 @@ export class IndexedDBStorageProvider implements IStorageProvider {
         if (request.result) {
           const saveGame = { ...request.result };
           delete saveGame.saveId;
+          debugLog('IndexedDB: игра успешно загружена', { saveId, metadata: saveGame.metadata });
           resolve(saveGame as SaveGame);
         } else {
+          debugWarn('IndexedDB: игра не найдена', { saveId });
           resolve(null);
         }
       };
 
-      request.onerror = (): void => reject(request.error);
+      request.onerror = (): void => {
+        debugError('IndexedDB: ошибка при загрузке игры', { saveId, error: request.error });
+        reject(request.error);
+      };
     });
   }
 
@@ -120,6 +161,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Удаляет сохранение по ID
    */
   async deleteGame(saveId: string): Promise<void> {
+    debugLog('IndexedDB: начало удаления игры', { saveId });
     await this.ensureDB();
     if (!this.db) throw new Error('Database not initialized');
 
@@ -128,14 +170,35 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       // Удаляем из основного хранилища
       const saveRequest = transaction.objectStore(SAVES_STORE).delete(saveId);
-      saveRequest.onerror = (): void => reject(saveRequest.error);
+      saveRequest.onerror = (): void => {
+        debugError('IndexedDB: ошибка при удалении игры из основного хранилища', {
+          saveId,
+          error: saveRequest.error,
+        });
+        reject(saveRequest.error);
+      };
 
       // Удаляем из метаданных
       const metadataRequest = transaction.objectStore(METADATA_STORE).delete(saveId);
-      metadataRequest.onerror = (): void => reject(metadataRequest.error);
+      metadataRequest.onerror = (): void => {
+        debugError('IndexedDB: ошибка при удалении метаданных', {
+          saveId,
+          error: metadataRequest.error,
+        });
+        reject(metadataRequest.error);
+      };
 
-      transaction.oncomplete = (): void => resolve();
-      transaction.onerror = (): void => reject(transaction.error);
+      transaction.oncomplete = (): void => {
+        debugLog('IndexedDB: игра успешно удалена', { saveId });
+        resolve();
+      };
+      transaction.onerror = (): void => {
+        debugError('IndexedDB: ошибка транзакции при удалении', {
+          saveId,
+          error: transaction.error,
+        });
+        reject(transaction.error);
+      };
     });
   }
 
@@ -143,6 +206,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Возвращает список всех сохранений
    */
   async getSavesList(): Promise<SaveMetadata[]> {
+    debugLog('IndexedDB: начало получения списка сохранений');
     await this.ensureDB();
     if (!this.db) throw new Error('Database not initialized');
 
@@ -156,10 +220,14 @@ export class IndexedDBStorageProvider implements IStorageProvider {
           delete metadata.saveId;
           metadataList.push(metadata as SaveMetadata);
         }
+        debugLog('IndexedDB: список сохранений получен', { count: metadataList.length });
         resolve(metadataList);
       };
 
-      request.onerror = (): void => reject(request.error);
+      request.onerror = (): void => {
+        debugError('IndexedDB: ошибка при получении списка сохранений', { error: request.error });
+        reject(request.error);
+      };
     });
   }
 
@@ -167,14 +235,25 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Проверяет существует ли сохранение
    */
   async exists(saveId: string): Promise<boolean> {
+    debugLog('IndexedDB: проверка существования сохранения', { saveId });
     await this.ensureDB();
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
       const request = this.db!.transaction(SAVES_STORE).objectStore(SAVES_STORE).getKey(saveId);
 
-      request.onsuccess = (): void => resolve(!!request.result);
-      request.onerror = (): void => reject(request.error);
+      request.onsuccess = (): void => {
+        const exists = !!request.result;
+        debugLog('IndexedDB: проверка существования завершена', { saveId, exists });
+        resolve(exists);
+      };
+      request.onerror = (): void => {
+        debugError('IndexedDB: ошибка при проверке существования', {
+          saveId,
+          error: request.error,
+        });
+        reject(request.error);
+      };
     });
   }
 
@@ -182,6 +261,7 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    * Очищает все данные хранилища
    */
   async clear(): Promise<void> {
+    debugWarn('IndexedDB: начало очистки всех данных хранилища');
     await this.ensureDB();
     if (!this.db) throw new Error('Database not initialized');
 
@@ -190,14 +270,28 @@ export class IndexedDBStorageProvider implements IStorageProvider {
     return new Promise((resolve, reject) => {
       // Очищаем основное хранилище
       const saveRequest = transaction.objectStore(SAVES_STORE).clear();
-      saveRequest.onerror = (): void => reject(saveRequest.error);
+      saveRequest.onerror = (): void => {
+        debugError('IndexedDB: ошибка при очистке основного хранилища', {
+          error: saveRequest.error,
+        });
+        reject(saveRequest.error);
+      };
 
       // Очищаем метаданные
       const metadataRequest = transaction.objectStore(METADATA_STORE).clear();
-      metadataRequest.onerror = (): void => reject(metadataRequest.error);
+      metadataRequest.onerror = (): void => {
+        debugError('IndexedDB: ошибка при очистке метаданных', { error: metadataRequest.error });
+        reject(metadataRequest.error);
+      };
 
-      transaction.oncomplete = (): void => resolve();
-      transaction.onerror = (): void => reject(transaction.error);
+      transaction.oncomplete = (): void => {
+        debugLog('IndexedDB: все данные хранилища успешно очищены');
+        resolve();
+      };
+      transaction.onerror = (): void => {
+        debugError('IndexedDB: ошибка транзакции при очистке', { error: transaction.error });
+        reject(transaction.error);
+      };
     });
   }
 
@@ -206,8 +300,11 @@ export class IndexedDBStorageProvider implements IStorageProvider {
    */
   close(): void {
     if (this.db) {
+      debugLog('IndexedDB: закрытие соединения с базой данных', { dbName: DB_NAME });
       this.db.close();
       this.db = null;
+    } else {
+      debugLog('IndexedDB: соединение уже закрыто');
     }
   }
 }

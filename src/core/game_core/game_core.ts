@@ -7,6 +7,7 @@ import { TickManager } from '../tick_manager/tick_manager';
 import { ToolManager } from '@/modules/tools/tool_manager';
 import { CoreConfig } from './types';
 import { SaveManager } from '../save_manager/save_manager';
+import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logger';
 
 export class GameCore {
   private tickManager!: TickManager;
@@ -23,11 +24,14 @@ export class GameCore {
   }
 
   public async initialize(config?: CoreConfig): Promise<void> {
-    console.group('GameCore initialize');
+    debugGroup('👾 GameCore: инициализация');
     this.config = config;
+    debugLog('Конфигурация получена', { config: this.config });
 
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
+    debugGroup('Создание менеджеров');
     this.eventBus = new EventBus();
+
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
@@ -40,22 +44,30 @@ export class GameCore {
       commandProcessor: this.commandProcessor,
       ecsManager: this.ecsManager,
     });
+    debugGroupEnd();
 
     // Инициализация SaveManager
     this.saveManager.initialize(this, this.eventBus);
 
     // 2. Регистрация базовых систем (если есть)
+    debugGroup('ECSManager: Регистрация базовых систем');
     // TODO: регистрация базовых систем
+    debugLog('ECSManager: Регистрация базовых систем', { ecsManager: this.ecsManager });
+    // так как в MVP нет систем, то регистрация базовых систем не нужна
+    debugLog('ECSManager: Регистрация базовых систем не нужна на MVP');
+    // this.ecsManager.registerSystem(new PopulationSystem());
+    debugGroupEnd();
 
     // 3. Подписка на события команд
     this.subscribeToCommandEvents();
 
     // 4. Подготовка к работе (но без запуска цикла тиков)
-    console.warn('👾 GameCore initialized', this.config);
-    console.groupEnd();
+    debugLog('👾 GameCore инициализирован', { config: this.config });
+    debugGroupEnd();
   }
 
   public async start(): Promise<void> {
+    debugGroup('👾 GameCore: запуск');
     // 1. Инициализация всех зарегистрированных модулей
     await this.moduleManager.initializeModules(this);
 
@@ -63,40 +75,58 @@ export class GameCore {
     this.tickManager.start();
 
     // 3. Публикация события GameStarted
+    debugLog('Публикация события GameStarted');
     this.eventBus.emit(Events.GameStarted);
-    console.warn('👾 GameCore started');
+    debugLog('👾 GameCore запущен');
+    debugGroupEnd();
   }
 
   public stop(): void {
+    debugGroup('👾 GameCore: остановка');
     // 1. Остановка TickManager (прекращение цикла тиков)
+    debugGroup('Остановка TickManager');
     this.tickManager.stop();
+    debugLog('TickManager остановлен');
+    debugGroupEnd();
 
     // 2. Публикация события GameStopped
+    debugLog('Публикация события GameStopped');
     this.eventBus.emit(Events.GameStopped);
 
     // 3. Сохранение состояния (если необходимо)
     // TODO: сохранение состояния
-    console.warn('👾 GameCore stopped');
+    debugLog('👾 GameCore остановлен');
+    debugGroupEnd();
   }
 
   public destroy(): void {
+    debugGroup('👾 GameCore: уничтожение');
     // 1. Остановка всех систем
     this.stop();
 
     // 2. Удаление всех сущностей и компонентов
+    debugGroup('Очистка ECS');
     this.ecsManager.clear();
+    debugGroupEnd();
 
     // 3. Очистка всех подписок на события
+    debugGroup('Очистка EventBus');
     this.eventBus.clear();
+    debugGroupEnd();
 
     // 4. Очистка всех модулей
+    debugGroup('Очистка модулей');
     this.moduleManager.clear();
+    debugGroupEnd();
 
     // 5. Закрытие SaveManager
+    debugGroup('Закрытие SaveManager');
     this.saveManager.destroy();
+    debugGroupEnd();
 
     // 6. Освобождение ресурсов
-    console.warn('👾 GameCore destroyed');
+    debugLog('👾 GameCore уничтожен');
+    debugGroupEnd();
   }
 
   public getTickManager(): TickManager {
@@ -181,15 +211,24 @@ export class GameCore {
    * так как на паузе тики не выполняются и команды из очереди не обрабатываются.
    */
   private subscribeToCommandEvents(): void {
+    debugGroup('EventBus: Подписка на события команд');
     // Обработка запроса на изменение скорости симуляции (немедленно)
     this.eventBus.on<{ speedLevel: number }>(Events.SetSimulationSpeedRequested, (payload) => {
       if (payload) {
+        debugLog('EventBus: Получен запрос на изменение скорости', {
+          eventType: Events.SetSimulationSpeedRequested,
+          speedLevel: payload.speedLevel,
+        });
         const success = this.tickManager.setSpeed(payload.speedLevel);
-        console.warn('👾 GameCore: speed change request processed', {
+        debugLog('EventBus: Изменение скорости обработано', {
           requestedSpeed: payload.speedLevel,
           success,
         });
       }
     });
+    debugLog('EventBus: Подписка на SetSimulationSpeedRequested установлена', {
+      eventType: Events.SetSimulationSpeedRequested,
+    });
+    debugGroupEnd();
   }
 }
