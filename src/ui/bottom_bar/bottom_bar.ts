@@ -5,7 +5,6 @@ import { SpeedControls } from '@/ui/speed_controls/speed_controls';
 import { TopBar } from './top_bar';
 import { StatisticsBar } from './statistics_bar';
 import { debugError, debugLog } from '@/infrastructure/utils/logger';
-import { createRexButton, showBadgeNotification } from '@/ui/common/rex_ui_factory';
 
 /**
  * Нижняя панель управления (в стиле Cities: Skylines)
@@ -79,19 +78,38 @@ export class BottomBar extends UIComponent {
   }
 
   private createSaveButton(x: number, y: number): void {
-    const button = createRexButton(this.scene, {
-      width: 90,
-      height: 50,
-      text: '💾 Save',
+    const baseColor = 0x2a7a2a;
+    const hoverColor = 0x3a9a3a;
+
+    const background = this.scene.rexUI.add.roundRectangle(0, 0, 90, 50, 6, baseColor, 1);
+    const text = this.scene.add.text(0, 0, '💾 Save', {
       fontSize: '14px',
-      backgroundColor: 0x2a7a2a,
-      hoverColor: 0x3a9a3a,
-      onClick: () => this.onSaveButtonClick(),
+      color: '#ffffff',
+      fontFamily: 'Arial',
     });
 
-    button.label.setPosition(x, y);
-    this.saveButton = button.label;
-    this.container.add(this.saveButton);
+    const label = this.scene.rexUI.add.label({
+      width: 90,
+      height: 50,
+      background,
+      text,
+      align: 'center',
+      space: { left: 8, right: 8, top: 6, bottom: 6 },
+    }) as Phaser.GameObjects.Container;
+
+    label.setSize(90, 50);
+    label.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, 90, 50),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
+    label.on('pointerover', () => background.setFillStyle(hoverColor));
+    label.on('pointerout', () => background.setFillStyle(baseColor));
+    label.on('pointerdown', () => this.onSaveButtonClick());
+
+    label.setPosition(x, y);
+    this.saveButton = label;
+    this.container.add(label);
   }
 
   private async onSaveButtonClick(): Promise<void> {
@@ -112,7 +130,41 @@ export class BottomBar extends UIComponent {
   }
 
   private showSaveNotification(message: string, color: number): void {
-    showBadgeNotification(this.scene, message, color);
+    const { width, height } = this.scene.scale;
+    const badgeLabel = this.scene.rexUI.add.badgeLabel({
+      x: width / 2,
+      y: height / 2,
+      background: this.scene.rexUI.add.roundRectangle(0, 0, 240, 70, 10, color, 0.9),
+      main: this.scene.add
+        .text(0, 0, message, {
+          fontSize: '18px',
+          color: '#ffffff',
+          fontFamily: 'Arial',
+        })
+        .setOrigin(0.5),
+    });
+
+    badgeLabel.setDepth(UIComponent.DEPTH.UI_MODAL);
+    badgeLabel.setAlpha(0);
+    badgeLabel.layout();
+
+    this.scene.tweens.add({
+      targets: badgeLabel,
+      alpha: { from: 0, to: 1 },
+      duration: 200,
+      onComplete: () => {
+        this.scene.time.delayedCall(1500, () => {
+          this.scene.tweens.add({
+            targets: badgeLabel,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+              badgeLabel.destroy();
+            },
+          });
+        });
+      },
+    });
   }
 
   resize(): void {

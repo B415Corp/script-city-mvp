@@ -91,6 +91,14 @@ declare module 'phaser3-rex-plugins/templates/ui/ui-plugin.js' {
     };
   };
 
+  export type DialogConfig = Record<string, unknown>;
+
+  export type DialogLike = Phaser.GameObjects.Container & {
+    layout: () => DialogLike;
+    popUp?: (duration?: number) => DialogLike;
+    on: (event: string, cb: (...args: unknown[]) => void) => DialogLike;
+  };
+
   export default class UIPlugin extends Phaser.Plugins.ScenePlugin {
     add: {
       badgeLabel: (config?: BadgeLabelConfig) => BadgeLabel;
@@ -104,6 +112,7 @@ declare module 'phaser3-rex-plugins/templates/ui/ui-plugin.js' {
         fillColor?: number,
         fillAlpha?: number,
       ) => RoundRectangleLike;
+      dialog: (config?: DialogConfig) => DialogLike;
     };
   }
 }
@@ -127,6 +136,9 @@ declare module 'phaser' {
           fillColor?: number,
           fillAlpha?: number,
         ) => import('phaser3-rex-plugins/templates/ui/ui-plugin.js').RoundRectangleLike;
+        dialog: (
+          config?: import('phaser3-rex-plugins/templates/ui/ui-plugin.js').DialogConfig,
+        ) => import('phaser3-rex-plugins/templates/ui/ui-plugin.js').DialogLike;
       };
     };
   }

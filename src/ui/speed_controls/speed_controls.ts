@@ -2,7 +2,16 @@ import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { UIComponent } from '@/core/ui/ui_component';
 import { Events } from '@/core/event_bus/events';
-import { createRexButton, RexButton, setButtonActive } from '@/ui/common/rex_ui_factory';
+
+type RexUIButton = {
+  label: Phaser.GameObjects.Container;
+  background: Phaser.GameObjects.Shape;
+  text: Phaser.GameObjects.Text;
+  speed: number | null;
+  baseColor: number;
+  hoverColor: number;
+  activeColor: number;
+};
 
 /**
  * Компонент управления скоростью игры в стиле Cities: Skylines 2.
@@ -18,7 +27,7 @@ export class SpeedControls extends UIComponent {
   private readonly TOTAL_WIDTH = this.BUTTON_WIDTH * 4 + this.BUTTON_SPACING * 3;
 
   // Элементы
-  private buttons: Array<RexButton & { speed: number | null }> = [];
+  private buttons: RexUIButton[] = [];
   private currentSpeed: number = 1.0;
   private isPaused: boolean = false;
 
@@ -82,21 +91,56 @@ export class SpeedControls extends UIComponent {
     text: string,
     onClick: () => void,
     speed: number | null,
-  ): RexButton & { speed: number | null } {
-    const button = createRexButton(this.scene, {
-      width: this.BUTTON_WIDTH,
-      height: this.BUTTON_HEIGHT,
-      text,
+  ): RexUIButton {
+    const baseColor = 0x2a2a2a;
+    const hoverColor = 0x3a3a3a;
+    const activeColor = 0x4a90e2;
+
+    const background = this.scene.rexUI.add.roundRectangle(
+      0,
+      0,
+      this.BUTTON_WIDTH,
+      this.BUTTON_HEIGHT,
+      6,
+      baseColor,
+      1,
+    );
+
+    const textObj = this.scene.add.text(0, 0, text, {
       fontSize: '18px',
-      onClick,
-      onPointerOut: () => this.updateDisplay(),
+      color: '#ffffff',
+      fontFamily: 'Arial',
     });
 
-    button.label.setPosition(x, y);
-    return { ...button, speed };
+    const label = this.scene.rexUI.add.label({
+      width: this.BUTTON_WIDTH,
+      height: this.BUTTON_HEIGHT,
+      background,
+      text: textObj,
+      align: 'center',
+      space: { left: 8, right: 8, top: 6, bottom: 6 },
+    }) as Phaser.GameObjects.Container;
+
+    label.setSize(this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
+    label.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
+    label.on('pointerover', () => {
+      background.setFillStyle(hoverColor);
+    });
+    label.on('pointerout', () => {
+      this.updateDisplay();
+    });
+    label.on('pointerdown', () => onClick());
+
+    label.setPosition(x, y);
+
+    return { label, background, text: textObj, speed, baseColor, hoverColor, activeColor };
   }
 
-  private isButtonActive(button: RexButton & { speed: number | null }): boolean {
+  private isButtonActive(button: RexUIButton): boolean {
     if (button.speed === null) {
       return this.isPaused;
     }
@@ -161,7 +205,7 @@ export class SpeedControls extends UIComponent {
         button.text.setText(this.isPaused ? '▶' : '⏸');
       }
 
-      setButtonActive(button, isActive);
+      button.background.setFillStyle(isActive ? button.activeColor : button.baseColor);
     });
   }
 
