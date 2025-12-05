@@ -2,8 +2,10 @@
 // Game initialization will happen here
 
 import Phaser from 'phaser';
+import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 import { MenuScene } from './scenes/menu_scene';
 import { GameScene } from './scenes/game_scene';
+import { debugLog } from './infrastructure/utils/logger';
 
 /**
  * Конфигурация Phaser игры
@@ -23,6 +25,15 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: true,
     },
   },
+  plugins: {
+    scene: [
+      {
+        key: 'rexUI',
+        plugin: UIPlugin,
+        mapping: 'rexUI',
+      },
+    ],
+  },
 };
 
 /**
@@ -30,7 +41,7 @@ const config: Phaser.Types.Core.GameConfig = {
  */
 function initGame(): void {
   const game = new Phaser.Game(config);
-  console.log('Phaser game initialized');
+  debugLog('🌆 Phaser game initialized');
 
   // Обработка изменения размера окна
   window.addEventListener('resize', () => {
