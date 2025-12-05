@@ -81,35 +81,31 @@ export class BottomBar extends UIComponent {
     const baseColor = 0x2a7a2a;
     const hoverColor = 0x3a9a3a;
 
-    const background = this.scene.rexUI.add.roundRectangle(0, 0, 90, 50, 6, baseColor, 1);
+    const background = this.scene.add.rectangle(0, 0, 90, 50, baseColor, 1);
+    background.setOrigin(0.5);
+
     const text = this.scene.add.text(0, 0, '💾 Save', {
       fontSize: '14px',
       color: '#ffffff',
       fontFamily: 'Arial',
     });
+    text.setOrigin(0.5);
 
-    const label = this.scene.rexUI.add.label({
-      width: 90,
-      height: 50,
-      background,
-      text,
-      align: 'center',
-      space: { left: 8, right: 8, top: 6, bottom: 6 },
-    }) as Phaser.GameObjects.Container;
+    const button = this.scene.add.container(x, y, [background, text]);
+    button.setSize(90, 50);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-45, -25, 90, 50),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    if (button.input) {
+      button.input.useHandCursor = true;
+    }
+    button.on('pointerover', () => background.setFillStyle(hoverColor));
+    button.on('pointerout', () => background.setFillStyle(baseColor));
+    button.on('pointerdown', () => this.onSaveButtonClick());
 
-    label.setSize(90, 50);
-    label.setInteractive({
-      hitArea: new Phaser.Geom.Rectangle(0, 0, 90, 50),
-      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-      useHandCursor: true,
-    });
-    label.on('pointerover', () => background.setFillStyle(hoverColor));
-    label.on('pointerout', () => background.setFillStyle(baseColor));
-    label.on('pointerdown', () => this.onSaveButtonClick());
-
-    label.setPosition(x, y);
-    this.saveButton = label;
-    this.container.add(label);
+    this.saveButton = button;
+    this.container.add(button);
   }
 
   private async onSaveButtonClick(): Promise<void> {
@@ -131,35 +127,33 @@ export class BottomBar extends UIComponent {
 
   private showSaveNotification(message: string, color: number): void {
     const { width, height } = this.scene.scale;
-    const badgeLabel = this.scene.rexUI.add.badgeLabel({
-      x: width / 2,
-      y: height / 2,
-      background: this.scene.rexUI.add.roundRectangle(0, 0, 240, 70, 10, color, 0.9),
-      main: this.scene.add
-        .text(0, 0, message, {
-          fontSize: '18px',
-          color: '#ffffff',
-          fontFamily: 'Arial',
-        })
-        .setOrigin(0.5),
-    });
+    const background = this.scene.add.rectangle(0, 0, 240, 70, color, 0.9);
+    background.setOrigin(0.5);
 
-    badgeLabel.setDepth(UIComponent.DEPTH.UI_MODAL);
-    badgeLabel.setAlpha(0);
-    badgeLabel.layout();
+    const text = this.scene.add.text(0, 0, message, {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+    });
+    text.setOrigin(0.5);
+
+    const notification = this.scene.add.container(width / 2, height / 2, [background, text]);
+    notification.setSize(240, 70);
+    notification.setDepth(UIComponent.DEPTH.UI_MODAL);
+    notification.setAlpha(0);
 
     this.scene.tweens.add({
-      targets: badgeLabel,
+      targets: notification,
       alpha: { from: 0, to: 1 },
       duration: 200,
       onComplete: () => {
         this.scene.time.delayedCall(1500, () => {
           this.scene.tweens.add({
-            targets: badgeLabel,
+            targets: notification,
             alpha: 0,
             duration: 200,
             onComplete: () => {
-              badgeLabel.destroy();
+              notification.destroy();
             },
           });
         });

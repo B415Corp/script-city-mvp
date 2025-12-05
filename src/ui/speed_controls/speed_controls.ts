@@ -3,9 +3,9 @@ import { GameCore } from '@/core/game_core/game_core';
 import { UIComponent } from '@/core/ui/ui_component';
 import { Events } from '@/core/event_bus/events';
 
-type RexUIButton = {
-  label: Phaser.GameObjects.Container;
-  background: Phaser.GameObjects.Shape;
+type SpeedButton = {
+  container: Phaser.GameObjects.Container;
+  background: Phaser.GameObjects.Rectangle;
   text: Phaser.GameObjects.Text;
   speed: number | null;
   baseColor: number;
@@ -27,7 +27,7 @@ export class SpeedControls extends UIComponent {
   private readonly TOTAL_WIDTH = this.BUTTON_WIDTH * 4 + this.BUTTON_SPACING * 3;
 
   // Элементы
-  private buttons: RexUIButton[] = [];
+  private buttons: SpeedButton[] = [];
   private currentSpeed: number = 1.0;
   private isPaused: boolean = false;
 
@@ -82,7 +82,7 @@ export class SpeedControls extends UIComponent {
     );
 
     this.buttons = [pauseButton, speed1xButton, speed2xButton, speed3xButton];
-    this.buttons.forEach((btn) => this.container.add(btn.label));
+    this.buttons.forEach((btn) => this.container.add(btn.container));
   }
 
   private createButton(
@@ -91,56 +91,54 @@ export class SpeedControls extends UIComponent {
     text: string,
     onClick: () => void,
     speed: number | null,
-  ): RexUIButton {
+  ): SpeedButton {
     const baseColor = 0x2a2a2a;
     const hoverColor = 0x3a3a3a;
     const activeColor = 0x4a90e2;
 
-    const background = this.scene.rexUI.add.roundRectangle(
+    const background = this.scene.add.rectangle(
       0,
       0,
       this.BUTTON_WIDTH,
       this.BUTTON_HEIGHT,
-      6,
       baseColor,
       1,
     );
+    background.setOrigin(0.5);
 
     const textObj = this.scene.add.text(0, 0, text, {
       fontSize: '18px',
       color: '#ffffff',
       fontFamily: 'Arial',
     });
+    textObj.setOrigin(0.5);
 
-    const label = this.scene.rexUI.add.label({
-      width: this.BUTTON_WIDTH,
-      height: this.BUTTON_HEIGHT,
-      background,
-      text: textObj,
-      align: 'center',
-      space: { left: 8, right: 8, top: 6, bottom: 6 },
-    }) as Phaser.GameObjects.Container;
-
-    label.setSize(this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
-    label.setInteractive({
-      hitArea: new Phaser.Geom.Rectangle(0, 0, this.BUTTON_WIDTH, this.BUTTON_HEIGHT),
-      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-      useHandCursor: true,
-    });
-    label.on('pointerover', () => {
+    const container = this.scene.add.container(x, y, [background, textObj]);
+    container.setSize(this.BUTTON_WIDTH, this.BUTTON_HEIGHT);
+    container.setInteractive(
+      new Phaser.Geom.Rectangle(
+        -this.BUTTON_WIDTH / 2,
+        -this.BUTTON_HEIGHT / 2,
+        this.BUTTON_WIDTH,
+        this.BUTTON_HEIGHT,
+      ),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    if (container.input) {
+      container.input.useHandCursor = true;
+    }
+    container.on('pointerover', () => {
       background.setFillStyle(hoverColor);
     });
-    label.on('pointerout', () => {
+    container.on('pointerout', () => {
       this.updateDisplay();
     });
-    label.on('pointerdown', () => onClick());
+    container.on('pointerdown', () => onClick());
 
-    label.setPosition(x, y);
-
-    return { label, background, text: textObj, speed, baseColor, hoverColor, activeColor };
+    return { container, background, text: textObj, speed, baseColor, hoverColor, activeColor };
   }
 
-  private isButtonActive(button: RexUIButton): boolean {
+  private isButtonActive(button: SpeedButton): boolean {
     if (button.speed === null) {
       return this.isPaused;
     }

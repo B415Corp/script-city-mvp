@@ -2,7 +2,6 @@
 // Game initialization will happen here
 
 import Phaser from 'phaser';
-import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 import { MenuScene } from './scenes/menu_scene';
 import { GameScene } from './scenes/game_scene';
 import { debugLog } from './infrastructure/utils/logger';
@@ -24,15 +23,6 @@ const config: Phaser.Types.Core.GameConfig = {
       gravity: { x: 0, y: 0 },
       debug: true,
     },
-  },
-  plugins: {
-    scene: [
-      {
-        key: 'rexUI',
-        plugin: UIPlugin,
-        mapping: 'rexUI',
-      },
-    ],
   },
 };
 
