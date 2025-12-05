@@ -1,35 +1,47 @@
+import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
 import { debugLog } from '@/infrastructure/utils/logger';
-import { ControllPanelBar } from './ui/bar';
-import { SpeedControllsButton } from './ui/speed_controlls/button';
+import { Div } from '@/ui_kit/div';
 
 export class ControllPanelModule implements IModule {
   id = 'controll_panel';
-  dependencies = ['grid'];
+  dependencies = [];
 
   private core?: GameCore;
   private scene?: Phaser.Scene;
+  private panel?: Div;
 
   async initialize(core: GameCore): Promise<void> {
     this.core = core;
-    debugLog('ControllPanelModule: инициализирован');
+    debugLog('ControllPanelModule: initialized');
   }
 
   attachToScene(scene: Phaser.Scene): void {
+    if (!this.core) {
+      throw new Error('ControllPanelModule not initialized');
+    }
+
     this.scene = scene;
-    debugLog('ControllPanelModule: прикреплен к сцене');
+    const { height } = scene.sys.canvas;
+    this.panel = new Div(scene, 32, height - (120 + 32), {
+      width: 240,
+      height: 120,
+      padding: 12,
+      backgroundColor: 0x1a1a1a,
+      backgroundAlpha: 0.85,
+      borderRadius: 8,
+      autoSize: true,
+      interactive: true,
+    });
 
-    const bar = new ControllPanelBar(scene);
-    const createdBar = bar.create();
-    scene.add.existing(createdBar);
-
-    const speedControllsButton = new SpeedControllsButton(scene);
-    const speedButton = speedControllsButton.create(Math.min(bar.getHeight() - 16, 56));
-    const leftPadding = 24;
-    const buttonX = -bar.getWidth() / 2 + speedButton.displayWidth / 2 + leftPadding;
-    bar.addControl(speedButton, buttonX, 0);
+    debugLog('ControllPanelModule: attached to scene');
   }
 
-  destroy(): void {}
+  destroy(): void {
+    this.panel?.destroy();
+    this.panel = undefined;
+    this.scene = undefined;
+    this.core = undefined;
+  }
 }

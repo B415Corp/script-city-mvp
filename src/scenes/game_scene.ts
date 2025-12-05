@@ -43,11 +43,10 @@ export class GameScene extends Phaser.Scene {
 
     // ⬇️ РЕГИСТРАЦИЯ МОДУЛЕЙ
     // ToolsModule должен быть зарегистрирован первым, так как другие модули инструментов зависят от него
-    // moduleManager.registerModule(new GridModule());
-    // moduleManager.registerModule(new ToolsModule());
-    // moduleManager.registerModule(new DebugModule());
-    // moduleManager.registerModule(new BottomBarModule());
-    // moduleManager.registerModule(new ZoningToolsModule());
+    moduleManager.registerModule(new GridModule());
+    moduleManager.registerModule(new ToolsModule());
+    moduleManager.registerModule(new ZoningToolsModule());
+    moduleManager.registerModule(new DebugModule());
     // moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
     moduleManager.registerModule(new ControllPanelModule());
 
