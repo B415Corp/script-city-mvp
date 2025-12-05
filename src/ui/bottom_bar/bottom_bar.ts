@@ -5,6 +5,7 @@ import { SpeedControls } from '@/ui/speed_controls/speed_controls';
 import { TopBar } from './top_bar';
 import { StatisticsBar } from './statistics_bar';
 import { debugError, debugLog } from '@/infrastructure/utils/logger';
+import { createRexButton, showBadgeNotification } from '@/ui/common/rex_ui_factory';
 
 /**
  * Нижняя панель управления (в стиле Cities: Skylines)
@@ -78,36 +79,19 @@ export class BottomBar extends UIComponent {
   }
 
   private createSaveButton(x: number, y: number): void {
-    this.saveButton = this.scene.add.container(x, y);
-
-    // Фон кнопки
-    const background = this.scene.add.rectangle(0, 0, 80, 50, 0x2a7a2a, 1);
-    background.setInteractive({ useHandCursor: true });
-
-    // Текст кнопки
-    const text = this.scene.add.text(0, 0, '💾 Save', {
+    const button = createRexButton(this.scene, {
+      width: 90,
+      height: 50,
+      text: '💾 Save',
       fontSize: '14px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
+      backgroundColor: 0x2a7a2a,
+      hoverColor: 0x3a9a3a,
+      onClick: () => this.onSaveButtonClick(),
     });
-    text.setOrigin(0.5);
 
-    // Добавляем элементы в контейнер
-    this.saveButton.add([background, text]);
+    button.label.setPosition(x, y);
+    this.saveButton = button.label;
     this.container.add(this.saveButton);
-
-    // Обработчики событий
-    background.on('pointerover', () => {
-      background.setFillStyle(0x3a9a3a);
-    });
-
-    background.on('pointerout', () => {
-      background.setFillStyle(0x2a7a2a);
-    });
-
-    background.on('pointerdown', () => {
-      this.onSaveButtonClick();
-    });
   }
 
   private async onSaveButtonClick(): Promise<void> {
@@ -128,40 +112,7 @@ export class BottomBar extends UIComponent {
   }
 
   private showSaveNotification(message: string, color: number): void {
-    const { width, height } = this.scene.scale;
-
-    // Создаём уведомление по центру экрана
-    const notification = this.scene.add.container(width / 2, height / 2);
-
-    const bg = this.scene.add.rectangle(0, 0, 200, 60, color, 0.9);
-    const text = this.scene.add.text(0, 0, message, {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-    });
-    text.setOrigin(0.5);
-
-    notification.add([bg, text]);
-    notification.setDepth(UIComponent.DEPTH.UI_MODAL);
-
-    // Анимация появления и исчезновения
-    this.scene.tweens.add({
-      targets: notification,
-      alpha: { from: 0, to: 1 },
-      duration: 200,
-      onComplete: () => {
-        this.scene.time.delayedCall(1500, () => {
-          this.scene.tweens.add({
-            targets: notification,
-            alpha: 0,
-            duration: 200,
-            onComplete: () => {
-              notification.destroy();
-            },
-          });
-        });
-      },
-    });
+    showBadgeNotification(this.scene, message, color);
   }
 
   resize(): void {

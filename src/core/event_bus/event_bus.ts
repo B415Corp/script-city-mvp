@@ -127,9 +127,9 @@ export class EventBus {
 
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers || eventHandlers.size === 0) {
-      if (!this.EXCLUDED_FROM_LOGGING.has(eventType)) {
-        debugLog('EventBus: нет обработчиков для события', { eventType });
-      }
+      // if (!this.EXCLUDED_FROM_LOGGING.has(eventType)) {
+      //   debugLog('EventBus: нет обработчиков для события', { eventType });
+      // }
       return;
     }
 

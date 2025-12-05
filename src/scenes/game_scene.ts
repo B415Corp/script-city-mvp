@@ -7,6 +7,7 @@ import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
 import { TestSimulationModule } from '@/modules/building/test_simulation_module';
 
 import Phaser from 'phaser';
+import { ControllPanelModule } from '@/modules/ui/controll_panel/controll_panel.module';
 
 /**
  * Основная игровая сцена с симуляцией
@@ -42,12 +43,13 @@ export class GameScene extends Phaser.Scene {
 
     // ⬇️ РЕГИСТРАЦИЯ МОДУЛЕЙ
     // ToolsModule должен быть зарегистрирован первым, так как другие модули инструментов зависят от него
-    moduleManager.registerModule(new ToolsModule());
-    moduleManager.registerModule(new DebugModule());
-    moduleManager.registerModule(new BottomBarModule());
-    moduleManager.registerModule(new GridModule());
-    moduleManager.registerModule(new ZoningToolsModule());
+    // moduleManager.registerModule(new ToolsModule());
+    // moduleManager.registerModule(new DebugModule());
+    // moduleManager.registerModule(new BottomBarModule());
+    // moduleManager.registerModule(new ZoningToolsModule());
     // moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
+    moduleManager.registerModule(new GridModule());
+    moduleManager.registerModule(new ControllPanelModule());
 
     // 🏋️ Запуск ядра (модули инициализируются автоматически)
     await this.core.start();
