@@ -21,7 +21,7 @@ export class GameCore {
   private toolManager?: ToolManager;
   private mapManager!: MapManager;
   private config?: CoreConfig;
-  public sceneController!: SceneController;
+  private sceneController?: SceneController;
   constructor() {
     // Конструктор пустой, инициализация происходит в initialize()
   }
@@ -36,6 +36,7 @@ export class GameCore {
     this.eventBus = new EventBus();
 
     this.mapManager = new MapManager(this);
+    this.mapManager.initialize();
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
@@ -155,6 +156,14 @@ export class GameCore {
 
   public getSaveManager(): SaveManager {
     return this.saveManager;
+  }
+
+  public setSceneController(sceneController: SceneController): void {
+    this.sceneController = sceneController;
+  }
+
+  public getSceneController(): SceneController | undefined {
+    return this.sceneController;
   }
 
   public setSaveManager(saveManager: SaveManager): void {

@@ -35,6 +35,9 @@ export class GameScene extends Phaser.Scene {
     // Устанавливаем тёмно-серый фон сцены для контраста с сеткой
     this.cameras.main.setBackgroundColor('#1a202c');
 
+    // Подключаем менеджер карты к активной сцене
+    this.core.getMapManager().attachToScene(this);
+
     // Запускаем UI-сцену параллельно, если контроллер доступен
     if (this.sceneController) {
       this.sceneController.launchScene(SceneKey.UI, {

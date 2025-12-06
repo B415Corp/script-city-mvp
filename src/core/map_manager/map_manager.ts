@@ -28,30 +28,52 @@ export class MapManager {
   private readonly tileWidth: number = 128;
   private readonly tileHeight: number = 64;
 
-  private mapData!: MapData;
-  private scene!: Phaser.Scene;
+  private mapData?: MapData;
+  private scene?: Phaser.Scene;
   private gridContainer?: Phaser.GameObjects.Container;
   private highlightGraphics?: Phaser.GameObjects.Graphics;
 
   private isometricMath?: IsometricMath;
+  private readonly core: GameCore;
 
   constructor(core: GameCore) {
-    this.scene = core.sceneController?.getActiveScene() ?? new Phaser.Scene();
+    this.core = core;
   }
 
-  initialize(core: GameCore, scene: Phaser.Scene): void {
+  initialize(): void {
     debugGroup('🗺️ MapManager: инициализация');
-    this.scene = scene;
     this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
     this.loadMap();
-    this.createGrid();
+
+    const activeScene = this.core.getSceneController()?.getActiveScene();
+    if (activeScene) {
+      this.attachToScene(activeScene);
+    }
     debugGroupEnd();
+  }
+
+  attachToScene(scene: Phaser.Scene): void {
+    this.scene = scene;
+
+    if (!this.mapData) {
+      this.loadMap();
+    }
+    if (!this.isometricMath) {
+      this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
+    }
+
+    this.cleanupGrid();
+    this.createGrid();
   }
 
   private createGrid(): void {
     debugLog('🗺️ Создание сетки');
     if (!this.isometricMath) {
       debugLog('MapManager: isometricMath не инициализирован');
+      return;
+    }
+    if (!this.scene) {
+      debugLog('MapManager: scene не установлена');
       return;
     }
 
@@ -98,11 +120,11 @@ export class MapManager {
 
   /** Основная отрисовка сетки — теперь плитки рендерятся как Image */
   private drawGrid(): void {
-    if (!this.scene || !this.gridContainer || !this.isometricMath) return;
+    if (!this.scene || !this.gridContainer || !this.isometricMath || !this.mapData) return;
 
     for (let y = 0; y < this.gridHeight; y++) {
       for (let x = 0; x < this.gridWidth; x++) {
-        this.drawTileTexture(x, y, DEFAULT_MAP.tiles[y][x]);
+        this.drawTileTexture(x, y, this.mapData.tiles[y][x]);
       }
     }
   }
@@ -121,5 +143,13 @@ export class MapManager {
     img.setDisplaySize(this.tileWidth, this.tileHeight);
 
     this.gridContainer.add(img);
+  }
+
+  private cleanupGrid(): void {
+    this.highlightGraphics?.destroy();
+    this.gridContainer?.destroy(true);
+
+    this.highlightGraphics = undefined;
+    this.gridContainer = undefined;
   }
 }
