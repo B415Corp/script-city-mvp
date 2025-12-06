@@ -2,8 +2,10 @@ import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logg
 import { DEFAULT_MAP } from './maps/default_map';
 import { MapData } from './types';
 import { GameCore } from '../game_core/game_core';
-import Phaser, { Events } from 'phaser';
+import { Events } from '@/core/event_bus/events';
+import Phaser from 'phaser';
 import { IsometricMath } from '@/infrastructure/isometric_math/isometric_math';
+import { EventBus } from '../event_bus/event_bus';
 
 const TextureType: Record<number, string> = {
   1: 'GRASS_BASE_0',
@@ -27,6 +29,7 @@ export class MapManager {
   private gridHeight!: number;
   private readonly tileWidth: number = 128;
   private readonly tileHeight: number = 64;
+  private eventBus?: EventBus;
 
   private mapData?: MapData;
   private scene?: Phaser.Scene;
@@ -36,8 +39,17 @@ export class MapManager {
   private isometricMath?: IsometricMath;
   private readonly core: GameCore;
 
+  // Управление камерой
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+
+  // Текущий подсвеченный тайл
+  private highlightedTile: { x: number; y: number } | null = null;
+
   constructor(core: GameCore) {
     this.core = core;
+    this.eventBus = core.getEventBus();
   }
 
   initialize(): void {
@@ -86,7 +98,7 @@ export class MapManager {
 
     this.centerMap();
     this.drawGrid();
-    // this.setupCameraControls();
+    this.setupCameraControls();
 
     // this.scene.input.on('pointermove', this.handlePointerMove, this);
     // this.scene.input.on('pointerout', this.clearHighlight, this);
@@ -112,10 +124,10 @@ export class MapManager {
     this.isometricMath?.setOffset(0, 0);
 
     // Эмитим событие центрирования карты
-    // this.eventBus?.emit(Events.MapCentered, {
-    //   x: cx,
-    //   y: cy,
-    // });
+    this.eventBus?.emit(Events.MapCentered, {
+      x: cx,
+      y: cy,
+    });
   }
 
   /** Основная отрисовка сетки — теперь плитки рендерятся как Image */
@@ -151,5 +163,133 @@ export class MapManager {
 
     this.highlightGraphics = undefined;
     this.gridContainer = undefined;
+  }
+
+  /**
+   * Получить информацию о тайле по координатам
+   */
+  public getTileInfo(
+    tileX: number,
+    tileY: number,
+  ): {
+    x: number;
+    y: number;
+    type: number;
+    typeName: string;
+  } | null {
+    if (tileX < 0 || tileX >= this.gridWidth || tileY < 0 || tileY >= this.gridHeight) {
+      return null;
+    }
+
+    const tileType = DEFAULT_MAP.tiles[tileY][tileX];
+    const typeName = TextureType[tileType] || 'UNKNOWN';
+
+    return {
+      x: tileX,
+      y: tileY,
+      type: tileType,
+      typeName,
+    };
+  }
+
+  /** Камера: zoom + drag + стрелки */
+  private setupCameraControls(): void {
+    if (!this.scene || !this.gridContainer) return;
+
+    this.scene.input.mouse?.disableContextMenu();
+
+    // Zoom - правильная подписка на событие колесика
+    this.scene.input.on(
+      'wheel',
+      (
+        pointer: Phaser.Input.Pointer,
+        _currentlyOver: Phaser.GameObjects.GameObject[],
+        deltaX: number,
+        deltaY: number,
+        _deltaZ: number,
+      ) => {
+        this.handleZoom(pointer, deltaY);
+      },
+    );
+
+    // Drag
+    this.scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.rightButtonDown() || p.middleButtonDown()) {
+        this.isDragging = true;
+        this.dragStartX = p.x;
+        this.dragStartY = p.y;
+      }
+    });
+
+    this.scene.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (p.rightButtonReleased() || p.middleButtonReleased()) {
+        this.isDragging = false;
+        // Эмитим событие перемещения камеры после завершения drag
+        if (this.gridContainer) {
+          // this.eventBus?.emit(Events.CameraMoved, {
+          //   x: this.container.x,
+          //   y: this.container.y,
+          //   scale: this.container.scale,
+          // });
+        }
+      }
+    });
+
+    this.scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (this.isDragging && this.gridContainer) {
+        const dx = p.x - this.dragStartX;
+        const dy = p.y - this.dragStartY;
+        this.gridContainer.x += dx;
+        this.gridContainer.y += dy;
+        this.dragStartX = p.x;
+        this.dragStartY = p.y;
+
+        // Эмитим событие перемещения камеры во время drag
+        // this.eventBus?.emit(Events.CameraMoved, {
+        //   x: this.container.x,
+        //   y: this.container.y,
+        //   scale: this.container.scale,
+        // });
+      }
+    });
+
+    const arrows = this.scene.input.keyboard?.createCursorKeys();
+    if (arrows) {
+      const speed = 10;
+      this.scene.events.on('update', () => {
+        if (!this.gridContainer || this.isDragging) return;
+
+        if (arrows.left?.isDown) this.gridContainer.x += speed;
+        if (arrows.right?.isDown) this.gridContainer.x -= speed;
+        if (arrows.up?.isDown) this.gridContainer.y += speed;
+        if (arrows.down?.isDown) this.gridContainer.y -= speed;
+      });
+    }
+  }
+
+  /** Обработка зума */
+  private handleZoom(pointer: Phaser.Input.Pointer, deltaY: number): void {
+    if (!this.gridContainer) return;
+
+    const oldScale = this.gridContainer.scale;
+    const zoomSpeed = 0.001;
+
+    const newScale = Phaser.Math.Clamp(oldScale - deltaY * zoomSpeed, 0.1, 2.0);
+
+    const worldX = (pointer.x - this.gridContainer.x) / oldScale;
+    const worldY = (pointer.y - this.gridContainer.y) / oldScale;
+
+    const newX = pointer.x - worldX * newScale;
+    const newY = pointer.y - worldY * newScale;
+
+    this.gridContainer.setScale(newScale);
+    this.gridContainer.setPosition(newX, newY);
+
+    // Эмитим событие изменения зума камеры
+    this.eventBus?.emit(Events.CameraZoomed, {
+      scale: newScale,
+      x: newX,
+      y: newY,
+    });
   }
 }
