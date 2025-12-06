@@ -3,18 +3,12 @@ import { createPhaserConfig } from '@/infrastructure/phaser/phaser_config';
 import { GameCore } from '@/core/game_core/game_core';
 import { SceneController, SceneInitData } from './scene_controller/scene_controller';
 import { SceneConfig, SceneKey } from './scene_controller/types';
-import { CoreConfig } from '@/core/game_core/types';
 import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logger';
-import { IModule } from '@/core/module_manager/types';
 import { GameScene } from '@/scenes/game_scene';
 import { MenuScene } from '@/scenes/menu_scene';
 import { UiScene } from '@/scenes/ui_scene';
-import { GridModule } from '@/modules/grid/grid_module';
-import { ToolsModule } from '@/modules/tools/tools_module';
-import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
 import { DebugModule } from '@/modules/debug/debug_module';
 import { GameAppOptions } from './types';
-import { TestSimulationModule } from '@/modules/building/test_simulation_module';
 
 /**
  * Конфигурации сцен приложения.
@@ -26,11 +20,11 @@ const SCENE_CONFIGS: SceneConfig[] = [
     scene: GameScene,
     modules: () => [
       // порядок важен: базовые инструменты → надстройки → отладка
-      new GridModule(),
-      new ToolsModule(),
-      new ZoningToolsModule(),
       new DebugModule(),
-      new TestSimulationModule(),
+      // new GridModule(),
+      // new ToolsModule(),
+      // new ZoningToolsModule(),
+      // new TestSimulationModule(),
     ],
   },
   { key: SceneKey.Menu, scene: MenuScene },
