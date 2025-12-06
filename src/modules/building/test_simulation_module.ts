@@ -13,34 +13,15 @@ import { createHouseEntity } from '@/ecs/entities/house_entity';
 
 export class TestSimulationModule implements IModule {
   id = 'test_simulation';
+  dependencies?: string[];
 
   async initialize(core: GameCore): Promise<void> {
-    console.log('🧪 [TEST SIMULATION] Инициализация модуля тестирования симуляции');
-
-    const ecs = core.getECSManager();
-    const eventBus = core.getEventBus();
-
-    // Регистрируем систему повышения уровня
-    ecs.registerSystem(createLevelUpSystem());
-
-    // Создаем 100 домов со случайным временем повышения уровня от 50 до 100 тиков
-    const HOUSE_COUNT = 1000;
-    const MIN_TICKS = 50;
-    const MAX_TICKS = 100;
-
-    for (let i = 1; i <= HOUSE_COUNT; i++) {
-      const randomTicks = Math.floor(Math.random() * (MAX_TICKS - MIN_TICKS + 1)) + MIN_TICKS;
-      createHouseEntity(ecs, eventBus, `Дом #${i}`, randomTicks);
-    }
-
-    console.log(`🧪 [TEST SIMULATION] ${HOUSE_COUNT} домов созданы и готовы к симуляции`);
-  }
-
-  registerSystems(ecs: ECSManager): void {
-    // Системы уже зарегистрированы в initialize
+    console.log('TestSimulationModule initialized');
   }
 
   destroy(): void {
-    console.log('🧪 [TEST SIMULATION] Модуль тестирования остановлен');
+    console.log('TestSimulationModule destroyed');
   }
+
+  registerSystems(ecs: ECSManager): void {}
 }

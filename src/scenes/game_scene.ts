@@ -1,8 +1,6 @@
 import { GameCore } from '@/core/game_core/game_core';
-import { DebugModule } from '@/modules/debug/debug_module';
-import { GridModule } from '@/modules/grid/grid_module';
-import { ToolsModule } from '@/modules/tools/tools_module';
-import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
+import { SceneController, SceneInitData } from '@/app/scene_controller/scene_controller';
+import { SceneKey } from '@/app/scene_controller/types';
 
 import Phaser from 'phaser';
 
@@ -12,9 +10,15 @@ import Phaser from 'phaser';
  */
 export class GameScene extends Phaser.Scene {
   private core!: GameCore;
+  private sceneController?: SceneController;
 
   constructor() {
     super({ key: 'GameScene' });
+  }
+
+  init(data: SceneInitData): void {
+    this.core = data.core;
+    this.sceneController = data.sceneController;
   }
   preload(): void {
     this.load.image('GRASS_BASE_0', 'src/assets/texture/tiles/grass/GRASS_BASE_0.png');
@@ -24,32 +28,23 @@ export class GameScene extends Phaser.Scene {
     this.load.image('MOUNTAIN_BASE_0', 'src/assets/texture/tiles/grass/MOUNTAIN_BASE_0.png');
   }
   async create(): Promise<void> {
+    if (!this.core) {
+      throw new Error('GameScene: core is not provided via SceneController');
+    }
+
     // Устанавливаем тёмно-серый фон сцены для контраста с сеткой
     this.cameras.main.setBackgroundColor('#1a202c');
 
-    // Инициализация игрового ядра
-    this.core = new GameCore();
-    await this.core.initialize({
-      tickRate: 20,
-      maxCatchUpTicks: 5,
-      enableDebug: import.meta.env.VITE_DEBUG === 'true',
-      playerName: 'default_player',
-    });
-
-    const moduleManager = this.core.getModuleManager();
-
-    // ⬇️ РЕГИСТРАЦИЯ МОДУЛЕЙ
-    // ToolsModule должен быть зарегистрирован первым, так как другие модули инструментов зависят от него
-    moduleManager.registerModule(new GridModule());
-    moduleManager.registerModule(new ToolsModule());
-    moduleManager.registerModule(new ZoningToolsModule());
-    moduleManager.registerModule(new DebugModule());
-    // moduleManager.registerModule(new TestSimulationModule()); // Модуль тестирования симуляции
-
-    // 🏋️ Запуск ядра (модули инициализируются автоматически)
-    await this.core.start();
+    // Запускаем UI-сцену параллельно, если контроллер доступен
+    if (this.sceneController) {
+      this.sceneController.launchScene(SceneKey.UI, {
+        core: this.core,
+        sceneController: this.sceneController,
+      });
+    }
 
     // Прикрепление модулей к сцене (UI, хоткеи и т.п.)
+    const moduleManager = this.core.getModuleManager();
     moduleManager.attachModulesToScene(this);
   }
 
