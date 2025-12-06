@@ -1,4 +1,6 @@
-export const DEFAULT_MAP = {
+import { MapData } from '../types';
+
+export const DEFAULT_MAP: MapData = {
   mapWidth: 100,
   mapHeight: 100,
   tiles: [

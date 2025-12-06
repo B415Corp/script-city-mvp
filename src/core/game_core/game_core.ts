@@ -8,6 +8,8 @@ import { ToolManager } from '@/modules/tools/tool_manager';
 import { CoreConfig } from './types';
 import { SaveManager } from '../save_manager/save_manager';
 import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logger';
+import { MapManager } from '../map_manager/map_manager';
+import { SceneController } from '@/app/scene_controller/scene_controller';
 
 export class GameCore {
   private tickManager!: TickManager;
@@ -17,8 +19,9 @@ export class GameCore {
   private commandProcessor!: CommandProcessor;
   private saveManager!: SaveManager;
   private toolManager?: ToolManager;
+  private mapManager!: MapManager;
   private config?: CoreConfig;
-
+  public sceneController!: SceneController;
   constructor() {
     // Конструктор пустой, инициализация происходит в initialize()
   }
@@ -32,6 +35,7 @@ export class GameCore {
     debugGroup('Создание менеджеров');
     this.eventBus = new EventBus();
 
+    this.mapManager = new MapManager(this);
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
@@ -162,6 +166,10 @@ export class GameCore {
       throw new Error('Config is not initialized');
     }
     return this.config;
+  }
+
+  public getMapManager(): MapManager {
+    return this.mapManager;
   }
 
   /**
