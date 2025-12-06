@@ -1,5 +1,6 @@
 import { TickManagerConfig } from './types';
 import { Events } from '../event_bus/events';
+import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 
 export class TickManager {
   private config: TickManagerConfig;
@@ -16,6 +17,7 @@ export class TickManager {
   private ticksPerSecondTimer: number = 0; // таймер для подсчета тиков в секунду
 
   constructor(config: TickManagerConfig) {
+    debugLog('⏱️ TickManager создан');
     this.config = config;
     this.tickInterval = 1000 / config.tickRate; // миллисекунды на тик
   }
@@ -30,13 +32,20 @@ export class TickManager {
    */
   start(): void {
     if (this.isRunning) {
+      debugLog('⏱️ TickManager: уже запущен');
       return;
     }
+    debugGroup('⏱️ TickManager: запуск');
     this.isRunning = true;
     this.isPaused = false;
     this.realTime = 0;
     this.ticksPerSecondCounter = 0;
     this.ticksPerSecondTimer = 0;
+    debugLog('TickManager запущен', {
+      tickRate: this.config.tickRate,
+      maxCatchUpTicks: this.config.maxCatchUpTicks,
+    });
+    debugGroupEnd();
   }
 
   /**
@@ -44,10 +53,17 @@ export class TickManager {
    */
   stop(): void {
     if (!this.isRunning) {
+      debugLog('⏱️ TickManager: уже остановлен');
       return;
     }
+    debugGroup('⏱️ TickManager: остановка');
     this.isRunning = false;
     this.isPaused = false;
+    debugLog('TickManager остановлен', {
+      currentTick: this.currentTick,
+      gameTime: this.gameTime,
+    });
+    debugGroupEnd();
   }
 
   /**
@@ -57,6 +73,7 @@ export class TickManager {
     if (!this.isRunning || this.isPaused) {
       return;
     }
+    debugLog('⏱️ TickManager: пауза', { currentTick: this.currentTick });
     this.isPaused = true;
     this.config.eventBus.emit(Events.SimulationPaused);
   }
@@ -68,6 +85,7 @@ export class TickManager {
     if (!this.isRunning || !this.isPaused) {
       return;
     }
+    debugLog('⏱️ TickManager: возобновление', { currentTick: this.currentTick });
     this.isPaused = false;
     this.config.eventBus.emit(Events.SimulationResumed);
   }
@@ -79,6 +97,10 @@ export class TickManager {
    */
   setSpeed(multiplier: number): boolean {
     if (this.isSpeedChangeLocked()) {
+      debugLog('⏱️ TickManager: изменение скорости заблокировано', {
+        requestedSpeed: multiplier,
+        locks: this.getSpeedChangeLocks(),
+      });
       return false;
     }
 
@@ -110,6 +132,12 @@ export class TickManager {
         // Это сохраняет правильное соотношение времени при изменении скорости
         this.accumulatedTime = (this.accumulatedTime / oldSpeed) * this.speedMultiplier;
       }
+
+      debugLog('⏱️ TickManager: скорость изменена', {
+        oldSpeed,
+        newSpeed: this.speedMultiplier,
+        pauseStateChanged,
+      });
 
       this.config.eventBus.emit(Events.SpeedChanged, {
         oldSpeed,
@@ -230,6 +258,7 @@ export class TickManager {
     }
 
     this.speedLocks.set(lockId, reason);
+    debugLog('⏱️ TickManager: изменение скорости заблокировано', { lockId, reason });
     this.config.eventBus.emit(Events.SpeedChangeLocked, { lockId, reason });
   }
 
@@ -243,6 +272,7 @@ export class TickManager {
     }
 
     this.speedLocks.delete(lockId);
+    debugLog('⏱️ TickManager: блокировка изменения скорости снята', { lockId });
     this.config.eventBus.emit(Events.SpeedChangeUnlocked, { lockId });
   }
 

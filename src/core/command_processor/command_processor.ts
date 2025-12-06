@@ -1,6 +1,7 @@
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { ECSManager } from '../ecs_manager/ecs_manager';
+import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 import {
   BuildBuildingCommand,
   BulldozeAreaCommand,
@@ -31,9 +32,9 @@ export class CommandProcessor {
   private _ecsManager: ECSManager;
 
   constructor(eventBus: EventBus, ecsManager: ECSManager) {
+    debugLog('🔄 CommandProcessor создан');
     this.eventBus = eventBus;
     this._ecsManager = ecsManager;
-    console.warn('⚙️ CommandProcessor initialized');
   }
 
   /**
@@ -48,6 +49,10 @@ export class CommandProcessor {
       command.timestamp = Date.now();
     }
     this.commandQueue.push(command);
+    debugLog('⚙️ CommandProcessor: команда добавлена в очередь', {
+      type: command.type,
+      queueLength: this.commandQueue.length,
+    });
   }
 
   /**
@@ -64,15 +69,20 @@ export class CommandProcessor {
       return;
     }
 
+    debugGroup('⚙️ CommandProcessor: обработка команд');
+    const queueLength = this.commandQueue.length;
+    debugLog('Команд в очереди', { count: queueLength });
+
     // Обрабатываем все команды в очереди
     const commandsToProcess = [...this.commandQueue];
     this.commandQueue = [];
 
     for (const command of commandsToProcess) {
+      debugGroup(`Обработка команды: ${command.type}`);
       // Валидация команды
       const validation = this.validateCommand(command);
       if (!validation.valid) {
-        console.warn('⚙️ CommandProcessor: command validation failed', {
+        debugLog('Валидация команды провалена', {
           command: command.type,
           error: validation.error,
         });
@@ -80,15 +90,20 @@ export class CommandProcessor {
           command,
           reason: validation.error,
         });
+        debugGroupEnd();
         continue;
       }
 
+      debugLog('Валидация команды успешна', { command: command.type });
+
       // Применение команды
       try {
+        debugLog('Применение команды', { command: command.type });
         this.applyCommand(command);
         this.eventBus.emit(Events.CommandProcessed, { command });
+        debugLog('Команда обработана успешно', { command: command.type });
       } catch (error) {
-        console.error('⚙️ CommandProcessor: command processing failed', {
+        debugLog('Ошибка обработки команды', {
           command: command.type,
           error,
         });
@@ -97,7 +112,11 @@ export class CommandProcessor {
           error: error instanceof Error ? error.message : String(error),
         });
       }
+      debugGroupEnd();
     }
+
+    debugLog('Обработка команд завершена', { processed: queueLength });
+    debugGroupEnd();
   }
 
   /**
@@ -188,7 +207,9 @@ export class CommandProcessor {
    * Полезно при перезапуске игры или сбросе состояния.
    */
   clearQueue(): void {
+    const queueLength = this.commandQueue.length;
     this.commandQueue = [];
+    debugLog('⚙️ CommandProcessor: очередь команд очищена', { clearedCount: queueLength });
   }
 
   // Валидаторы для конкретных типов команд

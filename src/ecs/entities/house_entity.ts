@@ -48,9 +48,5 @@ export function createHouseEntity(
     ticksPerLevel,
   });
 
-  console.log(
-    `🏠 [CREATE] Создан дом "${name}" (Entity ${entityId}), повышение уровня каждые ${ticksPerLevel} тиков`,
-  );
-
   return entityId;
 }

@@ -1,46 +1,25 @@
 // Entry point for Script City MVP
 // Game initialization will happen here
 
-import Phaser from 'phaser';
-import { MenuScene } from './scenes/menu_scene';
-import { GameScene } from './scenes/game_scene';
+import { bootstrapGame } from './app/game_app';
+import { debugLog } from './infrastructure/utils/logger';
 
 /**
- * Конфигурация Phaser игры
- * Теги: tech:phaser, arch:renderer
+ * Точка входа: запускает GameApp (Phaser + GameCore).
+ * Теги: arch:app, tech:phaser
  */
-const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  width: window.innerWidth,
-  height: window.innerHeight,
-  parent: 'game-root',
-  backgroundColor: '#2c3e50',
-  scene: [GameScene, MenuScene],
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { x: 0, y: 0 },
-      debug: true,
-    },
-  },
-};
-
-/**
- * Создание и запуск игры
- */
-function initGame(): void {
-  const game = new Phaser.Game(config);
-  console.log('Phaser game initialized');
-
-  // Обработка изменения размера окна
-  window.addEventListener('resize', () => {
-    game.scale.resize(window.innerWidth, window.innerHeight);
-  });
+async function startGame(): Promise<void> {
+  try {
+    // 1. Инициализация игры
+    await bootstrapGame();
+    debugLog('🌆 Инициализация игры завершена');
+  } catch (error) {
+    console.error('Ошибка при инициализации игры', error);
+  }
 }
 
-// Запускаем игру после загрузки DOM
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initGame);
+  document.addEventListener('DOMContentLoaded', startGame);
 } else {
-  initGame();
+  void startGame();
 }

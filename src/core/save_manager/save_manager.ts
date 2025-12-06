@@ -12,6 +12,7 @@ import {
   SaveOptions,
   SerializedComponents,
 } from './types';
+import { debugError, debugLog } from '@/infrastructure/utils/logger';
 
 const SAVE_VERSION = '1.0.0'; // Версия формата сохранений
 
@@ -22,7 +23,7 @@ export class SaveManager {
   private storageProvider?: IStorageProvider;
 
   constructor() {
-    console.warn('💾 SaveManager initialized');
+    debugLog('💾 SaveManager создан');
   }
 
   /**
@@ -31,12 +32,23 @@ export class SaveManager {
    * @param eventBus EventBus
    * @param storageProvider опциональный провайдер хранения (по умолчанию IndexedDB)
    */
-  public initialize(core: GameCore, eventBus: EventBus, storageProvider?: IStorageProvider): void {
+  public async initialize(
+    core: GameCore,
+    eventBus: EventBus,
+    storageProvider?: IStorageProvider,
+  ): Promise<void> {
     this.core = core;
     this.eventBus = eventBus;
     this.config = core.getConfig();
     this.storageProvider = storageProvider || new IndexedDBStorageProvider();
-    console.warn('💾 SaveManager initialized');
+
+    // Инициализируем провайдер хранения, если он поддерживает явную инициализацию
+    if (this.storageProvider.initialize) {
+      debugLog('💾 SaveManager: инициализация провайдера хранения');
+      await this.storageProvider.initialize();
+    }
+
+    debugLog('💾 SaveManager инициализирован');
   }
 
   /**
@@ -44,7 +56,7 @@ export class SaveManager {
    * @returns Promise<void>
    */
   public async save(): Promise<void> {
-    console.warn('💾 SaveManager saving');
+    debugLog('💾 SaveManager saving');
     await this.autoSave();
   }
 
@@ -54,17 +66,19 @@ export class SaveManager {
    * @returns Promise<void>
    */
   public async load(saveId: string): Promise<void> {
-    console.warn('💾 SaveManager loading game', saveId);
+    debugLog('💾 SaveManager loading game', { saveId });
     if (!this.core) {
-      console.error('💾 SaveManager core not initialized');
+      debugError('💾 SaveManager core not initialized', { core: this.core });
       return;
     }
     if (!this.eventBus) {
-      console.error('💾 SaveManager eventBus not initialized');
+      debugError('💾 SaveManager eventBus not initialized', { eventBus: this.eventBus });
       return;
     }
     if (!this.storageProvider) {
-      console.error('💾 SaveManager storage provider not initialized');
+      debugError('💾 SaveManager storage provider not initialized', {
+        storageProvider: this.storageProvider,
+      });
       return;
     }
 
@@ -79,9 +93,9 @@ export class SaveManager {
       this.deserializeECSState(saveGame.ecs);
       this.deserializeCoreState(saveGame.core);
 
-      console.warn(`💾 Game loaded successfully from save: ${saveId}`);
+      debugLog(`💾 Game loaded successfully from save: ${saveId}`);
     } catch (error) {
-      console.error('💾 SaveManager error loading game', error);
+      debugError('💾 SaveManager error loading game', { error });
       throw error;
     }
   }
@@ -91,9 +105,11 @@ export class SaveManager {
    * @returns Promise<void>
    */
   public async autoSave(): Promise<void> {
-    console.warn('💾 SaveManager auto saving');
+    debugLog('💾 SaveManager auto saving');
     if (!this.storageProvider) {
-      console.error('💾 SaveManager storage provider not initialized');
+      debugError('💾 SaveManager storage provider not initialized', {
+        storageProvider: this.storageProvider,
+      });
       return;
     }
 
@@ -102,9 +118,9 @@ export class SaveManager {
         saveName: 'AutoSave',
         autoSave: true,
       });
-      console.warn('💾 Auto save completed');
+      debugLog('💾 Auto save completed');
     } catch (error) {
-      console.error('💾 Auto save failed:', error);
+      debugError('💾 Auto save failed:', { error });
       throw error;
     }
   }
@@ -115,21 +131,23 @@ export class SaveManager {
    * @returns Promise<void>
    */
   public async saveGame(saveOptions: SaveOptions): Promise<void> {
-    console.warn('💾 SaveManager saved game', saveOptions);
+    debugLog('💾 SaveManager saved game', { saveOptions });
     if (!this.core) {
-      console.error('💾 SaveManager core not initialized');
+      debugError('💾 SaveManager core not initialized', { core: this.core });
       return;
     }
     if (!this.config) {
-      console.error('💾 SaveManager config not initialized');
+      debugError('💾 SaveManager config not initialized', { config: this.config });
       return;
     }
     if (!this.eventBus) {
-      console.error('💾 SaveManager eventBus not initialized');
+      debugError('💾 SaveManager eventBus not initialized', { eventBus: this.eventBus });
       return;
     }
     if (!this.storageProvider) {
-      console.error('💾 SaveManager storage provider not initialized');
+      debugError('💾 SaveManager storage provider not initialized', {
+        storageProvider: this.storageProvider,
+      });
       return;
     }
 
@@ -159,7 +177,7 @@ export class SaveManager {
 
       // Отладка: проверяем что данные можно сериализовать
       if (this.config?.enableDebug) {
-        console.warn('💾 SaveManager: saveGame structure:', {
+        debugLog('💾 SaveManager: saveGame structure:', {
           metadata: Object.keys(metadata),
           coreKeys: Object.keys(coreSaveData),
           ecsEntitiesCount: ecsSaveData.entities.length,
@@ -168,9 +186,9 @@ export class SaveManager {
       }
 
       await this.storageProvider.saveGame(saveId, saveGame);
-      console.warn(`💾 Game saved successfully with ID: ${saveId}`);
+      debugLog(`💾 Game saved successfully with ID: ${saveId}`);
     } catch (error) {
-      console.error('💾 SaveManager error saving game', error);
+      debugError('💾 SaveManager error saving game', { error });
       throw error;
     }
   }
@@ -180,14 +198,16 @@ export class SaveManager {
    */
   public async getSavesList(): Promise<SaveMetadata[]> {
     if (!this.storageProvider) {
-      console.error('💾 SaveManager storage provider not initialized');
+      debugError('💾 SaveManager storage provider not initialized', {
+        storageProvider: this.storageProvider,
+      });
       return [];
     }
 
     try {
       return await this.storageProvider.getSavesList();
     } catch (error) {
-      console.error('Failed to get saves list:', error);
+      debugError('Failed to get saves list:', { error });
       return [];
     }
   }
@@ -251,7 +271,7 @@ export class SaveManager {
               JSON.stringify(componentData),
             );
           } catch (error) {
-            console.warn(
+            debugError(
               `💾 SaveManager: не удалось сериализовать компонент "${componentKey}" для сущности ${entityId}`,
               error,
             );
@@ -371,15 +391,17 @@ export class SaveManager {
    */
   public async deleteSave(saveId: string): Promise<void> {
     if (!this.storageProvider) {
-      console.error('💾 SaveManager storage provider not initialized');
+      debugError('💾 SaveManager storage provider not initialized', {
+        storageProvider: this.storageProvider,
+      });
       return;
     }
 
     try {
       await this.storageProvider.deleteGame(saveId);
-      console.warn(`💾 Save deleted: ${saveId}`);
+      debugLog(`💾 Save deleted: ${saveId}`);
     } catch (error) {
-      console.error('💾 Failed to delete save:', error);
+      debugError('💾 Failed to delete save:', { error });
       throw error;
     }
   }
@@ -390,14 +412,16 @@ export class SaveManager {
    */
   public async saveExists(saveId: string): Promise<boolean> {
     if (!this.storageProvider) {
-      console.error('💾 SaveManager storage provider not initialized');
+      debugError('💾 SaveManager storage provider not initialized', {
+        storageProvider: this.storageProvider,
+      });
       return false;
     }
 
     try {
       return await this.storageProvider.exists(saveId);
     } catch (error) {
-      console.error('💾 Failed to check save existence:', error);
+      debugError('💾 Failed to check save existence:', { error });
       return false;
     }
   }
@@ -410,6 +434,6 @@ export class SaveManager {
     if (this.storageProvider && 'close' in this.storageProvider) {
       (this.storageProvider as IndexedDBStorageProvider).close();
     }
-    console.warn('💾 SaveManager destroyed');
+    debugLog('💾 SaveManager destroyed');
   }
 }

@@ -1,6 +1,7 @@
 import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
 import { ToolRegistration } from './types';
+import { debugLog } from '@/infrastructure/utils/logger';
 
 /**
  * Модуль инструментов зонирования.
@@ -17,7 +18,7 @@ export class ZoningToolsModule implements IModule {
   async initialize(core: GameCore): Promise<void> {
     this.core = core;
     this.registerTools();
-    console.warn('🔧 ZoningToolsModule initialized');
+    debugLog('🔧 ZoningToolsModule инициализирован');
   }
 
   private registerTools(): void {
@@ -98,6 +99,6 @@ export class ZoningToolsModule implements IModule {
   }
 
   destroy(): void {
-    console.warn('🔧 ZoningToolsModule destroyed');
+    debugLog('🔧 ZoningToolsModule уничтожен');
   }
 }

@@ -1,71 +1,33 @@
 import Phaser from 'phaser';
-import { createMainMenuButton } from '../ui/main_menu_buttons/main_menu_button';
-import { createMainMenu } from '../ui/main_menu/main_menu';
+import { SceneController, SceneInitData } from '@/app/scene_controller/scene_controller';
+import { SceneKey } from '@/app/scene_controller/types';
 
 /**
  * Сцена главного меню
  * Теги: arch:ui, tech:phaser
  */
 export class MenuScene extends Phaser.Scene {
+  private sceneController?: SceneController;
+  private initData?: SceneInitData;
+
   constructor() {
     super({ key: 'MenuScene' });
   }
 
+  init(data: SceneInitData): void {
+    this.sceneController = data.sceneController;
+    this.initData = data;
+  }
+
   create(): void {
-    const { width, height } = this.scale;
+    const startText = this.add
+      .text(100, 100, 'Start Game', { color: '#ffffff', fontSize: '24px' })
+      .setInteractive({ useHandCursor: true });
 
-    // Заголовок
-    this.add
-      .text(width / 2, height / 2 - 150, 'Script City', {
-        fontSize: '48px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-      })
-      .setOrigin(0.5);
-
-    // Создаем кнопки меню
-    const startButton = createMainMenuButton({
-      scene: this,
-      x: width / 2,
-      y: 0, // Y будет установлен через createMainMenu
-      text: '🌆 Начать игру',
-      onClick: () => {
-        this.scene.start('GameScene');
-      },
-    });
-
-    const exitButton = createMainMenuButton({
-      scene: this,
-      x: width / 2,
-      y: 0, // Y будет установлен через createMainMenu
-      text: '♿️ Выход',
-      onClick: () => {
-        if (window.confirm('Вы уверены, что хотите выйти?')) {
-          this.scene.stop();
-          window.close();
-        } else {
-          return;
-        }
-      },
-    });
-
-    const settingsButton = createMainMenuButton({
-      scene: this,
-      x: width / 2,
-      y: 0, // Y будет установлен через createMainMenu
-      text: '⚙️ Настройки',
-      onClick: () => {
-        this.scene.start('SettingsScene');
-      },
-    });
-
-    // Располагаем кнопки вертикально
-    createMainMenu({
-      scene: this,
-      x: width / 2,
-      y: height / 2,
-      items: [startButton, settingsButton, exitButton],
-      spacing: 80,
+    startText.on('pointerdown', () => {
+      if (this.sceneController && this.initData) {
+        this.sceneController.switchToScene(SceneKey.Game, this.initData);
+      }
     });
   }
 }

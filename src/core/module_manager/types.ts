@@ -1,4 +1,5 @@
 import { ECSManager } from '../ecs_manager/ecs_manager';
+import { ISystem } from '../ecs_manager/types';
 import { GameCore } from '../game_core/game_core';
 
 /**
@@ -44,6 +45,13 @@ export interface IModule {
    * @param ecs - экземпляр ECSManager для регистрации систем
    */
   registerSystems?(ecs: ECSManager): void;
+
+  /**
+   * Набор систем ECS, которые модуль регистрирует автоматически.
+   * При наличии массива ModuleManager сам вызовет ecs.registerSystem(...)
+   * после initialize().
+   */
+  ecsSystems?: ISystem[];
 
   /**
    * Сериализация данных модуля.

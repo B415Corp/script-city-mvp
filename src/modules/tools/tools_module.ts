@@ -1,6 +1,8 @@
 import { GameCore } from '@/core/game_core/game_core';
 import { IModule } from '@/core/module_manager/types';
 import { ToolManager } from './tool_manager';
+import { debugError, debugLog } from '@/infrastructure/utils/logger';
+import { EventBus } from '@/core/event_bus/event_bus';
 
 /**
  * Модуль управления инструментами.
@@ -25,14 +27,14 @@ export class ToolsModule implements IModule {
     // Регистрируем ToolManager в GameCore для доступа через getToolManager()
     core.setToolManager(this.toolManager);
 
-    console.warn('🔧 ToolsModule initialized');
+    debugLog('🔧 ToolsModule инициализирован');
   }
 
   destroy(): void {
     if (this.toolManager) {
       this.toolManager.clear();
     }
-    console.warn('🔧 ToolsModule destroyed');
+    debugLog('🔧 ToolsModule уничтожен');
   }
 
   /**
@@ -43,7 +45,10 @@ export class ToolsModule implements IModule {
    */
   getToolManager(): ToolManager {
     if (!this.toolManager) {
-      throw new Error('ToolManager not initialized. Call initialize() first.');
+      debugError('ToolManager not initialized. Call initialize() first.', {
+        toolManager: this.toolManager,
+      });
+      return new ToolManager(new EventBus());
     }
     return this.toolManager;
   }
