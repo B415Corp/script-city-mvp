@@ -2,6 +2,7 @@ import { GameCore } from '../game_core/game_core';
 import { IModule, ModuleEntry } from './types';
 import Phaser from 'phaser';
 import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
+import { ISystem } from '../ecs_manager/types';
 
 /**
  * Менеджер модулей симуляции.
@@ -102,12 +103,25 @@ export class ModuleManager {
         debugLog('Вызов initialize()', { moduleId, dependencies: entry.dependencies });
         await entry.module.initialize(core);
 
+        const ecs = core.getECSManager();
+
         // Регистрация систем модуля, если метод определен
         if (entry.module.registerSystems) {
-          debugGroup('Регистрация систем модуля');
-          const ecs = core.getECSManager();
+          debugGroup('Регистрация систем модуля (registerSystems)');
           entry.module.registerSystems(ecs);
-          debugLog('Системы зарегистрированы', { moduleId });
+          debugLog('Системы зарегистрированы через registerSystems', { moduleId });
+          debugGroupEnd();
+        }
+
+        // Регистрация систем модуля, если ecsSystems определены
+        const systems = (entry.module as { ecsSystems?: ISystem[] }).ecsSystems;
+        if (systems && systems.length > 0) {
+          debugGroup('Регистрация систем модуля (ecsSystems)');
+          systems.forEach((system) => ecs.registerSystem(system));
+          debugLog('Системы зарегистрированы через ecsSystems', {
+            moduleId,
+            systems: systems.map((s) => s.id),
+          });
           debugGroupEnd();
         }
 

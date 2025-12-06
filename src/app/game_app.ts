@@ -14,6 +14,7 @@ import { ToolsModule } from '@/modules/tools/tools_module';
 import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
 import { DebugModule } from '@/modules/debug/debug_module';
 import { GameAppOptions } from './types';
+import { TestSimulationModule } from '@/modules/building/test_simulation_module';
 
 /**
  * Конфигурации сцен приложения.
@@ -29,6 +30,7 @@ const SCENE_CONFIGS: SceneConfig[] = [
       new ToolsModule(),
       new ZoningToolsModule(),
       new DebugModule(),
+      new TestSimulationModule(),
     ],
   },
   { key: SceneKey.Menu, scene: MenuScene },

@@ -1,8 +1,8 @@
 import { IModule } from '@/core/module_manager/types';
 import { GameCore } from '@/core/game_core/game_core';
-import { ECSManager } from '@/core/ecs_manager/ecs_manager';
 import { createLevelUpSystem } from '@/ecs/systems/level_up_system';
 import { createHouseEntity } from '@/ecs/entities/house_entity';
+import { debugLog } from '@/infrastructure/utils/logger';
 
 /**
  * Модуль тестирования симуляции повышения уровня зданий.
@@ -14,14 +14,21 @@ import { createHouseEntity } from '@/ecs/entities/house_entity';
 export class TestSimulationModule implements IModule {
   id = 'test_simulation';
   dependencies?: string[];
+  ecsSystems = [createLevelUpSystem()];
 
   async initialize(core: GameCore): Promise<void> {
-    console.log('TestSimulationModule initialized');
+    const ecs = core.getECSManager();
+    const eventBus = core.getEventBus();
+
+    // Создаём несколько домов для демонстрации системы повышения уровня
+    createHouseEntity(ecs, eventBus, 'House A', 2);
+    createHouseEntity(ecs, eventBus, 'House B', 3);
+    createHouseEntity(ecs, eventBus, 'House C', 5);
+
+    debugLog('TestSimulationModule initialized');
   }
 
   destroy(): void {
-    console.log('TestSimulationModule destroyed');
+    debugLog('TestSimulationModule destroyed');
   }
-
-  registerSystems(ecs: ECSManager): void {}
 }
