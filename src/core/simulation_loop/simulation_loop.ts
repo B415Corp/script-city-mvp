@@ -9,7 +9,17 @@ interface TickPayload {
   gameTime: number;
 }
 
+/**
+ * SimulationLoop - класс, который обрабатывает события TickStarted и вызывает CommandProcessor и ECSManager.
+ */
 export class SimulationLoop {
+  /**
+   * Конструктор SimulationLoop.
+   *
+   * @param eventBus - EventBus
+   * @param commandProcessor - CommandProcessor
+   * @param ecsManager - ECSManager
+   */
   constructor(
     private readonly eventBus: EventBus,
     private readonly commandProcessor: CommandProcessor,
