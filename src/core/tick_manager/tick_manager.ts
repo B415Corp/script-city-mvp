@@ -205,16 +205,6 @@ export class TickManager {
       gameTime: this.gameTime,
     });
 
-    // Обработка команд в начале тика (до фазы симуляции)
-    if (this.config.commandProcessor) {
-      this.config.commandProcessor.processCommands();
-    }
-
-    // Запуск систем ECS (фаза симуляции)
-    if (this.config.ecsManager) {
-      this.config.ecsManager.runSystems(1, this.config.eventBus);
-    }
-
     // Увеличиваем счётчики
     this.currentTick++;
     this.gameTime++;

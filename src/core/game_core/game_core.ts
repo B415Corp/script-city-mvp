@@ -10,6 +10,7 @@ import { SaveManager } from '../save_manager/save_manager';
 import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logger';
 import { MapManager } from '../map_manager/map_manager';
 import { SceneController } from '@/app/scene_controller/scene_controller';
+import { SimulationLoop } from '../simulation_loop/simulation_loop';
 
 export class GameCore {
   private tickManager!: TickManager;
@@ -22,6 +23,7 @@ export class GameCore {
   private mapManager!: MapManager;
   private config?: CoreConfig;
   private sceneController?: SceneController;
+  private simulationLoop!: SimulationLoop;
   constructor() {
     // Конструктор пустой, инициализация происходит в initialize()
   }
@@ -34,20 +36,17 @@ export class GameCore {
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
     debugGroup('Создание менеджеров');
     this.eventBus = new EventBus();
-
     this.mapManager = new MapManager(this);
     this.mapManager.initialize();
     this.ecsManager = new ECSManager();
     this.moduleManager = new ModuleManager();
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
     this.saveManager = new SaveManager();
-
+    this.simulationLoop = new SimulationLoop(this.eventBus, this.commandProcessor, this.ecsManager);
     this.tickManager = new TickManager({
       tickRate: config?.tickRate ?? 10,
       maxCatchUpTicks: config?.maxCatchUpTicks ?? 5,
       eventBus: this.eventBus,
-      commandProcessor: this.commandProcessor,
-      ecsManager: this.ecsManager,
     });
     debugGroupEnd();
 
