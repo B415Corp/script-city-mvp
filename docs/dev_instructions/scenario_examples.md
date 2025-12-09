@@ -14,7 +14,7 @@
 ## Перекрасить тайлы в области 5×5 по нажатию кнопки
 **Теги**: `arch:core`, `arch:events`, `arch:commands`, `gameplay:editor`, `map:isometric`, `status:mvp`
 
-- Что подготовить: UI-кнопка в панели инструментов (`ToolsModule`), команда `PaintArea` зарегистрирована через `ModuleManager`; `GridModule` подписан на обновление тайлов.
+- Что подготовить: UI-кнопка в панели инструментов (`ToolManagerModule`), команда `PaintArea` зарегистрирована через `ModuleManager`; `GridModule` подписан на обновление тайлов.
 - Поток: UI отправляет DTO с центром области в `CommandProcessor.enqueueCommand`.
 - DTO `PaintArea` (пример полей): `{ type: 'PaintArea', center: { x, y }, size: 5, tileType: 'grass', color?: '#aabbcc', timestamp }`.
 - Валидация: хэндлер получает центр, через `MapManager` проверяет, что тайлы существуют; собирает список 5×5.
@@ -126,27 +126,42 @@ registerHandler({
 ## Создать менеджер инструментов, хранить/расширять инструменты и работать через карту/ECS
 **Теги**: `arch:core`, `arch:module`, `arch:commands`, `arch:events`, `arch:ecs`, `gameplay:editor`, `map:isometric`, `status:mvp`
 
-- Что подготовить: `ToolsModule` или новый модуль регистрирует `ToolManager` в `ModuleManager` (как сервис модуля) и отдаёт публичный API `getToolManager()`.
-- Структура: `ToolManager` хранит коллекцию инструментов `{ id, category, icon, onUse }`, текущий выбранный инструмент, подписки на события карты (`Events.TileClicked`, `Events.TileHovered`).
-- Расширение: модули могут регистрировать новые инструменты через публичный метод `toolManager.registerTool(tool, category)`.
-- Поток выбора: UI отправляет команду `SelectTool` → хэндлер меняет активный инструмент → публикует `Events.ToolSelected`.
-- Поток использования: при клике по карте `GridModule` шлёт событие `TileClicked`; `ToolManager` делегирует в активный инструмент, который генерирует команду (например, `ZoneTile`, `PaintArea`, `SpawnHouse`) и кладёт её в `CommandProcessor`.
+- Что подготовить: `ToolManager` — в ядре; `ToolManagerModule` поднимает его (подписан на `TileHovered/TileClicked/TileUnhovered`) и регистрирует хэндлер `SelectTool` через `CommandRegistry`.
+- Структура: `ToolManager` хранит коллекцию `{ id, category, icon, behavior }`, активный инструмент и делегирует события карты в `behavior.onUse/onHover/onUnhover`; команды отправляются через `CommandProcessor` из контекста.
+- Расширение: модули регистрируют инструменты через `toolManager.registerTool({ category, tool })`, где `tool.behavior` создаёт команды (`ZoneTile`, `PaintArea`, `SpawnHouse`, `RemoveZone`, трубы/ландшафт).
+- Поток выбора: UI отправляет команду `SelectTool` → хэндлер `SelectToolCommandHandler` активирует инструмент → публикуется `Events.ToolActivated`.
+- Поток использования: при клике по карте `GridModule` шлёт событие `TileClicked`; `ToolManager` вызывает `behavior.onUse`, инструмент генерирует команды/события, `ToolManager` эмитит `Events.ToolUsed/ToolHovered/ToolUnhovered` для UI.
 - Сохранения: активный инструмент можно хранить в `ToolManager` и сериализовать через `SaveManager`, если нужно восстанавливать состояние UI.
-- Диагностика: логируйте `ToolSelected` и команды инструментов при включённом `enableDebug`.
+- Диагностика: при `enableDebug` видно `ToolActivated/ToolUsed` и команды в `DebugModule`.
 
 ```ts
 // Регистрация нового инструмента из модуля
 toolManager.registerTool({
-  id: 'paint-5x5',
-  category: 'edit',
-  onUse: ({ tile }) => {
-    commandProcessor.enqueueCommand({
-      type: 'PaintArea',
-      center: tile,
-      size: 5,
-      tileType: 'grass',
-      timestamp: Date.now(),
-    });
+  category: {
+    id: 'terrain',
+    name: 'Ландшафт',
+    icon: '⛰️',
+    order: 2,
+  },
+  tool: {
+    id: 'paint-5x5',
+    type: 'terrain_flatten',
+    name: 'Выровнять 5x5',
+    icon: '🟩',
+    description: 'Выравнивает квадрат 5x5',
+    categoryId: 'terrain',
+    order: 1,
+    hotkey: 'F',
+    behavior: {
+      onUse: ({ tile, enqueueCommand }) =>
+        enqueueCommand({
+          type: 'PaintArea',
+          center: tile,
+          size: 5,
+          tileType: 'grass',
+          timestamp: Date.now(),
+        }),
+    },
   },
 });
 ```
@@ -157,8 +172,7 @@ registerHandler({
   type: 'SelectTool',
   validate: ({ toolId }) => toolManager.hasTool(toolId),
   apply: ({ toolId }) => {
-    toolManager.setActiveTool(toolId);
-    eventBus.emit(Events.ToolSelected, { toolId });
+    toolManager.activateTool(toolId);
   },
 });
 ```
@@ -167,7 +181,7 @@ registerHandler({
 // Обработка клика по карте внутри ToolManager
 eventBus.on(Events.TileClicked, ({ tileX, tileY }) => {
   const tool = toolManager.getActiveTool();
-  tool?.onUse?.({ tile: { x: tileX, y: tileY } });
+  // onUse уже вызовется внутри ToolManager; если нужен overlay/log — подпишись на ToolUsed
 });
 ```
 

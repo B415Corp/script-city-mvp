@@ -1,6 +1,28 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
-import { Tool, ToolCategory, ToolRegistration, ActiveToolState } from './types';
+import {
+  ToolCategory,
+  ToolRegistration,
+  ActiveToolState,
+  ToolDefinition,
+  ToolPointer,
+  ToolActionContext,
+} from './types';
+import { CommandProcessor } from '@/core/command_processor/command_processor';
+import { Subscription } from '@/core/event_bus/types';
+import { debugLog } from '@/infrastructure/utils/logger';
+
+interface ToolManagerDependencies {
+  eventBus: EventBus;
+  commandProcessor: CommandProcessor;
+}
+
+interface TilePointerEventPayload {
+  tileX: number;
+  tileY: number;
+  tileType?: number;
+  tileTypeName?: string;
+}
 
 /**
  * Менеджер инструментов.
@@ -13,18 +35,26 @@ import { Tool, ToolCategory, ToolRegistration, ActiveToolState } from './types';
  * - Инструменты организованы в категории
  * - Только один инструмент может быть активен одновременно
  * - При активации инструмента генерируется событие ToolActivated
+ * Потоки:
+ * - UI активирует инструмент (команда SelectTool или прямой вызов) → ToolActivated
+ * - GridModule шлёт TileHovered/TileClicked → активный инструмент получает событие через поведение
+ * - Инструмент генерирует команды в CommandProcessor или события в EventBus
  */
 export class ToolManager {
   private categories: Map<string, ToolCategory> = new Map();
-  private tools: Map<string, Tool> = new Map();
+  private tools: Map<string, ToolDefinition> = new Map();
   private activeTool: ActiveToolState = {
     toolId: null,
     categoryId: null,
   };
-  private eventBus: EventBus;
+  private readonly eventBus: EventBus;
+  private readonly commandProcessor: CommandProcessor;
+  private subscriptions: Subscription[] = [];
 
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
+  constructor(deps: ToolManagerDependencies) {
+    this.eventBus = deps.eventBus;
+    this.commandProcessor = deps.commandProcessor;
+    this.subscribeToMapEvents();
   }
 
   /**
@@ -36,10 +66,8 @@ export class ToolManager {
   registerTool(registration: ToolRegistration): void {
     const { category, tool } = registration;
 
-    // Проверяем, существует ли категория
     let toolCategory = this.categories.get(category.id);
     if (!toolCategory) {
-      // Создаем новую категорию
       toolCategory = {
         ...category,
         tools: [],
@@ -47,25 +75,21 @@ export class ToolManager {
       this.categories.set(category.id, toolCategory);
     }
 
-    // Проверяем, не зарегистрирован ли уже инструмент с таким ID
     if (this.tools.has(tool.id)) {
       console.warn(`Tool with id "${tool.id}" already registered, skipping`);
       return;
     }
 
-    // Добавляем инструмент в категорию
     toolCategory.tools.push(tool);
-    // Сортируем инструменты по order
     toolCategory.tools.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
-    // Регистрируем инструмент
     this.tools.set(tool.id, tool);
 
-    // Публикуем событие о регистрации инструмента
-    // this.eventBus.emit(Events.ToolRegistered, {
-    //   toolId: tool.id,
-    //   categoryId: category.id,
-    // });
+    this.eventBus.emit(Events.ToolRegistered, {
+      toolId: tool.id,
+      categoryId: category.id,
+      toolType: tool.type,
+    });
   }
 
   /**
@@ -94,8 +118,18 @@ export class ToolManager {
    * @param toolId - ID инструмента
    * @returns инструмент или null
    */
-  getTool(toolId: string): Tool | null {
+  getTool(toolId: string): ToolDefinition | null {
     return this.tools.get(toolId) ?? null;
+  }
+
+  /**
+   * Проверка наличия инструмента.
+   *
+   * @param toolId - ID инструмента
+   * @returns true если инструмент зарегистрирован
+   */
+  hasTool(toolId: string): boolean {
+    return this.tools.has(toolId);
   }
 
   /**
@@ -104,7 +138,7 @@ export class ToolManager {
    * @param categoryId - ID категории
    * @returns массив инструментов
    */
-  getToolsByCategory(categoryId: string): Tool[] {
+  getToolsByCategory(categoryId: string): ToolDefinition[] {
     const category = this.categories.get(categoryId);
     return category ? [...category.tools] : [];
   }
@@ -123,18 +157,21 @@ export class ToolManager {
       return false;
     }
 
-    // Деактивируем предыдущий инструмент
+    if (this.activeTool.toolId === toolId) {
+      return true;
+    }
+
     if (this.activeTool.toolId) {
       this.deactivateTool();
     }
 
-    // Активируем новый инструмент
     this.activeTool = {
       toolId: tool.id,
       categoryId: tool.categoryId,
     };
 
-    // Публикуем событие об активации инструмента
+    tool.behavior?.onActivate?.();
+
     this.eventBus.emit(Events.ToolActivated, {
       toolId: tool.id,
       categoryId: tool.categoryId,
@@ -154,13 +191,15 @@ export class ToolManager {
 
     const previousToolId = this.activeTool.toolId;
     const previousCategoryId = this.activeTool.categoryId;
+    const previousTool = previousToolId ? this.tools.get(previousToolId) : null;
 
     this.activeTool = {
       toolId: null,
       categoryId: null,
     };
 
-    // Публикуем событие о деактивации инструмента
+    previousTool?.behavior?.onDeactivate?.();
+
     this.eventBus.emit(Events.ToolDeactivated, {
       toolId: previousToolId,
       categoryId: previousCategoryId,
@@ -194,5 +233,98 @@ export class ToolManager {
     this.deactivateTool();
     this.categories.clear();
     this.tools.clear();
+  }
+
+  /**
+   * Полная очистка ресурса с отпиской от событий.
+   */
+  destroy(): void {
+    this.clear();
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.subscriptions = [];
+  }
+
+  private subscribeToMapEvents(): void {
+    debugLog('🔧 ToolManager: подписка на события карты');
+    this.subscriptions = [
+      this.eventBus.on<TilePointerEventPayload>(Events.TileClicked, this.handleTileClick),
+      this.eventBus.on<TilePointerEventPayload>(Events.TileHovered, this.handleTileHover),
+      this.eventBus.on<TilePointerEventPayload>(Events.TileUnhovered, this.handleTileUnhover),
+    ];
+  }
+
+  private handleTileClick = (payload?: TilePointerEventPayload): void => {
+    if (!payload || !this.activeTool.toolId) {
+      return;
+    }
+
+    const tool = this.tools.get(this.activeTool.toolId);
+    if (!tool?.behavior?.onUse) {
+      return;
+    }
+
+    const context = this.buildActionContext(payload);
+    tool.behavior.onUse(context);
+
+    this.eventBus.emit(Events.ToolUsed, {
+      toolId: tool.id,
+      categoryId: tool.categoryId,
+      tile: context.tile,
+    });
+  };
+
+  private handleTileHover = (payload?: TilePointerEventPayload): void => {
+    if (!payload || !this.activeTool.toolId) {
+      return;
+    }
+
+    const tool = this.tools.get(this.activeTool.toolId);
+    if (!tool?.behavior?.onHover) {
+      return;
+    }
+
+    const context = this.buildActionContext(payload);
+    tool.behavior.onHover(context);
+
+    this.eventBus.emit(Events.ToolHovered, {
+      toolId: tool.id,
+      categoryId: tool.categoryId,
+      tile: context.tile,
+    });
+  };
+
+  private handleTileUnhover = (payload?: TilePointerEventPayload): void => {
+    if (!payload || !this.activeTool.toolId) {
+      return;
+    }
+
+    const tool = this.tools.get(this.activeTool.toolId);
+    if (!tool?.behavior?.onUnhover) {
+      return;
+    }
+
+    const context = this.buildActionContext(payload);
+    tool.behavior.onUnhover(context);
+
+    this.eventBus.emit(Events.ToolUnhovered, {
+      toolId: tool.id,
+      categoryId: tool.categoryId,
+      tile: context.tile,
+    });
+  };
+
+  private buildActionContext(payload: TilePointerEventPayload): ToolActionContext {
+    const tile: ToolPointer = {
+      x: payload.tileX,
+      y: payload.tileY,
+      tileType: payload.tileType,
+      tileTypeName: payload.tileTypeName,
+    };
+
+    return {
+      tile,
+      enqueueCommand: (command) => this.commandProcessor.enqueueCommand(command),
+      emitEvent: (eventType, eventPayload) => this.eventBus.emit(eventType, eventPayload),
+    };
   }
 }

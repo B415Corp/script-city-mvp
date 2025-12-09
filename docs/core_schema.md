@@ -73,9 +73,9 @@
 | 47  | DebugModule          | GameCore       | Получение ядра            | DebugModule сохраняет ссылку на GameCore при инициализации                                        |
 | 48  | DebugModule          | DebugWindow    | Создание UI компонента    | При attachToScene() создает экземпляр DebugWindow                                                 |
 | 49  | DebugModule          | Phaser.Scene   | Подписка на update        | Подписывается на событие update для обновления отладочной информации                              |
-| 50  | ToolsModule          | ToolManager    | Создание ToolManager      | При инициализации создает экземпляр ToolManager                                                   |
-| 51  | ToolsModule          | GameCore       | Регистрация ToolManager   | Вызывает core.setToolManager() для доступа к менеджеру инструментов из других компонентов         |
-| 52  | ToolsModule          | EventBus       | Передача EventBus         | Передает EventBus из GameCore в ToolManager для работы с событиями                                |
+| 50  | ToolManagerModule    | ToolManager    | Создание ToolManager      | При инициализации создает экземпляр ToolManager                                                   |
+| 51  | ToolManagerModule    | GameCore       | Регистрация ToolManager   | Вызывает core.setToolManager() для доступа к менеджеру инструментов из других компонентов         |
+| 52  | ToolManagerModule    | EventBus       | Передача EventBus         | Передает EventBus из GameCore в ToolManager для работы с событиями                                |
 | 53  | GridModule           | GameCore       | Получение EventBus        | GridModule получает EventBus из GameCore при инициализации                                        |
 | 54  | GridModule           | IsometricMath  | Создание IsometricMath    | GridModule создает экземпляр IsometricMath для преобразования координат                           |
 | 55  | GridModule           | Phaser.Scene   | Создание карты            | При attachToScene() создает контейнер с картой и настраивает управление камерой                   |
@@ -125,7 +125,7 @@
 - **GameScene** — главная Phaser сцена, создает и управляет GameCore, регистрирует модули
 - **UI модули** (BottomBarModule, SpeedIndicatorModule, DebugModule) — создают UI компоненты и управляют их жизненным циклом
 - **UI компоненты** (BottomBar, SpeedControls, DebugWindow) — отображают интерфейс и взаимодействуют с ядром через EventBus
-- **ToolsModule** — создает ToolManager и регистрирует его в GameCore для доступа из других модулей
+- **ToolManagerModule** — создает ToolManager и регистрирует его в GameCore для доступа из других модулей
 - **ToolManager** — управляет инструментами редактора, передает события карты активному инструменту
 - **GridModule** — отрисовывает изометрическую карту, обрабатывает ввод и публикует события взаимодействия с картой
 - **IsometricMath** — инфраструктурный компонент для преобразования координат между экранными и тайловыми
@@ -162,7 +162,7 @@ graph TB
     ModuleManager ==>|#36-38: управляет| BottomBarModule
     ModuleManager ==>|#36-38: управляет| SpeedIndicatorModule
     ModuleManager ==>|#36-38: управляет| DebugModule
-    ModuleManager ==>|#36-38: управляет| ToolsModule
+    ModuleManager ==>|#36-38: управляет| ToolManagerModule
     ModuleManager ==>|#36-38: управляет| GridModule
     ModuleManager ==>|#36-38: управляет| ZoningToolsModule
     ModuleManager -.->|#22: регистрация систем| ECSManager

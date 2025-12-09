@@ -8,6 +8,8 @@ import { GameScene } from '@/scenes/game_scene';
 import { MenuScene } from '@/scenes/menu_scene';
 import { UiScene } from '@/scenes/ui_scene';
 import { DebugModule } from '@/modules/debug/debug_module';
+import { ToolManagerModule } from '@/modules/tools/tool_manager_module';
+import { ZoningToolsModule } from '@/modules/tools/zoning_tools_module';
 import { GameAppOptions } from './types';
 
 /**
@@ -22,7 +24,7 @@ const SCENE_CONFIGS: SceneConfig[] = [
       // порядок важен: базовые инструменты → надстройки → отладка
       new DebugModule(),
       // new GridModule(),
-      // new ToolsModule(),
+      // new ToolManagerModule(),
       // new ZoningToolsModule(),
       // new TestSimulationModule(),
     ],

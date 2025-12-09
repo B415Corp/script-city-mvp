@@ -69,6 +69,11 @@ export interface RemoveZoneCommand extends ICommand {
   position: { x: number; y: number };
 }
 
+export interface SelectToolCommand extends ICommand {
+  type: 'SelectTool';
+  toolId: string;
+}
+
 /** Тип объединения всех команд */
 export type Command =
   | BuildBuildingCommand
@@ -77,4 +82,5 @@ export type Command =
   | SetPolicyCommand
   | SetSimulationSpeedCommand
   | ZoneTileCommand
-  | RemoveZoneCommand;
+  | RemoveZoneCommand
+  | SelectToolCommand;

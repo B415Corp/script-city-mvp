@@ -42,10 +42,10 @@
 - **EventBus**: pub/sub. Пример: `eventBus.on(Events.TileClicked, handler); eventBus.emit(Events.TileClicked, { tileX, tileY });`
 - **CommandProcessor**: очередь команд + валидация через `CommandRegistry`. Пример: `commandProcessor.enqueueCommand({ type: 'ZoneTile', position, zoneType, timestamp: Date.now() });`
 - **ECSManager**: сущности/компоненты/системы. Пример: `const id = ecs.createEntity(); ecs.addComponent(id, { level:1 }, LevelType);`
-- **ModuleManager**: регистрация модулей с зависимостями. Пример: `moduleManager.registerModule(new ToolsModule()); moduleManager.registerModule(new ZoningToolsModule(), ['tools']);`
+- **ModuleManager**: регистрация модулей с зависимостями. Пример: `moduleManager.registerModule(new ToolManagerModule()); moduleManager.registerModule(new ZoningToolsModule(), ['tools']);`
 - **MapManager**: подключает `GridModule` к сцене, отдаёт доступ к карте. Пример: `core.getMapManager().attachToScene(scene);`
 - **SaveManager**: сериализация ядра/ECS/модулей. Пример: `await core.getSaveManager().save();`
-- **ToolManager** (создаётся `ToolsModule`): хранит инструменты, подписан на события карты.
+- **ToolManager** (ядро, поднимается `ToolManagerModule`): хранит инструменты, подписан на `TileHovered/TileClicked/TileUnhovered`, делегирует активный инструмент и шлёт `ToolActivated/ToolUsed`; команда `SelectTool` регистрируется в провайдере.
 
 ## Поток симуляции на тик
 1. Phaser вызывает `TickManager.updateFromPhaser(delta)`.
@@ -65,7 +65,7 @@
 - **Сохранить игру**: `await core.getSaveManager().save();` или `autoSave()` — сохранит ядро, ECS, модули со снапшотами.
 - **Подписаться на карту**: `eventBus.on(Events.TileHovered, ...)` / `TileClicked` / `TileUnhovered` — данные координат и типа тайла доступны в payload.
 - **Поднять отладку**: добавить `DebugModule` в `SCENE_CONFIGS` (уже включён по умолчанию), открыть окно отладки через модуль.
-- **Включить карту/инструменты**: раскомментировать `GridModule`, `ToolsModule`, `ZoningToolsModule` в `SCENE_CONFIGS` (`app/game_app.ts`) и регистрировать их через `ModuleManager`.
+- **Включить карту/инструменты**: раскомментировать `GridModule`, `ToolManagerModule`, `ZoningToolsModule` в `SCENE_CONFIGS` (`app/game_app.ts`) и регистрировать их через `ModuleManager`.
 
 ## Мини-справка по интеграции сцен
 - Сцены регистрируются в `SCENE_CONFIGS` (`app/game_app.ts`), там же указывается список модулей для сцены.
