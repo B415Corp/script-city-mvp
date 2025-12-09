@@ -19,6 +19,10 @@
 - **Husky + lint-staged** — проверка кода перед коммитом.
 - **Commitlint** — единый стиль коммитов (`feat`, `fix`, `refactor` и т.д.).
 
+## Вспомогательные CLI
+
+- `sc-cli` — интерактивный генератор модулей, сцен, ECS-систем и инструментов. См. `docs/dev_instructions/cli.md`. Теги: `arch:tools`, `development`, `status:mvp`.
+
 ---
 
 [← Назад к индексу](./index.md)
