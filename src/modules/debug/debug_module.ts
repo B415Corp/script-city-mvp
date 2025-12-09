@@ -14,7 +14,7 @@ import { DebugWindow } from './debug_window/debug_window';
  */
 export class DebugModule implements IModule {
   id = 'debug';
-  dependencies?: string[];
+  dependencies?: string[] = ['tools'];
 
   private core?: GameCore;
   private debugWindow?: DebugWindow;

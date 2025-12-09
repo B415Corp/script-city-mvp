@@ -8,6 +8,7 @@ import { GameScene } from '@/scenes/game_scene';
 import { MenuScene } from '@/scenes/menu_scene';
 import { UiScene } from '@/scenes/ui_scene';
 import { DebugModule } from '@/modules/debug/debug_module';
+import { ToolManagerModule } from '@/modules/tools/tool_manager_module';
 import { GameAppOptions } from './types';
 
 /**
@@ -18,7 +19,7 @@ const SCENE_CONFIGS: SceneConfig[] = [
   {
     key: SceneKey.Game,
     scene: GameScene,
-    modules: () => [new DebugModule()],
+    modules: () => [new ToolManagerModule(), new DebugModule()],
   },
   { key: SceneKey.Menu, scene: MenuScene },
   { key: SceneKey.UI, scene: UiScene },

@@ -133,6 +133,51 @@ export function renderModulesTab(core: GameCore, modulesText: Phaser.GameObjects
 }
 
 /**
+ * Рендерит контент для вкладки "Tools"
+ */
+export function renderToolsTab(core: GameCore, toolsText: Phaser.GameObjects.Text): void {
+  toolsText.setVisible(true);
+  toolsText.setY(0);
+
+  try {
+    const toolManager = core.getToolManager();
+    const categories = toolManager.getCategories();
+    const activeToolState = toolManager.getActiveTool();
+    const activeTool = activeToolState.toolId ? toolManager.getTool(activeToolState.toolId) : null;
+
+    const activeLine = activeTool
+      ? `Active: ${activeTool.icon} ${activeTool.name} [${activeTool.type}]`
+      : 'Active: None';
+
+    if (categories.length === 0) {
+      toolsText.setText(`${activeLine}\n\nNo tools registered`);
+      return;
+    }
+
+    const categoriesText = categories
+      .map((category) => {
+        const tools = toolManager.getToolsByCategory(category.id);
+
+        if (tools.length === 0) {
+          return `${category.icon} ${category.name} (0)\n  (no tools)`;
+        }
+
+        const toolLines = tools.map((tool) => {
+          const marker = tool.id === activeToolState.toolId ? '👉' : '•';
+          return `  ${marker} ${tool.icon} ${tool.name} [${tool.type}]`;
+        });
+
+        return `${category.icon} ${category.name} (${tools.length})\n${toolLines.join('\n')}`;
+      })
+      .join('\n\n');
+
+    toolsText.setText(`${activeLine}\n\nCategories: ${categories.length}\n\n${categoriesText}`);
+  } catch {
+    toolsText.setText('ToolManager unavailable');
+  }
+}
+
+/**
  * Рендерит контент для вкладки "Events"
  */
 export function renderEventsTab(core: GameCore, eventsText: Phaser.GameObjects.Text): void {

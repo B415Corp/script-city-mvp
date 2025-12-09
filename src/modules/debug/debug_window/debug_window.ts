@@ -8,6 +8,7 @@ import {
   renderCommonTab,
   renderECSTab,
   renderModulesTab,
+  renderToolsTab,
   renderEventsTab,
 } from './tab_content_renderer';
 
@@ -24,6 +25,7 @@ export class DebugWindow extends UIComponent {
   private tickText!: Phaser.GameObjects.Text;
   private ecsText!: Phaser.GameObjects.Text;
   private toolText!: Phaser.GameObjects.Text;
+  private toolsText!: Phaser.GameObjects.Text;
   private modulesText!: Phaser.GameObjects.Text;
   private eventsText!: Phaser.GameObjects.Text;
   private isVisible: boolean = true;
@@ -128,6 +130,18 @@ export class DebugWindow extends UIComponent {
       .setOrigin(0, 0);
     this.contentContainer.add(this.toolText);
 
+    // Текст инструментов
+    this.toolsText = this.scene.add
+      .text(0, 0, '', {
+        fontSize: FONT_SIZE,
+        color: COLORS.TEXT_TOOL,
+        fontFamily: 'Arial',
+        wordWrap: { width: SIDEBAR_WIDTH - PADDING * 2 },
+        lineSpacing: 2,
+      })
+      .setOrigin(0, 0);
+    this.contentContainer.add(this.toolsText);
+
     // Текст модулей
     this.modulesText = this.scene.add
       .text(0, 0, '', {
@@ -224,10 +238,12 @@ export class DebugWindow extends UIComponent {
       { name: 'common', label: 'Common' },
       { name: 'ecs', label: 'ECS' },
       { name: 'modules', label: 'Modules' },
+      { name: 'tools', label: 'Tools' },
       { name: 'events', label: 'Events' },
     ];
 
-    const tabWidth = (SIDEBAR_WIDTH - PADDING * 2 - TAB_SPACING * 3) / 4;
+    const tabCount = tabNames.length;
+    const tabWidth = (SIDEBAR_WIDTH - PADDING * 2 - TAB_SPACING * (tabCount - 1)) / tabCount;
     const startY = 25; // После заголовка
 
     tabNames.forEach((tab, index) => {
@@ -304,6 +320,7 @@ export class DebugWindow extends UIComponent {
     this.tickText.setVisible(false);
     this.ecsText.setVisible(false);
     this.toolText.setVisible(false);
+    this.toolsText.setVisible(false);
     this.modulesText.setVisible(false);
     this.eventsText.setVisible(false);
 
@@ -319,6 +336,10 @@ export class DebugWindow extends UIComponent {
 
       case 'modules':
         renderModulesTab(this.core, this.modulesText);
+        break;
+
+      case 'tools':
+        renderToolsTab(this.core, this.toolsText);
         break;
 
       case 'events':
