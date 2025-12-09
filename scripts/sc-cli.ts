@@ -610,6 +610,7 @@ export class ${answers.systemClass} implements ISystem {
 
 async function generateTool(options: BaseOptions): Promise<void> {
   const sceneKeys = getSceneKeys();
+  const moduleChoices = await listModuleIds();
   if (options.yes) {
     prompts.override({
       toolId: 'zoning:rectangle',
@@ -623,6 +624,22 @@ async function generateTool(options: BaseOptions): Promise<void> {
       moduleId: 'tools',
     });
   }
+
+  const moduleIdQuestion =
+    moduleChoices.length > 0
+      ? {
+          type: 'select',
+          name: 'moduleId',
+          message: 'ID модуля, где регистрировать этот инструмент (например tools)',
+          choices: moduleChoices.map((m) => ({ title: m, value: m })),
+          initial: Math.max(0, moduleChoices.indexOf('tools')),
+        }
+      : {
+          type: 'text',
+          name: 'moduleId',
+          message: 'ID модуля, где регистрировать этот инструмент (например tools)',
+          initial: 'tools',
+        };
 
   const answers = (await prompts(
     [
@@ -675,12 +692,7 @@ async function generateTool(options: BaseOptions): Promise<void> {
         choices: sceneKeys.map((key) => ({ title: key, value: key })),
         initial: ['Game'],
       },
-      {
-        type: 'text',
-        name: 'moduleId',
-        message: 'ID модуля, где регистрировать этот инструмент (например tools)',
-        initial: 'tools',
-      },
+      moduleIdQuestion,
     ],
     { onCancel: () => process.exit(1) },
   )) as ToolAnswers;
