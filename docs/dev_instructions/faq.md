@@ -114,3 +114,26 @@ sub.unsubscribe();
 - План этапов: `docs/development/mvp-plan/`.
 - Визуализация потоков: схемы в `core_schema.md` (sequence/mermaid).
 
+## Как модули общаются между собой?
+**Теги**: `arch:module`, `arch:events`, `arch:commands`, `status:mvp`
+
+- Без прямых импортов: только публичный API модуля (`ModuleManager.getModule(id)`), события `EventBus` или команды в `CommandProcessor`. См. `docs/development/architecture/modules.md` и пример в `docs/dev_instructions/scenario_examples.md` (блок «Общение модулей»).
+- Зависимости объявляйте при регистрации (`registerModule(new MyModule(), ['grid', ...])`), ModuleManager обеспечит порядок инициализации.
+- Для данных: модуль публикует событие (`ZonesChanged`, `LayerChanged`, и т.п.), другой модуль подписывается и берёт снапшот через публичный метод (например, `getZonesSnapshot()`), не лезет во внутренние структуры.
+- Для действий: оформляйте запросы командами (`SwitchLayer`, `SelectTool`, `Request...`), чтобы валидация и события результата шли через CommandProcessor/CommandRegistry.
+
+## Как переключаться между слоями карты?
+**Теги**: `arch:module`, `arch:renderer`, `map:overlay`, `arch:events`, `status:mvp`
+
+- Базовую карту даёт `MapManager` + `GridModule` (attach в `GameScene`); слои/оверлеи — отдельные модули с `attachToScene(scene)`, рисующие поверх. См. `docs/dev_instructions/scenario_examples.md` («Смена слоя сцены…») и `docs/development/architecture/renderer.md`.
+- UI отправляет команду `SwitchLayer` в `CommandProcessor`; хэндлер внутри overlay-модуля переключает активный слой/палитру и публикует `Events.LayerChanged` для синхронизации UI.
+- Состояние активного слоя храните в модуле overlay (можно сериализовать через `ISnapshotProvider`, если нужно восстановление).
+- Не изменяйте карту напрямую из UI: все клики/кнопки → команда → обработчик модуля → событие → перерисовка.
+
+## Как и где хранить UI?
+**Теги**: `arch:ui`, `arch:commands`, `arch:module`, `gameplay:ui`, `status:mvp`
+
+- UI — отдельные модули/компоненты (каждый компонент в своей папке) без React; размещайте их в собственных UI-модулях с `attachToScene(scene)`. См. `docs/development/architecture/ui.md`.
+- UI **не хранит GameState**: долгоживущие данные и снапшоты — в модулях/менеджерах (через `ISnapshotProvider` + `SaveManager`). UI хранит только локальное состояние отображения (открыта панель, выбранная вкладка).
+- Все действия игрока оформляйте командами (`Build...`, `SelectTool`, `SwitchLayer`, `ChangeTax`) и отправляйте через `CommandProcessor.enqueueCommand`.
+- Для чтения используйте агрегированные данные/геттеры модулей и события `EventBus` (скорость/тики, бюджеты, слои), а не прямые структуры ECS или приватные поля.
