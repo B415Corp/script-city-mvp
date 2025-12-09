@@ -41,7 +41,7 @@ type SystemAnswers = {
   systemClass: string;
   priority: number;
   updateInterval: number;
-  moduleFile?: string;
+  moduleIds: string[];
 };
 
 type ToolAnswers = {
@@ -243,6 +243,19 @@ function addSceneConfigEntry(sceneKey: string, sceneClass: string, sceneImport: 
 function formatCommentTags(tags: string[]): string {
   if (!tags.length) return '';
   return ` * **Теги**: ${tags.map((t) => `\`${t}\``).join(', ')}\n`;
+}
+
+async function listModuleIds(): Promise<string[]> {
+  try {
+    const modulesDir = path.join(SRC, 'modules');
+    const entries = await fs.readdir(modulesDir, { withFileTypes: true });
+    return entries
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .filter((name) => !name.startsWith('_'));
+  } catch {
+    return [];
+  }
 }
 
 async function generateModule(options: BaseOptions): Promise<void> {
@@ -485,13 +498,14 @@ export class ${answers.sceneClass} extends Phaser.Scene {
 }
 
 async function generateSystem(options: BaseOptions): Promise<void> {
+  const moduleChoices = await listModuleIds();
   if (options.yes) {
     prompts.override({
       systemId: 'custom_system',
       systemClass: 'CustomSystem',
       priority: 50,
       updateInterval: 1,
-      moduleFile: '',
+      moduleIds: [],
     });
   }
 
@@ -522,10 +536,10 @@ async function generateSystem(options: BaseOptions): Promise<void> {
         initial: 1,
       },
       {
-        type: 'text',
-        name: 'moduleFile',
-        message: 'Путь к модулю для автодобавления системы (можно пусто)',
-        initial: '',
+        type: 'multiselect',
+        name: 'moduleIds',
+        message: 'В каких модулях зарегистрировать систему? (можно пропустить)',
+        choices: moduleChoices.map((m) => ({ title: m, value: m })),
       },
     ],
     { onCancel: () => process.exit(1) },
@@ -569,23 +583,21 @@ export class ${answers.systemClass} implements ISystem {
     }
   }
 
-  // Опциональная регистрация в модуле
-  if (answers.moduleFile) {
-    try {
-      const modulePath = path.relative(ROOT, path.resolve(answers.moduleFile));
-      const source = project.getSourceFile(modulePath);
-      if (source) {
-        ensureImport(modulePath, answers.systemClass, `@/ecs/systems/${systemFileName.replace('.ts', '')}`);
-        const initializeMethod = source.getClass(() => true)?.getMethod('initialize');
-        if (initializeMethod) {
-          const body = initializeMethod.getBody();
-          body?.addStatements(`core.getECSManager().registerSystem(new ${answers.systemClass}());`);
-        }
-      } else {
-        console.warn(`⚠ Не найден модуль для автоподключения: ${modulePath}`);
-      }
-    } catch (err) {
-      console.warn('⚠ Ошибка при автоподключении системы в модуль', err);
+  // Регистрация системы в выбранных модулях
+  for (const moduleId of answers.moduleIds) {
+    const modulePath = path.join('src', 'modules', moduleId, `${moduleId}_module.ts`);
+    const source = project.getSourceFile(modulePath);
+    if (!source) {
+      console.warn(`⚠ Не найден модуль для автоподключения: ${modulePath}`);
+      continue;
+    }
+    ensureImport(modulePath, answers.systemClass, `@/ecs/systems/${systemFileName.replace('.ts', '')}`);
+    ensureImport(modulePath, 'ECSManager', '@/core/ecs_manager/ecs_manager');
+    const classDecl = source.getClass(() => true);
+    const initializeMethod = classDecl?.getMethod('initialize');
+    if (initializeMethod) {
+      const body = initializeMethod.getBody();
+      body?.addStatements(`core.getECSManager().registerSystem(new ${answers.systemClass}());`);
     }
   }
 

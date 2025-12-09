@@ -17,6 +17,7 @@
 ## Команды
 
 ### generate module
+
 - Вопросы: `moduleId`, `moduleClass`, сцены для автоподключения, хэндлер новой команды (опционально, Command.type), стартовый UI-контейнер (опционально), зависимости.
 - Артефакты:
   - `src/modules/<id>/<id>_module.ts`
@@ -25,6 +26,7 @@
   - автоподключение в `SCENE_CONFIGS` (`src/app/game_app.ts`) для выбранных сцен.
 
 ### generate scene
+
 - Вопросы: `SceneKey`, `sceneClass`, список модулей (по ID) для автоподключения.
 - Артефакты:
   - `src/scenes/<snake>_scene.ts`
@@ -32,13 +34,15 @@
   - запись в `SCENE_CONFIGS` с импортами в `src/app/game_app.ts`.
 
 ### generate system
-- Вопросы: `systemId`, `systemClass`, `priority`, `updateInterval`, путь к модулю для регистрации (опционально).
+
+- Вопросы: `systemId`, `systemClass`, `priority`, `updateInterval`, список модулей для регистрации.
 - Артефакты:
   - `src/ecs/systems/<snake>_system.ts`
   - экспорт в `src/ecs/systems/index.ts`
-  - опциональная регистрация в указанном модуле (`initialize` → `core.getECSManager().registerSystem(...)`).
+  - регистрация в выбранных модулях (`initialize` → `core.getECSManager().registerSystem(...)`).
 
 ### generate tool
+
 - Вопросы: `toolId`, имя, тип, категория (id/name/icon/order), сцены для автоподключения модуля, `moduleId` для регистрации.
 - Артефакты:
   - `src/core/tool_manager/tools/<slug>_tool.ts` с фабрикой `create*`
@@ -46,6 +50,7 @@
   - автоподключение модуля в выбранные сцены через `SCENE_CONFIGS`.
 
 ## Ограничения и заметки
+
 - Автоподключение ожидает стандартные структуры:
   - `SCENE_CONFIGS` в `src/app/game_app.ts`
   - модули в `src/modules/<id>/<id>_module.ts`
@@ -60,4 +65,3 @@
 - Сцена: `npm run sc-cli -- generate scene`
 - Система: `npm run sc-cli -- generate system --yes`
 - Инструмент: `npm run sc-cli -- generate tool`
-
