@@ -249,10 +249,24 @@ async function listModuleIds(): Promise<string[]> {
   try {
     const modulesDir = path.join(SRC, 'modules');
     const entries = await fs.readdir(modulesDir, { withFileTypes: true });
-    return entries
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name)
-      .filter((name) => !name.startsWith('_'));
+    const ids: string[] = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith('_')) continue;
+
+      const moduleFile = path.join(modulesDir, entry.name, `${entry.name}_module.ts`);
+      try {
+        const stat = await fs.stat(moduleFile);
+        if (stat.isFile()) {
+          ids.push(entry.name);
+        }
+      } catch {
+        // пропускаем директории без основного файла модуля
+      }
+    }
+
+    return ids;
   } catch {
     return [];
   }
