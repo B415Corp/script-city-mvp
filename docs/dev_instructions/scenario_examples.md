@@ -255,3 +255,79 @@ registerHandler({
 });
 ```
 
+## Построить дом, привязанный к сетке и отображаемый на карте
+**Теги**: `arch:core`, `arch:ecs`, `arch:commands`, `arch:renderer`, `gameplay:construction`, `map:isometric`, `status:mvp`
+
+- Что подготовить: `BuildingModule` или аналогичный модуль зарегистрирован в `ModuleManager`; `GridModule` активен и отдаёт `TileClicked` с целочисленными `tileX/tileY`; в `CommandRegistry` есть команда `BuildGridHouse`; в сцене есть система/слой, который рисует здания на основе ECS.
+- Поток: UI-кнопка или инструмент отправляет DTO `BuildGridHouse` в `CommandProcessor`; хэндлер валидирует, создаёт сущность и публикует событие для визуализации.
+- DTO `BuildGridHouse` (пример полей): `{ type: 'BuildGridHouse', tile: { x, y }, houseType: 'residential_level1', rotation?: 0|90|180|270, timestamp }` — координаты приходят из `TileClicked`, уже привязаны к сетке.
+- Валидация: хэндлер проверяет, что клетка свободна (`map.isFree(tile)`), клетка существует на карте, и что `houseType` разрешён. При желании проверяет, что `x`/`y` целые (снап к сетке).
+- Применение: через `ECSManager` создаётся сущность с компонентами `PositionComponent({ tileX: x, tileY: y })`, `HouseComponent({ houseType })`, `RenderComponent({ spriteKey: 'house_small', rotation })`; публикуется `Events.HouseSpawned` или аналог, чтобы слой отрисовки мог проставить спрайт.
+- Визуал: рендер-система или подписка в сцене ловит `Events.HouseSpawned`, берёт мировые координаты через `MapManager.toWorld({ x, y })` (или существующий helper GridModule) и ставит спрайт в центр тайла. При удалении сущности ловится `Events.EntityRemoved`, чтобы убрать спрайт.
+- Сохранения: компоненты позиции/типа/рендера сериализуются через `SaveManager`, чтобы дом оставался на своём тайле после загрузки.
+- Диагностика: включите `enableDebug` и логируйте payload команды и события `HouseSpawned`, чтобы убедиться, что координаты остаются целыми и дом не «съезжает» с сетки.
+
+```ts
+// UI (кнопка или инструмент)
+core.getCommandProcessor().enqueueCommand({
+  type: 'BuildGridHouse',
+  tile: { x: tileX, y: tileY }, // tileX/tileY из Events.TileClicked
+  houseType: 'residential_level1',
+  rotation: 0,
+  timestamp: Date.now(),
+});
+
+// Command handler (в модуле)
+registerHandler({
+  type: 'BuildGridHouse',
+  validate: ({ tile }) => map.isFree(tile) && Number.isInteger(tile.x) && Number.isInteger(tile.y),
+  apply: ({ tile, houseType, rotation }) => {
+    const id = ecs.createEntity();
+    ecs.addComponent(id, PositionComponent({ tileX: tile.x, tileY: tile.y }));
+    ecs.addComponent(id, HouseComponent({ houseType }));
+    ecs.addComponent(id, RenderComponent({ spriteKey: 'house_small', rotation: rotation ?? 0 }));
+    eventBus.emit(Events.HouseSpawned, { entity: id, tile, houseType, rotation });
+  },
+});
+
+// Рендер (сцена или система)
+eventBus.on(Events.HouseSpawned, ({ entity, tile, rotation }) => {
+  const { x: worldX, y: worldY } = map.toWorld(tile); // helper из MapManager/GridModule
+  const sprite = scene.add.sprite(worldX, worldY, 'house_small').setOrigin(0.5).setRotation(Phaser.Math.DegToRad(rotation ?? 0));
+  renderIndex.set(entity, sprite); // храните ссылку, чтобы удалить при Events.EntityRemoved
+});
+```
+
+## Подробно: Кнопка выбора инструмента в UI
+**Теги**: `arch:ui`, `arch:commands`, `arch:events`, `arch:tools`, `gameplay:editor`, `status:mvp`, `doc:detailed`
+
+- Что подготовить: включён `ToolManagerModule` и зарегистрирована команда `SelectTool`; в UI доступен `GameCore`; есть `toolId` зарегистрированного инструмента.
+- Поток: кнопка в `UiScene` отправляет DTO `SelectTool` в `CommandProcessor`; после успешной валидации `ToolManager` активирует инструмент и шлёт `Events.ToolActivated`, по которому UI подсвечивает кнопку.
+- Шаги:
+  1. В `SCENE_CONFIGS` держите `ToolManagerModule` активным.
+  2. В `UiScene.create` получите `core`, `commandProcessor`, `eventBus`.
+  3. На `pointerup` вызовите `commandProcessor.enqueueCommand({ type: 'SelectTool', toolId, timestamp: Date.now() })`.
+  4. Подпишитесь на `Events.ToolActivated`, чтобы менять цвет/состояние кнопки.
+  5. При уничтожении UI отпишитесь от событий.
+- Где лежит полный пример: файл `docs/dev_instructions/detailed_examples/ui_tool_button.md` (папка `docs/dev_instructions/detailed_examples/`; создайте, если отсутствует).
+- Полный разбор с большим примером кода лежит в `docs/dev_instructions/detailed_examples/ui_tool_button.md`.
+
+```ts
+// UiScene (фрагмент)
+const toolId = 'build_house_small';
+const commandProcessor = core.getCommandProcessor();
+const eventBus = core.getEventBus();
+
+button.on('pointerup', () =>
+  commandProcessor.enqueueCommand({ type: 'SelectTool', toolId, timestamp: Date.now() })
+);
+
+const onToolActivated = ({ toolId: activeId }: { toolId: string }) => {
+  const isActive = activeId === toolId;
+  button.setFillStyle(isActive ? 0x4caf50 : 0x3a86ff);
+};
+
+eventBus.on(Events.ToolActivated, onToolActivated);
+// ... не забудьте off() при уничтожении UI
+```
+
