@@ -3,6 +3,8 @@ import { IModule, ModuleEntry } from './types';
 import Phaser from 'phaser';
 import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 import { ISystem } from '../ecs_manager/types';
+import { ICommandHandler } from '../command_processor/command_handler';
+import { CommandRegistry } from '../command_processor/command_registry';
 
 /**
  * Менеджер модулей симуляции.
@@ -25,7 +27,7 @@ export class ModuleManager {
    */
   private modules: Map<string, ModuleEntry> = new Map();
 
-  constructor() {
+  constructor(private commandRegistry: CommandRegistry) {
     debugLog('📦 ModuleManager создан');
   }
 
@@ -54,6 +56,10 @@ export class ModuleManager {
       moduleId: module.id,
       dependencies: moduleDependencies,
     });
+  }
+
+  registerCommandHandler(handler: ICommandHandler): void {
+    this.commandRegistry.registerHandler(handler);
   }
 
   /**

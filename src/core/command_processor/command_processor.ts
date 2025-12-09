@@ -2,17 +2,8 @@ import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { ECSManager } from '../ecs_manager/ecs_manager';
 import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
-import {
-  BuildBuildingCommand,
-  BulldozeAreaCommand,
-  ChangeTaxRateCommand,
-  ICommand,
-  SetPolicyCommand,
-  SetSimulationSpeedCommand,
-  ZoneTileCommand,
-  RemoveZoneCommand,
-  ValidationResult,
-} from './types';
+import { ICommand, ValidationResult } from './types';
+import { CommandRegistry } from './command_registry';
 
 /**
  * Обрабатывает команды от UI и применяет их к игровому состоянию.
@@ -30,11 +21,13 @@ export class CommandProcessor {
   private commandQueue: ICommand[] = [];
   private eventBus: EventBus;
   private _ecsManager: ECSManager;
+  private registry: CommandRegistry;
 
-  constructor(eventBus: EventBus, ecsManager: ECSManager) {
+  constructor(eventBus: EventBus, ecsManager: ECSManager, registry: CommandRegistry) {
     debugLog('🔄 CommandProcessor создан');
     this.eventBus = eventBus;
     this._ecsManager = ecsManager;
+    this.registry = registry;
   }
 
   /**
@@ -146,26 +139,14 @@ export class CommandProcessor {
       };
     }
 
-    // Валидация по типу команды
-    switch (command.type) {
-      case 'BuildBuilding':
-        return this.validateBuildBuildingCommand(command);
-      case 'BulldozeArea':
-        return this.validateBulldozeAreaCommand(command);
-      case 'ChangeTaxRate':
-        return this.validateChangeTaxRateCommand(command);
-      case 'SetPolicy':
-        return this.validateSetPolicyCommand(command);
-      case 'SetSimulationSpeed':
-        return this.validateSetSimulationSpeedCommand(command);
-      case 'ZoneTile':
-        return this.validateZoneTileCommand(command);
-      case 'RemoveZone':
-        return this.validateRemoveZoneCommand(command);
-      default:
-        // Неизвестный тип команды - считаем валидной для расширяемости
-        return { valid: true };
+    // Ищем хэндлер для типа команды
+    const handler = this.registry.getHandler(command.type);
+    if (!handler) {
+      // Неизвестный тип команды - считаем валидной для расширяемости
+      return { valid: true };
     }
+
+    return handler.validate(command);
   }
 
   /**
@@ -175,31 +156,13 @@ export class CommandProcessor {
    * @param command - команда для применения
    */
   private applyCommand(command: ICommand): void {
-    switch (command.type) {
-      case 'BuildBuilding':
-        this.applyBuildBuildingCommand(command);
-        break;
-      case 'BulldozeArea':
-        this.applyBulldozeAreaCommand(command);
-        break;
-      case 'ChangeTaxRate':
-        this.applyChangeTaxRateCommand(command);
-        break;
-      case 'SetPolicy':
-        this.applySetPolicyCommand(command);
-        break;
-      case 'SetSimulationSpeed':
-        this.applySetSimulationSpeedCommand(command);
-        break;
-      case 'ZoneTile':
-        this.applyZoneTileCommand(command);
-        break;
-      case 'RemoveZone':
-        this.applyRemoveZoneCommand(command);
-        break;
-      default:
-        console.warn('⚙️ CommandProcessor: unknown command type', command.type);
+    const handler = this.registry.getHandler(command.type);
+    if (!handler) {
+      console.warn('⚙️ CommandProcessor: unknown command type', command.type);
+      return;
     }
+
+    handler.apply(command);
   }
 
   /**
@@ -210,179 +173,5 @@ export class CommandProcessor {
     const queueLength = this.commandQueue.length;
     this.commandQueue = [];
     debugLog('⚙️ CommandProcessor: очередь команд очищена', { clearedCount: queueLength });
-  }
-
-  // Валидаторы для конкретных типов команд
-
-  private validateBuildBuildingCommand(command: ICommand): ValidationResult {
-    const cmd = command as BuildBuildingCommand;
-    if (!cmd.position || typeof cmd.position.x !== 'number' || typeof cmd.position.y !== 'number') {
-      return {
-        valid: false,
-        error: 'BuildBuilding command requires valid position {x, y}',
-      };
-    }
-    if (!cmd.buildingType || typeof cmd.buildingType !== 'string') {
-      return {
-        valid: false,
-        error: 'BuildBuilding command requires buildingType',
-      };
-    }
-    return { valid: true };
-  }
-
-  private validateBulldozeAreaCommand(command: ICommand): ValidationResult {
-    const cmd = command as BulldozeAreaCommand;
-    if (
-      !cmd.area ||
-      typeof cmd.area.x !== 'number' ||
-      typeof cmd.area.y !== 'number' ||
-      typeof cmd.area.width !== 'number' ||
-      typeof cmd.area.height !== 'number'
-    ) {
-      return {
-        valid: false,
-        error: 'BulldozeArea command requires valid area {x, y, width, height}',
-      };
-    }
-    return { valid: true };
-  }
-
-  private validateChangeTaxRateCommand(command: ICommand): ValidationResult {
-    const cmd = command as ChangeTaxRateCommand;
-    if (!cmd.taxType || typeof cmd.taxType !== 'string') {
-      return {
-        valid: false,
-        error: 'ChangeTaxRate command requires taxType',
-      };
-    }
-    if (typeof cmd.newRate !== 'number' || cmd.newRate < 0 || cmd.newRate > 1) {
-      return {
-        valid: false,
-        error: 'ChangeTaxRate command requires newRate between 0 and 1',
-      };
-    }
-    return { valid: true };
-  }
-
-  private validateSetPolicyCommand(command: ICommand): ValidationResult {
-    const cmd = command as SetPolicyCommand;
-    if (!cmd.policyId || typeof cmd.policyId !== 'string') {
-      return {
-        valid: false,
-        error: 'SetPolicy command requires policyId',
-      };
-    }
-    if (typeof cmd.enabled !== 'boolean') {
-      return {
-        valid: false,
-        error: 'SetPolicy command requires enabled boolean',
-      };
-    }
-    return { valid: true };
-  }
-
-  private validateSetSimulationSpeedCommand(command: ICommand): ValidationResult {
-    const cmd = command as SetSimulationSpeedCommand;
-    if (typeof cmd.speedLevel !== 'number' || cmd.speedLevel < 0) {
-      return {
-        valid: false,
-        error: 'SetSimulationSpeed command requires speedLevel >= 0',
-      };
-    }
-    return { valid: true };
-  }
-
-  private validateZoneTileCommand(command: ICommand): ValidationResult {
-    const cmd = command as ZoneTileCommand;
-    if (!cmd.position || typeof cmd.position.x !== 'number' || typeof cmd.position.y !== 'number') {
-      return {
-        valid: false,
-        error: 'ZoneTile command requires valid position {x, y}',
-      };
-    }
-    const validZoneTypes = ['residential_low', 'commercial_low', 'industrial_low'];
-    if (!cmd.zoneType || !validZoneTypes.includes(cmd.zoneType)) {
-      return {
-        valid: false,
-        error: `ZoneTile command requires zoneType one of: ${validZoneTypes.join(', ')}`,
-      };
-    }
-    return { valid: true };
-  }
-
-  private validateRemoveZoneCommand(command: ICommand): ValidationResult {
-    const cmd = command as RemoveZoneCommand;
-    if (!cmd.position || typeof cmd.position.x !== 'number' || typeof cmd.position.y !== 'number') {
-      return {
-        valid: false,
-        error: 'RemoveZone command requires valid position {x, y}',
-      };
-    }
-    return { valid: true };
-  }
-
-  // Применение конкретных типов команд
-
-  private applyBuildBuildingCommand(command: ICommand): void {
-    const cmd = command as BuildBuildingCommand;
-    // TODO: Применение через систему строительства
-    // В будущем это будет работать через ECS системы
-    this.eventBus.emit(Events.BuildCommandRequested, {
-      position: cmd.position,
-      buildingType: cmd.buildingType,
-    });
-  }
-
-  private applyBulldozeAreaCommand(command: ICommand): void {
-    const cmd = command as BulldozeAreaCommand;
-    // TODO: Применение через систему сноса
-    this.eventBus.emit(Events.DemolishCommandRequested, {
-      area: cmd.area,
-    });
-  }
-
-  private applyChangeTaxRateCommand(command: ICommand): void {
-    const cmd = command as ChangeTaxRateCommand;
-    // TODO: Применение через экономическую систему
-    this.eventBus.emit(Events.ChangeTaxRequested, {
-      taxType: cmd.taxType,
-      newRate: cmd.newRate,
-    });
-  }
-
-  private applySetPolicyCommand(command: ICommand): void {
-    const cmd = command as SetPolicyCommand;
-    // TODO: Применение через систему политик
-    this.eventBus.emit(Events.PolicyChangeRequested, {
-      policyId: cmd.policyId,
-      enabled: cmd.enabled,
-    });
-  }
-
-  private applySetSimulationSpeedCommand(command: ICommand): void {
-    const cmd = command as SetSimulationSpeedCommand;
-    // Применение через TickManager (через событие)
-    this.eventBus.emit(Events.SetSimulationSpeedRequested, {
-      speedLevel: cmd.speedLevel,
-    });
-  }
-
-  private applyZoneTileCommand(command: ICommand): void {
-    const cmd = command as ZoneTileCommand;
-    // TODO: Применение через систему зонирования
-    // В будущем это будет работать через ECS системы
-    this.eventBus.emit(Events.ZoneTileRequested, {
-      position: cmd.position,
-      zoneType: cmd.zoneType,
-    });
-  }
-
-  private applyRemoveZoneCommand(command: ICommand): void {
-    const cmd = command as RemoveZoneCommand;
-    // TODO: Применение через систему зонирования
-    this.eventBus.emit(Events.RemoveZoneRequested, {
-      position: cmd.position,
-    });
   }
 }

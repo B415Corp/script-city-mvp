@@ -11,6 +11,7 @@ import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logg
 import { MapManager } from '../map_manager/map_manager';
 import { SceneController } from '@/app/scene_controller/scene_controller';
 import { SimulationLoop } from '../simulation_loop/simulation_loop';
+import { CommandRegistry } from '../command_processor/command_registry';
 
 export class GameCore {
   private tickManager!: TickManager;
@@ -36,11 +37,12 @@ export class GameCore {
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
     debugGroup('Создание менеджеров');
     this.eventBus = new EventBus();
+    const commandRegistry = new CommandRegistry();
     this.mapManager = new MapManager(this);
     this.mapManager.initialize();
     this.ecsManager = new ECSManager();
-    this.moduleManager = new ModuleManager();
-    this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
+    this.moduleManager = new ModuleManager(commandRegistry);
+    this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager, commandRegistry);
     this.saveManager = new SaveManager();
     this.simulationLoop = new SimulationLoop(this.eventBus, this.commandProcessor, this.ecsManager);
     this.tickManager = new TickManager({
@@ -49,6 +51,9 @@ export class GameCore {
       eventBus: this.eventBus,
     });
     debugGroupEnd();
+
+    // Регистрация базовых хэндлеров команд
+    await this.registerBaseCommandHandlers(commandRegistry);
 
     // Инициализация SaveManager
     await this.saveManager.initialize(this, this.eventBus);
@@ -68,6 +73,34 @@ export class GameCore {
     // 4. Подготовка к работе (но без запуска цикла тиков)
     debugLog('👾 GameCore инициализирован', { config: this.config });
     debugGroupEnd();
+  }
+
+  /**
+   * Регистрация базовых хэндлеров команд.
+   * Эти хэндлеры предоставляют основную функциональность команд.
+   */
+  private async registerBaseCommandHandlers(registry: CommandRegistry): Promise<void> {
+    const {
+      BuildBuildingCommandHandler,
+      BulldozeAreaCommandHandler,
+      ChangeTaxRateCommandHandler,
+      SetPolicyCommandHandler,
+      SetSimulationSpeedCommandHandler,
+      ZoneTileCommandHandler,
+      RemoveZoneCommandHandler,
+    } = await import('../command_processor/handlers');
+
+    registry.registerHandler(new BuildBuildingCommandHandler(this.eventBus));
+    registry.registerHandler(new BulldozeAreaCommandHandler(this.eventBus));
+    registry.registerHandler(new ChangeTaxRateCommandHandler(this.eventBus));
+    registry.registerHandler(new SetPolicyCommandHandler(this.eventBus));
+    registry.registerHandler(new SetSimulationSpeedCommandHandler(this.eventBus));
+    registry.registerHandler(new ZoneTileCommandHandler(this.eventBus));
+    registry.registerHandler(new RemoveZoneCommandHandler(this.eventBus));
+
+    debugLog('Базовые хэндлеры команд зарегистрированы', {
+      count: registry.getRegisteredTypes().length,
+    });
   }
 
   public async start(): Promise<void> {
