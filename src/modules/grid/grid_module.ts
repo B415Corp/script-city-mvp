@@ -5,7 +5,7 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '@/infrastructure/isometric_math/isometric_math';
 import Phaser from 'phaser';
-import { DEFAULT_MAP } from './default_map';
+import { DEFAULT_MAP } from '@/core/map_manager/maps/default_map';
 import { debugLog } from '@/infrastructure/utils/logger';
 
 const TextureType: Record<number, string> = {

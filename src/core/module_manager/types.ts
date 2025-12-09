@@ -1,6 +1,8 @@
+import Phaser from 'phaser';
 import { ECSManager } from '../ecs_manager/ecs_manager';
 import { ISystem } from '../ecs_manager/types';
 import { GameCore } from '../game_core/game_core';
+import { ISnapshotProvider } from '../save_manager/snapshot_provider';
 
 /**
  * Интерфейс для модулей симуляции.
@@ -10,8 +12,10 @@ import { GameCore } from '../game_core/game_core';
  * Модуль представляет собой изолированную функциональную единицу игры,
  * которая может регистрировать системы, подписываться на события и
  * взаимодействовать с ядром через публичный API.
+ *
+ * Модули, которые хотят участвовать в сохранении/загрузке, должны реализовывать ISnapshotProvider.
  */
-export interface IModule {
+export interface IModule extends Partial<ISnapshotProvider> {
   /**
    * Уникальный идентификатор модуля.
    * Используется для регистрации, поиска и управления зависимостями.
@@ -39,6 +43,14 @@ export interface IModule {
   destroy(): void;
 
   /**
+   * Присоединение модуля к Phaser сцене.
+   * Опциональный метод для модулей, которые взаимодействуют с UI/рендерингом.
+   *
+   * @param scene - Phaser сцена для присоединения модуля
+   */
+  attachToScene?(scene: Phaser.Scene): void;
+
+  /**
    * Регистрация систем модуля в ECSManager.
    * Вызывается после инициализации модуля, если метод определен.
    *
@@ -52,23 +64,6 @@ export interface IModule {
    * после initialize().
    */
   ecsSystems?: ISystem[];
-
-  /**
-   * Сериализация данных модуля.
-   * Опциональный метод для модулей, которые хотят участвовать в сохранении.
-   * Должен возвращать только простые данные (без функций, ссылок на объекты).
-   *
-   * @returns сериализованные данные модуля
-   */
-  serialize?(): unknown;
-
-  /**
-   * Десериализация данных модуля.
-   * Опциональный метод для восстановления состояния модуля из сохранения.
-   *
-   * @param data - сериализованные данные модуля
-   */
-  deserialize?(data: unknown): void;
 }
 
 /**

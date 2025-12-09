@@ -64,6 +64,8 @@ export enum Events {
   TileUnhovered = 'TileUnhovered',
   /** Произошёл клик по тайлу */
   TileClicked = 'TileClicked',
+  /** Тайл изменён */
+  TileChanged = 'TileChanged',
   /** Камера перемещена (drag или стрелки) */
   CameraMoved = 'CameraMoved',
   /** Камера увеличена/уменьшена (zoom) */

@@ -30,12 +30,6 @@ import { debugLog } from '@/infrastructure/utils/logger';
  * // Отписка
  * sub.unsubscribe();
  */
-export interface EventHistoryEntry {
-  eventType: string;
-  timestamp: number;
-  payload?: unknown;
-}
-
 export class EventBus {
   /**
    * Хранилище обработчиков событий.
@@ -43,21 +37,7 @@ export class EventBus {
    */
   private handlers: Map<string, Set<HandlerInfo>> = new Map();
 
-  /**
-   * История последних событий (для отладки).
-   */
-  private eventHistory: EventHistoryEntry[] = [];
-  private readonly MAX_HISTORY_SIZE = 50; // Увеличили для лучшего отслеживания событий
 
-  /**
-   * События, которые не нужно сохранять в историю (для отладки).
-   * Используется Set для быстрой проверки исключений.
-   */
-  private readonly EXCLUDED_FROM_HISTORY = new Set<string>([
-    Events.TickStarted,
-    Events.TickEnded,
-    Events.BuildingLevelUp,
-  ]);
 
   /**
    * События, которые не нужно логировать (циклические события).
@@ -122,9 +102,6 @@ export class EventBus {
     // Увеличиваем счётчик событий за тик
     this.eventsPerTick++;
 
-    // Добавляем событие в историю
-    this.addToHistory(eventType, payload);
-
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers || eventHandlers.size === 0) {
       // if (!this.EXCLUDED_FROM_LOGGING.has(eventType)) {
@@ -154,26 +131,6 @@ export class EventBus {
     });
   }
 
-  /**
-   * Добавляет событие в историю.
-   */
-  private addToHistory(eventType: string, payload?: unknown): void {
-    // Не добавляем исключенные события в историю
-    if (this.EXCLUDED_FROM_HISTORY.has(eventType)) {
-      return;
-    }
-
-    this.eventHistory.push({
-      eventType,
-      timestamp: Date.now(),
-      payload,
-    });
-
-    // Ограничиваем размер истории
-    if (this.eventHistory.length > this.MAX_HISTORY_SIZE) {
-      this.eventHistory.shift();
-    }
-  }
 
   /**
    * Подписывается на событие указанного типа.
@@ -363,14 +320,6 @@ export class EventBus {
     return result;
   }
 
-  /**
-   * Получение истории последних событий (для отладки).
-   *
-   * @returns массив последних событий (от старых к новым)
-   */
-  getEventHistory(): EventHistoryEntry[] {
-    return [...this.eventHistory];
-  }
 
   /**
    * Получение количества событий, зарегистрированных за последний тик.
