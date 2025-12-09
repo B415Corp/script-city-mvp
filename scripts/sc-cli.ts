@@ -66,7 +66,11 @@ const project = new Project({
   skipAddingFilesFromTsConfig: false,
 });
 
-function parseArgs(): { command: CLICommand | null; target: GenerateTarget | null; options: BaseOptions } {
+function parseArgs(): {
+  command: CLICommand | null;
+  target: GenerateTarget | null;
+  options: BaseOptions;
+} {
   const args = process.argv.slice(2);
   const options: BaseOptions = {
     yes: args.includes('--yes'),
@@ -114,13 +118,17 @@ async function writeFileSafe(filePath: string, content: string, dryRun: boolean)
 }
 
 function getSceneKeys(): string[] {
-  const sceneTypes = project.getSourceFileOrThrow(path.join('src', 'app', 'scene_controller', 'types.ts'));
+  const sceneTypes = project.getSourceFileOrThrow(
+    path.join('src', 'app', 'scene_controller', 'types.ts'),
+  );
   const enumDecl = sceneTypes.getEnumOrThrow('SceneKey');
   return enumDecl.getMembers().map((m) => m.getName());
 }
 
 function addSceneKey(keyName: string, value: string): void {
-  const sceneTypes = project.getSourceFileOrThrow(path.join('src', 'app', 'scene_controller', 'types.ts'));
+  const sceneTypes = project.getSourceFileOrThrow(
+    path.join('src', 'app', 'scene_controller', 'types.ts'),
+  );
   const enumDecl = sceneTypes.getEnumOrThrow('SceneKey');
   if (enumDecl.getMember(keyName)) {
     return;
@@ -129,7 +137,8 @@ function addSceneKey(keyName: string, value: string): void {
 }
 
 function ensureImport(sourcePath: string, namedImport: string, moduleSpecifier: string): void {
-  const source = project.getSourceFile(sourcePath) ?? project.addSourceFileAtPath(path.join(ROOT, sourcePath));
+  const source =
+    project.getSourceFile(sourcePath) ?? project.addSourceFileAtPath(path.join(ROOT, sourcePath));
   const existing = source
     .getImportDeclarations()
     .find((decl) => decl.getModuleSpecifierValue() === moduleSpecifier);
@@ -213,23 +222,30 @@ function addModuleToScenes(moduleClass: string, moduleImport: string, scenes: st
   });
 }
 
-function addSceneConfigEntry(sceneKey: string, sceneClass: string, sceneImport: string, moduleIds: string[]): void {
+function addSceneConfigEntry(
+  sceneKey: string,
+  sceneClass: string,
+  sceneImport: string,
+  moduleIds: string[],
+): void {
   const { array } = getSceneConfigsArray();
   ensureImport(path.join('src', 'app', 'game_app.ts'), sceneClass, sceneImport);
-  const moduleClasses = moduleIds
-    .filter(Boolean)
-    .map((moduleId) => ({
-      className: `${toPascalCase(moduleId)}Module`,
-      importPath: `@/modules/${moduleId}/${moduleId}_module`,
-    }));
-  moduleClasses.forEach((mc) => ensureImport(path.join('src', 'app', 'game_app.ts'), mc.className, mc.importPath));
+  const moduleClasses = moduleIds.filter(Boolean).map((moduleId) => ({
+    className: `${toPascalCase(moduleId)}Module`,
+    importPath: `@/modules/${moduleId}/${moduleId}_module`,
+  }));
+  moduleClasses.forEach((mc) =>
+    ensureImport(path.join('src', 'app', 'game_app.ts'), mc.className, mc.importPath),
+  );
   const existing = findSceneConfig(array, sceneKey);
   if (existing) {
     return;
   }
 
   const modulesInitializer =
-    moduleClasses.length > 0 ? `modules: () => [${moduleClasses.map((m) => `new ${m.className}()`).join(', ')}],` : '';
+    moduleClasses.length > 0
+      ? `modules: () => [${moduleClasses.map((m) => `new ${m.className}()`).join(', ')}],`
+      : '';
 
   array.addElement(
     `{
@@ -377,7 +393,10 @@ ${uiAttach}}
 
   if (answers.withCommandHandler && answers.commandName) {
     const handlerClass = `${toPascalCase(answers.commandName)}CommandHandler`;
-    const handlerPath = path.join(moduleDir, `${toSnakeCase(answers.commandName)}_command_handler.ts`);
+    const handlerPath = path.join(
+      moduleDir,
+      `${toSnakeCase(answers.commandName)}_command_handler.ts`,
+    );
     const handlerContent = `import { BaseCommandHandler } from '@/core/command_processor/handlers';
 import { ICommand, ValidationResult } from '@/core/command_processor/types';
 import { EventBus } from '@/core/event_bus/event_bus';
@@ -605,7 +624,11 @@ export class ${answers.systemClass} implements ISystem {
       console.warn(`⚠ Не найден модуль для автоподключения: ${modulePath}`);
       continue;
     }
-    ensureImport(modulePath, answers.systemClass, `@/ecs/systems/${systemFileName.replace('.ts', '')}`);
+    ensureImport(
+      modulePath,
+      answers.systemClass,
+      `@/ecs/systems/${systemFileName.replace('.ts', '')}`,
+    );
     ensureImport(modulePath, 'ECSManager', '@/core/ecs_manager/ecs_manager');
     const classDecl = source.getClass(() => true);
     const initializeMethod = classDecl?.getMethod('initialize');
@@ -738,13 +761,13 @@ export function create${toolClass}(): ToolRegistration {
       categoryId: '${answers.categoryId}',
       order: ${answers.order},
       behavior: {
-        onUse: (context) => {
+        onUse: (context): void => {
           // TODO: реализовать логику onUse
           context.enqueueCommand({
             type: 'SelectTool',
             timestamp: Date.now(),
             toolId: '${answers.toolId}',
-          } as any);
+          });
         },
       },
     },
@@ -825,4 +848,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-
