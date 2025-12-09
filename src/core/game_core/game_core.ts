@@ -4,7 +4,7 @@ import { Events } from '../event_bus/events';
 import { ModuleManager } from '../module_manager/module_manager';
 import { CommandProcessor } from '../command_processor/command_processor';
 import { TickManager } from '../tick_manager/tick_manager';
-import { ToolManager } from '@/modules/tools/tool_manager';
+import { ToolManager } from '@/core/tool_manager/tool_manager';
 import { CoreConfig } from './types';
 import { SaveManager } from '../save_manager/save_manager';
 import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logger';
@@ -225,15 +225,15 @@ export class GameCore {
 
   /**
    * Получение ToolManager.
-   * ToolManager создается модулем ToolsModule и должен быть зарегистрирован перед использованием.
+   * ToolManager создается модулем-провайдером и должен быть зарегистрирован перед использованием.
    *
    * @returns экземпляр ToolManager
-   * @throws {Error} если ToolManager еще не инициализирован модулем ToolsModule
+   * @throws {Error} если ToolManager еще не инициализирован модулем-провайдером
    */
   public getToolManager(): ToolManager {
     if (!this.toolManager) {
       throw new Error(
-        'ToolManager is not initialized. Make sure ToolsModule is registered and initialized before using tools.',
+        'ToolManager is not initialized. Make sure tools provider module is registered and initialized before using tools.',
       );
     }
     return this.toolManager;
@@ -241,7 +241,7 @@ export class GameCore {
 
   /**
    * Установка ToolManager.
-   * Вызывается модулем ToolsModule при инициализации.
+   * Вызывается модулем-провайдером при инициализации.
    * Этот метод не предназначен для использования вне модулей.
    *
    * @param toolManager - экземпляр ToolManager

@@ -80,6 +80,12 @@ export enum Events {
   ToolActivated = 'ToolActivated',
   /** Инструмент деактивирован */
   ToolDeactivated = 'ToolDeactivated',
+  /** Инструмент использован по клику/действию */
+  ToolUsed = 'ToolUsed',
+  /** Наведение на тайл при активном инструменте */
+  ToolHovered = 'ToolHovered',
+  /** Увод курсора при активном инструменте */
+  ToolUnhovered = 'ToolUnhovered',
 
   // ========== События зданий ==========
   /** Здание повысило уровень */

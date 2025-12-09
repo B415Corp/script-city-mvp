@@ -12,7 +12,7 @@
 6) **Жизненный цикл команды** — `enqueueCommand` → `processCommands` → хэндлер → события результата.
 7) **Подписка на события** — `eventBus.on(...)`, `unsubscribe()`; одноразово — `once`.
 8) **Добавить систему ECS** — создать `ISystem`, `ecs.registerSystem(system)` или вернуть `ecsSystems` из модуля.
-9) **Добавить инструмент** — через `ToolManager.registerTool` (категория + tool), требуется `ToolsModule`.
+9) **Добавить инструмент** — через `ToolManager.registerTool` (категория + tool), требуется `ToolManagerModule` (поднимает менеджер).
 10) **Добавить новую команду** — хэндлер в `command_processor/handlers.ts`, регистрация в `CommandRegistry`, отправка через `enqueueCommand`.
 11) **Сделать модуль с зависимостями** — укажите `dependencies`, ModuleManager выполнит топосорт; падение при отсутствии зависимостей.
 12) **Использовать SaveManager в модуле** — реализуйте `ISnapshotProvider` (snapshotVersion, createSnapshot, restoreFromSnapshot) для сериализации своего состояния.
@@ -81,9 +81,11 @@ sub.unsubscribe();
 3. Используйте `updateInterval` для редких обновлений (например, каждые 5 тиков).
 
 ## Как добавить новый инструмент (Tool)?
-1. Убедитесь, что `ToolsModule` зарегистрирован (даёт `ToolManager`).
-2. Создайте модуль или хук и регистрируйте инструмент через `toolManager.registerTool({ category, tool })`.
-3. Инструмент должен генерировать команды в `CommandProcessor` или публиковать события для логики.
+1. Убедитесь, что `ToolManagerModule` зарегистрирован (даёт `ToolManager`).
+2. Создайте модуль или хук и регистрируйте инструмент через `toolManager.registerTool({ category, tool })`, где `tool.behavior.onUse/onHover/onUnhover` работают через `enqueueCommand`.
+3. Используйте команду `SelectTool` (регистрируется `ToolManagerModule`) для смены инструмента; `ToolManager` сам слушает `TileClicked/TileHovered/TileUnhovered` и эмитит `ToolUsed/ToolActivated/ToolHovered/ToolUnhovered`.
+4. Получить список: `toolManager.getCategories()` / `getToolsByCategory(categoryId)`; активный — `getActiveTool()`; снять выбор — `deactivateTool()`.
+5. Инструмент должен генерировать команды в `CommandProcessor` или публиковать события для логики.
 
 ## Где смотреть последовательность запуска?
 - См. `docs/development/dev_instructions/workflow.md` и архитектурную схему `docs/core_schema.md`.

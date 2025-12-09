@@ -38,7 +38,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │ 3. GameScene: регистрация модулей                            │
 │    └─> moduleManager.registerModule() (без событий)          │
-│        • ToolsModule                                          │
+│        • ToolManagerModule                                   │
 │        • DebugModule                                          │
 │        • BottomBarModule                                      │
 │        • GridModule                                           │
@@ -58,7 +58,7 @@
 │    │    │                                                     │
 │    │    └─> 4.1.3. Инициализация модулей в порядке:          │
 │    │         │                                                │
-│    │         ├─> ToolsModule.initialize()                    │
+│    │         ├─> ToolManagerModule.initialize()              │
 │    │         │   └─> Создание ToolManager (без событий)       │
 │    │         │                                                │
 │    │         ├─> DebugModule.initialize()                    │
@@ -252,7 +252,7 @@ eventBus.on(Events.TickEnded, (data) => {
 │          │
 │          ├─ [2.1ms] ModuleManager.initializeModules()
 │          │          │
-│          │          ├─ ToolsModule.initialize() (без событий)
+│          │          ├─ ToolManagerModule.initialize() (без событий)
 │          │          ├─ DebugModule.initialize() (без событий)
 │          │          ├─ BottomBarModule.initialize() (без событий)
 │          │          ├─ GridModule.initialize() (без событий)
