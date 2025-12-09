@@ -657,6 +657,7 @@ async function generateTool(options: BaseOptions): Promise<void> {
 
   const answers = (await prompts(
     [
+      moduleIdQuestion,
       {
         type: 'text',
         name: 'toolId',
@@ -706,7 +707,6 @@ async function generateTool(options: BaseOptions): Promise<void> {
         choices: sceneKeys.map((key) => ({ title: key, value: key })),
         initial: ['Game'],
       },
-      moduleIdQuestion,
     ],
     { onCancel: () => process.exit(1) },
   )) as ToolAnswers;
