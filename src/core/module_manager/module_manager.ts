@@ -174,7 +174,6 @@ export class ModuleManager {
     return Array.from(this.modules.values()).map((entry) => entry.module);
   }
 
-
   /**
    * Очистка всех модулей и освобождение ресурсов.
    *

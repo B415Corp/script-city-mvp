@@ -40,15 +40,19 @@ export class DevEventBus extends EventBus {
   /**
    * Метрики производительности.
    */
-  private eventMetrics = new Map<string, {
-    count: number;
-    totalTime: number;
-    maxTime: number;
-    lastTime: number;
-  }>();
+  private eventMetrics = new Map<
+    string,
+    {
+      count: number;
+      totalTime: number;
+      maxTime: number;
+      lastTime: number;
+    }
+  >();
+  private readonly now = globalThis.performance?.now.bind(globalThis.performance) ?? Date.now;
 
   emit<T = unknown>(eventType: Events | string, payload?: T): void {
-    const startTime = performance.now();
+    const startTime = this.now();
 
     // Добавляем событие в историю
     this.addToHistory(eventType, payload);
@@ -56,17 +60,18 @@ export class DevEventBus extends EventBus {
     // Вызываем родительский метод
     super.emit(eventType, payload);
 
-    const endTime = performance.now();
+    const endTime = this.now();
     const duration = endTime - startTime;
 
     // Обновляем метрики
     this.updateMetrics(eventType, duration);
 
     // Логируем медленные события
-    if (duration > 5) { // > 5ms считается медленным
+    if (duration > 5) {
+      // > 5ms считается медленным
       debugLog(`🐌 Медленное событие: ${eventType}`, {
         duration: `${duration.toFixed(2)}ms`,
-        payload: typeof payload === 'object' ? Object.keys(payload as object) : payload
+        payload: typeof payload === 'object' ? Object.keys(payload as object) : payload,
       });
     }
   }
@@ -121,20 +126,26 @@ export class DevEventBus extends EventBus {
   /**
    * Получение метрик производительности.
    */
-  getEventMetrics(): Map<string, {
-    count: number;
-    totalTime: number;
-    maxTime: number;
-    lastTime: number;
-    averageTime: number;
-  }> {
-    const result = new Map<string, {
+  getEventMetrics(): Map<
+    string,
+    {
       count: number;
       totalTime: number;
       maxTime: number;
       lastTime: number;
       averageTime: number;
-    }>();
+    }
+  > {
+    const result = new Map<
+      string,
+      {
+        count: number;
+        totalTime: number;
+        maxTime: number;
+        lastTime: number;
+        averageTime: number;
+      }
+    >();
 
     for (const [eventType, metrics] of this.eventMetrics) {
       result.set(eventType, {

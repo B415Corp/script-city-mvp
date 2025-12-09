@@ -30,7 +30,7 @@ export class MapRenderer {
 
   constructor(
     private mapService: IMapService,
-    private eventBus: EventBus
+    private eventBus: EventBus,
   ) {}
 
   /**

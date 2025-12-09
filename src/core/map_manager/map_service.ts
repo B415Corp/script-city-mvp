@@ -21,7 +21,10 @@ export interface IMapService {
   getMapData(): MapData;
 
   /** Получить информацию о тайле по координатам */
-  getTileInfo(tileX: number, tileY: number): {
+  getTileInfo(
+    tileX: number,
+    tileY: number,
+  ): {
     x: number;
     y: number;
     type: number;
@@ -51,7 +54,7 @@ export class MapService implements IMapService {
     this.mapData = DEFAULT_MAP;
     debugLog('Карта загружена', {
       width: this.mapData.mapWidth,
-      height: this.mapData.mapHeight
+      height: this.mapData.mapHeight,
     });
     debugGroupEnd();
   }
@@ -68,7 +71,10 @@ export class MapService implements IMapService {
     return this.mapData;
   }
 
-  getTileInfo(tileX: number, tileY: number): {
+  getTileInfo(
+    tileX: number,
+    tileY: number,
+  ): {
     x: number;
     y: number;
     type: number;
@@ -113,8 +119,9 @@ export class MapService implements IMapService {
   }
 
   isValidTile(tileX: number, tileY: number): boolean {
-    return tileX >= 0 && tileX < this.mapData.mapWidth &&
-           tileY >= 0 && tileY < this.mapData.mapHeight;
+    return (
+      tileX >= 0 && tileX < this.mapData.mapWidth && tileY >= 0 && tileY < this.mapData.mapHeight
+    );
   }
 
   private getTileTypeName(tileType: number): string {

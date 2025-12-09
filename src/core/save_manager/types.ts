@@ -40,10 +40,12 @@ export interface ECSData {
 
 export interface ModuleData {
   // Словарь: moduleId -> сериализованные данные модуля с версией
-  [moduleId: string]: unknown | {
-    version: string;
-    data: unknown;
-  };
+  [moduleId: string]:
+    | unknown
+    | {
+        version: string;
+        data: unknown;
+      };
 }
 
 export interface SerializedComponents {

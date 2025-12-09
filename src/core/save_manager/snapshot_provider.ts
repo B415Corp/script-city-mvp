@@ -4,7 +4,7 @@
  *
  * Теги: `arch:core`, `arch:persistence`, `feature:save-load`
  */
-export interface ISnapshotProvider<TSnapshot = any> {
+export interface ISnapshotProvider<TSnapshot = unknown> {
   /**
    * Версия формата снапшота.
    * Используется для поддержки миграций при изменении формата данных.
@@ -37,7 +37,7 @@ export interface ISnapshotProvider<TSnapshot = any> {
    * @param fromVersion версия старого снапшота
    * @returns новый снапшот в текущем формате
    */
-  migrateSnapshot?(snapshot: any, fromVersion: string): TSnapshot;
+  migrateSnapshot?(snapshot: TSnapshot, fromVersion: string): TSnapshot;
 }
 
 /**
@@ -45,7 +45,9 @@ export interface ISnapshotProvider<TSnapshot = any> {
  *
  * Теги: `arch:core`, `arch:persistence`, `feature:save-load`
  */
-export abstract class BaseSnapshotProvider<TSnapshot = any> implements ISnapshotProvider<TSnapshot> {
+export abstract class BaseSnapshotProvider<TSnapshot = unknown>
+  implements ISnapshotProvider<TSnapshot>
+{
   abstract readonly snapshotVersion: string;
 
   abstract createSnapshot(): TSnapshot;
@@ -55,7 +57,7 @@ export abstract class BaseSnapshotProvider<TSnapshot = any> implements ISnapshot
     return version === this.snapshotVersion;
   }
 
-  migrateSnapshot?(snapshot: any, fromVersion: string): TSnapshot {
+  migrateSnapshot?(snapshot: TSnapshot, fromVersion: string): TSnapshot {
     // Базовая реализация - если версии совпадают, возвращаем как есть
     if (this.isSnapshotCompatible(fromVersion)) {
       return snapshot as TSnapshot;
@@ -63,7 +65,7 @@ export abstract class BaseSnapshotProvider<TSnapshot = any> implements ISnapshot
 
     throw new Error(
       `Snapshot migration required: ${fromVersion} -> ${this.snapshotVersion}. ` +
-      'Override migrateSnapshot() to handle migrations.'
+        'Override migrateSnapshot() to handle migrations.',
     );
   }
 }

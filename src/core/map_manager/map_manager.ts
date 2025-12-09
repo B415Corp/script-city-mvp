@@ -39,11 +39,14 @@ export class MapManager {
     }
 
     // Подписываемся на события изменения тайлов для обновления рендеринга
-    this.eventBus.on<{ x: number; y: number; oldType: number; newType: number }>(Events.TileChanged, (payload) => {
-      if (payload) {
-        this.mapRenderer.updateTile(payload.x, payload.y);
-      }
-    });
+    this.eventBus.on<{ x: number; y: number; oldType: number; newType: number }>(
+      Events.TileChanged,
+      (payload) => {
+        if (payload) {
+          this.mapRenderer.updateTile(payload.x, payload.y);
+        }
+      },
+    );
 
     debugGroupEnd();
   }

@@ -278,15 +278,23 @@ export class SaveManager {
     const moduleManager = this.core.getModuleManager();
 
     // Восстанавливаем данные для каждого модуля
-    for (const [moduleId, moduleState] of Object.entries(state)) {
+    for (const moduleId of Object.keys(state)) {
+      const moduleState = state[moduleId];
       const module = moduleManager.getModule(moduleId);
       if (module !== null) {
         const snapshotProvider = module as ISnapshotProvider;
         if (snapshotProvider.restoreFromSnapshot) {
           try {
-            // Поддержка старого формата (без версии) и нового (с версией)
-            const data = (moduleState as any).data || moduleState;
-            const version = (moduleState as any).version || '1.0.0';
+            const hasVersionedState =
+              typeof moduleState === 'object' &&
+              moduleState !== null &&
+              'data' in moduleState &&
+              'version' in moduleState;
+
+            const data = hasVersionedState ? (moduleState as { data: unknown }).data : moduleState;
+            const version = hasVersionedState
+              ? (moduleState as { version: string }).version
+              : '1.0.0';
 
             snapshotProvider.restoreFromSnapshot(data, version);
             debugLog(`💾 SaveManager: восстановлен модуль "${moduleId}"`);

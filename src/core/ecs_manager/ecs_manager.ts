@@ -2,7 +2,7 @@ import { EventBus } from '../event_bus/event_bus';
 import { ComponentType, EntityId, ISystem } from './types';
 import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 import { ISnapshotProvider, BaseSnapshotProvider } from '../save_manager/snapshot_provider';
-import { ECSData } from '../save_manager/types';
+import { ECSData, SerializedComponents } from '../save_manager/types';
 
 /**
  * Менеджер Entity Component System (ECS) архитектуры.
@@ -19,7 +19,10 @@ import { ECSData } from '../save_manager/types';
  * ecs.addComponent(entityId, { x: 10, y: 20 }, 'Position');
  * const position = ecs.getComponent(entityId, 'Position');
  */
-export class ECSManager extends BaseSnapshotProvider<ECSData> implements ISnapshotProvider<ECSData> {
+export class ECSManager
+  extends BaseSnapshotProvider<ECSData>
+  implements ISnapshotProvider<ECSData>
+{
   /**
    * Реестр всех сущностей в игре.
    * Используется для быстрой проверки существования сущности.
@@ -72,7 +75,7 @@ export class ECSManager extends BaseSnapshotProvider<ECSData> implements ISnapsh
     const entities = this.getAllEntities();
 
     // Получить все компоненты
-    const serializedComponents: any = {};
+    const serializedComponents: SerializedComponents = {};
 
     // Сериализовать все компоненты
     for (const entityId of entities) {
