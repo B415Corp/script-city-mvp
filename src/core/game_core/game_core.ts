@@ -8,6 +8,10 @@ import { ToolManager } from '@/modules/tools/tool_manager';
 import { CoreConfig } from './types';
 import { SaveManager } from '../save_manager/save_manager';
 import { debugGroup, debugGroupEnd, debugLog } from '@/infrastructure/utils/logger';
+import { MapManager } from '../map_manager/map_manager';
+import { SceneController } from '@/app/scene_controller/scene_controller';
+import { SimulationLoop } from '../simulation_loop/simulation_loop';
+import { CommandRegistry } from '../command_processor/command_registry';
 
 export class GameCore {
   private tickManager!: TickManager;
@@ -17,8 +21,10 @@ export class GameCore {
   private commandProcessor!: CommandProcessor;
   private saveManager!: SaveManager;
   private toolManager?: ToolManager;
+  private mapManager!: MapManager;
   private config?: CoreConfig;
-
+  private sceneController?: SceneController;
+  private simulationLoop!: SimulationLoop;
   constructor() {
     // Конструктор пустой, инициализация происходит в initialize()
   }
@@ -30,21 +36,34 @@ export class GameCore {
 
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
     debugGroup('Создание менеджеров');
+    // 1. Создание EventBus для публикации событий
     this.eventBus = new EventBus();
-
+    // 2. Создание CommandRegistry для регистрации хэндлеров команд
+    const commandRegistry = new CommandRegistry();
+    // 3. Создание MapManager для управления картой
+    this.mapManager = new MapManager(this);
+    // 4. Инициализация MapManager
+    this.mapManager.initialize();
+    // 5. Создание ECSManager для управления сущностями и компонентами
     this.ecsManager = new ECSManager();
-    this.moduleManager = new ModuleManager();
-    this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager);
+    // 6. Создание ModuleManager для управления модулями
+    this.moduleManager = new ModuleManager(commandRegistry);
+    // 7. Создание CommandProcessor для обработки команд
+    this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager, commandRegistry);
+    // 8. Создание SaveManager для управления сохранением и загрузкой состояния
     this.saveManager = new SaveManager();
-
+    // 9. Создание SimulationLoop для управления циклом симуляции и обработки команд и систем ECS
+    this.simulationLoop = new SimulationLoop(this.eventBus, this.commandProcessor, this.ecsManager);
+    // 10. Создание TickManager для управления тиками симуляции
     this.tickManager = new TickManager({
       tickRate: config?.tickRate ?? 10,
       maxCatchUpTicks: config?.maxCatchUpTicks ?? 5,
       eventBus: this.eventBus,
-      commandProcessor: this.commandProcessor,
-      ecsManager: this.ecsManager,
     });
     debugGroupEnd();
+
+    // Регистрация базовых хэндлеров команд
+    await this.registerBaseCommandHandlers(commandRegistry);
 
     // Инициализация SaveManager
     await this.saveManager.initialize(this, this.eventBus);
@@ -64,6 +83,34 @@ export class GameCore {
     // 4. Подготовка к работе (но без запуска цикла тиков)
     debugLog('👾 GameCore инициализирован', { config: this.config });
     debugGroupEnd();
+  }
+
+  /**
+   * Регистрация базовых хэндлеров команд.
+   * Эти хэндлеры предоставляют основную функциональность команд.
+   */
+  private async registerBaseCommandHandlers(registry: CommandRegistry): Promise<void> {
+    const {
+      BuildBuildingCommandHandler,
+      BulldozeAreaCommandHandler,
+      ChangeTaxRateCommandHandler,
+      SetPolicyCommandHandler,
+      SetSimulationSpeedCommandHandler,
+      ZoneTileCommandHandler,
+      RemoveZoneCommandHandler,
+    } = await import('../command_processor/handlers');
+
+    registry.registerHandler(new BuildBuildingCommandHandler(this.eventBus));
+    registry.registerHandler(new BulldozeAreaCommandHandler(this.eventBus));
+    registry.registerHandler(new ChangeTaxRateCommandHandler(this.eventBus));
+    registry.registerHandler(new SetPolicyCommandHandler(this.eventBus));
+    registry.registerHandler(new SetSimulationSpeedCommandHandler(this.eventBus));
+    registry.registerHandler(new ZoneTileCommandHandler(this.eventBus));
+    registry.registerHandler(new RemoveZoneCommandHandler(this.eventBus));
+
+    debugLog('Базовые хэндлеры команд зарегистрированы', {
+      count: registry.getRegisteredTypes().length,
+    });
   }
 
   public async start(): Promise<void> {
@@ -153,6 +200,14 @@ export class GameCore {
     return this.saveManager;
   }
 
+  public setSceneController(sceneController: SceneController): void {
+    this.sceneController = sceneController;
+  }
+
+  public getSceneController(): SceneController | undefined {
+    return this.sceneController;
+  }
+
   public setSaveManager(saveManager: SaveManager): void {
     this.saveManager = saveManager;
   }
@@ -162,6 +217,10 @@ export class GameCore {
       throw new Error('Config is not initialized');
     }
     return this.config;
+  }
+
+  public getMapManager(): MapManager {
+    return this.mapManager;
   }
 
   /**

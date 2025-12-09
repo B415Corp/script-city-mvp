@@ -36,6 +36,6 @@ export interface ISystem {
    * @param ecs - Менеджер ECS для доступа к сущностям и компонентам
    * @param eventBus - Событийная шина для публикации событий
    */
-  // eslint-disable-next-line -- параметры deltaTime, ecs, eventBus являются частью сигнатуры типа функции
+
   update(deltaTime: number, ecs: ECSManager, eventBus: EventBus): void;
 }

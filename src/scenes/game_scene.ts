@@ -3,6 +3,7 @@ import { SceneController, SceneInitData } from '@/app/scene_controller/scene_con
 import { SceneKey } from '@/app/scene_controller/types';
 
 import Phaser from 'phaser';
+import { debugError, debugLog } from '@/infrastructure/utils/logger';
 
 /**
  * Основная игровая сцена с симуляцией
@@ -35,6 +36,12 @@ export class GameScene extends Phaser.Scene {
     // Устанавливаем тёмно-серый фон сцены для контраста с сеткой
     this.cameras.main.setBackgroundColor('#1a202c');
 
+    // Подключаем менеджер карты к активной сцене
+    this.core.getMapManager().attachToScene(this);
+
+    // Присоединяем модули к сцене
+    this.attachModulesToScene();
+
     // Запускаем UI-сцену параллельно, если контроллер доступен
     if (this.sceneController) {
       this.sceneController.launchScene(SceneKey.UI, {
@@ -42,10 +49,26 @@ export class GameScene extends Phaser.Scene {
         sceneController: this.sceneController,
       });
     }
+  }
 
-    // Прикрепление модулей к сцене (UI, хоткеи и т.п.)
+  /**
+   * Присоединяет модули к сцене.
+   * Вызывает attachToScene для каждого модуля, который реализует этот метод.
+   */
+  private attachModulesToScene(): void {
     const moduleManager = this.core.getModuleManager();
-    moduleManager.attachModulesToScene(this);
+    const modules = moduleManager.getAllModules();
+
+    for (const module of modules) {
+      if (module.attachToScene) {
+        try {
+          module.attachToScene(this);
+          debugLog(`📦 Модуль ${module.id} присоединён к сцене`);
+        } catch (error) {
+          debugError(`📦 Ошибка присоединения модуля ${module.id} к сцене:`, error);
+        }
+      }
+    }
   }
 
   update(_: number, delta: number): void {

@@ -7,5 +7,4 @@ export interface HandlerInfo {
   once: boolean;
 }
 
-// eslint-disable-next-line -- параметр payload является частью сигнатуры типа функции
 export type EventHandler<T = unknown> = (payload?: T) => void;

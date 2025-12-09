@@ -1,8 +1,9 @@
 import { GameCore } from '../game_core/game_core';
 import { IModule, ModuleEntry } from './types';
-import Phaser from 'phaser';
 import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
 import { ISystem } from '../ecs_manager/types';
+import { ICommandHandler } from '../command_processor/command_handler';
+import { CommandRegistry } from '../command_processor/command_registry';
 
 /**
  * Менеджер модулей симуляции.
@@ -25,7 +26,7 @@ export class ModuleManager {
    */
   private modules: Map<string, ModuleEntry> = new Map();
 
-  constructor() {
+  constructor(private commandRegistry: CommandRegistry) {
     debugLog('📦 ModuleManager создан');
   }
 
@@ -54,6 +55,10 @@ export class ModuleManager {
       moduleId: module.id,
       dependencies: moduleDependencies,
     });
+  }
+
+  registerCommandHandler(handler: ICommandHandler): void {
+    this.commandRegistry.registerHandler(handler);
   }
 
   /**
@@ -167,30 +172,6 @@ export class ModuleManager {
    */
   getAllModules(): IModule[] {
     return Array.from(this.modules.values()).map((entry) => entry.module);
-  }
-
-  /**
-   * Прикрепление модулей к Phaser сцене.
-   *
-   * Вызывает метод `attachToScene(scene)` для всех модулей, которые его реализуют.
-   * Это позволяет модулям создавать UI, подписываться на события сцены и т.д.
-   *
-   * @param scene - Phaser сцена для прикрепления модулей
-   */
-  attachModulesToScene(scene: Phaser.Scene): void {
-    debugGroup('📦 ModuleManager: прикрепление модулей к сцене');
-    for (const entry of this.modules.values()) {
-      const module = entry.module as unknown as { attachToScene?: (scene: Phaser.Scene) => void };
-      if (typeof module.attachToScene === 'function') {
-        try {
-          module.attachToScene(scene);
-          debugLog('Модуль прикреплён к сцене', { moduleId: entry.module.id });
-        } catch (error) {
-          debugLog('Ошибка прикрепления модуля к сцене', { moduleId: entry.module.id, error });
-        }
-      }
-    }
-    debugGroupEnd();
   }
 
   /**

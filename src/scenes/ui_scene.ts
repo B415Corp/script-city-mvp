@@ -34,4 +34,3 @@ export class UiScene extends Phaser.Scene {
     });
   }
 }
-

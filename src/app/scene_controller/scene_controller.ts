@@ -60,4 +60,12 @@ export class SceneController {
   resize(width: number, height: number): void {
     this.game.scale.resize(width, height);
   }
+
+  getActiveSceneKey(): SceneKey | undefined {
+    return this.activeScene;
+  }
+
+  getActiveScene(): Phaser.Scene | undefined {
+    return this.activeScene ? this.game.scene.getScene(this.activeScene) : undefined;
+  }
 }

@@ -83,6 +83,7 @@ export async function bootstrapGame(
   const phaserConfig = createPhaserConfig();
   const game = new Phaser.Game(phaserConfig);
   const sceneController = new SceneController(game);
+  core.setSceneController(sceneController);
   debugGroupEnd();
 
   // 5. Регистрация сцен

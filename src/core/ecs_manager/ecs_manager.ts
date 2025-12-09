@@ -1,6 +1,8 @@
 import { EventBus } from '../event_bus/event_bus';
 import { ComponentType, EntityId, ISystem } from './types';
 import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logger';
+import { ISnapshotProvider, BaseSnapshotProvider } from '../save_manager/snapshot_provider';
+import { ECSData, SerializedComponents } from '../save_manager/types';
 
 /**
  * Менеджер Entity Component System (ECS) архитектуры.
@@ -17,7 +19,10 @@ import { debugLog, debugGroup, debugGroupEnd } from '@/infrastructure/utils/logg
  * ecs.addComponent(entityId, { x: 10, y: 20 }, 'Position');
  * const position = ecs.getComponent(entityId, 'Position');
  */
-export class ECSManager {
+export class ECSManager
+  extends BaseSnapshotProvider<ECSData>
+  implements ISnapshotProvider<ECSData>
+{
   /**
    * Реестр всех сущностей в игре.
    * Используется для быстрой проверки существования сущности.
@@ -57,7 +62,90 @@ export class ECSManager {
    * Создаёт новый экземпляр ECSManager.
    */
   constructor() {
+    super();
     debugLog('🎮 ECSManager создан');
+  }
+
+  // ==================== ISnapshotProvider implementation ====================
+
+  readonly snapshotVersion = '1.0.0';
+
+  createSnapshot(): ECSData {
+    // Получить все сущности
+    const entities = this.getAllEntities();
+
+    // Получить все компоненты
+    const serializedComponents: SerializedComponents = {};
+
+    // Сериализовать все компоненты
+    for (const entityId of entities) {
+      // Получить все компоненты для сущности
+      const entityComponents = this.getAllComponentsForEntity(entityId);
+
+      // Если сущность имеет компоненты, сериализовать их
+      if (entityComponents.size > 0) {
+        serializedComponents[entityId] = {};
+
+        // Сериализовать все компоненты
+        for (const [componentType, componentData] of entityComponents) {
+          // Преобразуем Symbol в строку
+          const componentKey =
+            typeof componentType === 'symbol' ? componentType.toString() : String(componentType);
+
+          // Сериализовать компонент безопасно (удаляем функции и несериализуемые объекты)
+          try {
+            // JSON.parse(JSON.stringify()) автоматически убирает функции, undefined, символы
+            // и другие типы, которые не поддерживаются IndexedDB
+            serializedComponents[entityId][componentKey] = JSON.parse(
+              JSON.stringify(componentData),
+            );
+          } catch (error) {
+            debugLog(
+              `ECSManager: не удалось сериализовать компонент "${componentKey}" для сущности ${entityId}`,
+              { error },
+            );
+            // Пропускаем проблемный компонент - он не будет сохранён
+          }
+        }
+      }
+    }
+
+    return {
+      entities: Array.from(entities),
+      entityIdCounter: this.entityIdCounter,
+      components: serializedComponents,
+    };
+  }
+
+  restoreFromSnapshot(snapshot: ECSData, version: string): void {
+    if (!this.isSnapshotCompatible(version)) {
+      if (this.migrateSnapshot) {
+        const migratedSnapshot = this.migrateSnapshot(snapshot, version);
+        return this.restoreFromSnapshot(migratedSnapshot, this.snapshotVersion);
+      }
+      throw new Error(`Incompatible snapshot version: ${version}`);
+    }
+
+    // Очищаем текущее состояние ECS
+    this.clear();
+
+    // Восстанавливаем счетчик ID сущностей
+    this.entityIdCounter = snapshot.entityIdCounter;
+
+    // Восстанавливаем компоненты для каждой сущности
+    for (const entityId of snapshot.entities) {
+      const entityComponents = snapshot.components[entityId.toString()];
+      if (entityComponents) {
+        for (const [componentType, componentData] of Object.entries(entityComponents)) {
+          // Преобразуем строку обратно в Symbol если нужно
+          const componentKey: string | symbol = componentType.startsWith('Symbol(')
+            ? Symbol(componentType.slice(7, -1))
+            : componentType;
+
+          this.addComponent(entityId, componentData, componentKey);
+        }
+      }
+    }
   }
 
   // ==================== Управление сущностями ====================

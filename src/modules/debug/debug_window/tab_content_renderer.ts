@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameCore } from '@/core/game_core/game_core';
 import { Events } from '@/core/event_bus/events';
+import { DevEventBus, EventHistoryEntry } from '@/core/event_bus/dev_event_bus';
 import { DEBUG_WINDOW_CONSTANTS } from './constants';
 
 /**
@@ -136,8 +137,21 @@ export function renderModulesTab(core: GameCore, modulesText: Phaser.GameObjects
  */
 export function renderEventsTab(core: GameCore, eventsText: Phaser.GameObjects.Text): void {
   const eventBus = core.getEventBus();
-  const eventHistory = eventBus.getEventHistory();
+
+  // Проверяем, является ли EventBus DevEventBus с поддержкой истории
+  const eventHistory: EventHistoryEntry[] =
+    eventBus instanceof DevEventBus ? eventBus.getEventHistory() : [];
   const filteredEvents = eventHistory.filter((entry) => !EXCLUDED_EVENTS.has(entry.eventType));
+
+  // Если история недоступна (обычный EventBus), показываем соответствующее сообщение
+  if (eventHistory.length === 0 && !(eventBus instanceof DevEventBus)) {
+    eventsText.setVisible(true);
+    eventsText.setY(0);
+    eventsText.setText(
+      'Event history disabled in production build.\n\nUse DevEventBus for debugging.',
+    );
+    return;
+  }
 
   eventsText.setVisible(true);
   eventsText.setY(0);
@@ -149,7 +163,7 @@ export function renderEventsTab(core: GameCore, eventsText: Phaser.GameObjects.T
       .slice()
       .reverse() // Показываем последние сверху
       .slice(0, 15) // Показываем максимум 15 событий
-      .map((entry, index) => {
+      .map((entry: EventHistoryEntry, index: number) => {
         const timeAgo = Date.now() - entry.timestamp;
         const timeStr = timeAgo < 1000 ? `${timeAgo}ms` : `${(timeAgo / 1000).toFixed(1)}s`;
         return `${index + 1}. ${entry.eventType}\n   ${timeStr} ago`;

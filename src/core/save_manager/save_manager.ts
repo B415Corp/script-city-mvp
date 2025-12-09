@@ -3,6 +3,7 @@ import { GameCore } from '../game_core/game_core';
 import { CoreConfig } from '../game_core/types';
 import { IStorageProvider } from './storage/types';
 import { IndexedDBStorageProvider } from './storage/indexeddb_storage_provider';
+import { ISnapshotProvider } from './snapshot_provider';
 import {
   CoreSaveData,
   ECSData,
@@ -240,53 +241,8 @@ export class SaveManager {
   private serializeECSState(): ECSData {
     if (!this.core) throw new Error('Core not initialized');
 
-    const ecsManager = this.core.getECSManager();
-
-    // получить все сущности
-    const entities = ecsManager.getAllEntities();
-
-    // получить все компоненты
-    const serializedComponents: SerializedComponents = {};
-
-    // сериализовать все компоненты
-    for (const entityId of entities) {
-      // получить все компоненты для сущности
-      const entityComponents = ecsManager.getAllComponentsForEntity(entityId);
-
-      // если сущность имеет компоненты, сериализовать их
-      if (entityComponents.size > 0) {
-        serializedComponents[entityId] = {};
-
-        // сериализовать все компоненты
-        for (const [componentType, componentData] of entityComponents) {
-          // Преобразуем Symbol в строку
-          const componentKey =
-            typeof componentType === 'symbol' ? componentType.toString() : String(componentType);
-
-          // сериализовать компонент безопасно (удаляем функции и несериализуемые объекты)
-          try {
-            // JSON.parse(JSON.stringify()) автоматически убирает функции, undefined, символы
-            // и другие типы, которые не поддерживаются IndexedDB
-            serializedComponents[entityId][componentKey] = JSON.parse(
-              JSON.stringify(componentData),
-            );
-          } catch (error) {
-            debugError(
-              `💾 SaveManager: не удалось сериализовать компонент "${componentKey}" для сущности ${entityId}`,
-              error,
-            );
-            // Пропускаем проблемный компонент - он не будет сохранён
-          }
-        }
-      }
-    }
-
-    // вернуть сериализованные данные
-    return {
-      entities: Array.from(entities),
-      entityIdCounter: ecsManager.getEntityIdCounter(),
-      components: serializedComponents,
-    };
+    const ecsManager = this.core.getECSManager() as ISnapshotProvider<ECSData>;
+    return ecsManager.createSnapshot();
   }
 
   /**
@@ -308,28 +264,8 @@ export class SaveManager {
   private deserializeECSState(state: ECSData): void {
     if (!this.core) throw new Error('Core not initialized');
 
-    const ecsManager = this.core.getECSManager();
-
-    // Очищаем текущее состояние ECS
-    ecsManager.clear();
-
-    // Восстанавливаем счетчик ID сущностей
-    ecsManager.setEntityIdCounter(state.entityIdCounter);
-
-    // Восстанавливаем компоненты для каждой сущности
-    for (const entityId of state.entities) {
-      const entityComponents = state.components[entityId.toString()];
-      if (entityComponents) {
-        for (const [componentType, componentData] of Object.entries(entityComponents)) {
-          // Преобразуем строку обратно в Symbol если нужно
-          const componentKey: string | symbol = componentType.startsWith('Symbol(')
-            ? Symbol(componentType.slice(7, -1))
-            : componentType;
-
-          ecsManager.addComponent(entityId, componentData, componentKey);
-        }
-      }
-    }
+    const ecsManager = this.core.getECSManager() as ISnapshotProvider<ECSData>;
+    ecsManager.restoreFromSnapshot(state, SAVE_VERSION);
   }
 
   /**
@@ -342,17 +278,32 @@ export class SaveManager {
     const moduleManager = this.core.getModuleManager();
 
     // Восстанавливаем данные для каждого модуля
-    for (const [moduleId, data] of Object.entries(state)) {
+    for (const moduleId of Object.keys(state)) {
+      const moduleState = state[moduleId];
       const module = moduleManager.getModule(moduleId);
-      if (module !== null && typeof module.deserialize === 'function') {
-        try {
-          module.deserialize(data);
-          console.warn(`💾 SaveManager: восстановлен модуль "${moduleId}"`);
-        } catch (error) {
-          console.error(`💾 SaveManager: ошибка восстановления модуля "${moduleId}"`, error);
+      if (module !== null) {
+        const snapshotProvider = module as ISnapshotProvider;
+        if (snapshotProvider.restoreFromSnapshot) {
+          try {
+            const hasVersionedState =
+              typeof moduleState === 'object' &&
+              moduleState !== null &&
+              'data' in moduleState &&
+              'version' in moduleState;
+
+            const data = hasVersionedState ? (moduleState as { data: unknown }).data : moduleState;
+            const version = hasVersionedState
+              ? (moduleState as { version: string }).version
+              : '1.0.0';
+
+            snapshotProvider.restoreFromSnapshot(data, version);
+            debugLog(`💾 SaveManager: восстановлен модуль "${moduleId}"`);
+          } catch (error) {
+            debugLog(`💾 SaveManager: ошибка восстановления модуля "${moduleId}"`, { error });
+          }
         }
-      } else if (module === null) {
-        console.warn(`💾 SaveManager: модуль "${moduleId}" не найден при загрузке сохранения`);
+      } else {
+        debugLog(`💾 SaveManager: модуль "${moduleId}" не найден при загрузке сохранения`);
       }
     }
   }
@@ -368,16 +319,20 @@ export class SaveManager {
     const modules = moduleManager.getAllModules();
     const moduleData: ModuleData = {};
 
-    // Сериализуем только те модули, которые реализуют serialize()
+    // Сериализуем только те модули, которые реализуют ISnapshotProvider
     for (const module of modules) {
-      if (typeof module.serialize === 'function') {
+      const snapshotProvider = module as ISnapshotProvider;
+      if (snapshotProvider.createSnapshot && snapshotProvider.snapshotVersion) {
         try {
-          const data = module.serialize();
+          const data = snapshotProvider.createSnapshot();
           // Проверяем, что данные можно сериализовать через JSON
-          moduleData[module.id] = JSON.parse(JSON.stringify(data));
-          console.warn(`💾 SaveManager: сериализован модуль "${module.id}"`);
+          moduleData[module.id] = {
+            version: snapshotProvider.snapshotVersion,
+            data: JSON.parse(JSON.stringify(data)),
+          };
+          debugLog(`💾 SaveManager: сериализован модуль "${module.id}"`);
         } catch (error) {
-          console.warn(`💾 SaveManager: не удалось сериализовать модуль "${module.id}"`, error);
+          debugLog(`💾 SaveManager: не удалось сериализовать модуль "${module.id}"`, { error });
         }
       }
     }

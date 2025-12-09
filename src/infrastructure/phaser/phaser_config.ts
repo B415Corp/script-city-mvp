@@ -22,4 +22,3 @@ export function createPhaserConfig(): Phaser.Types.Core.GameConfig {
     },
   };
 }
-
