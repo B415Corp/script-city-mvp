@@ -36,15 +36,25 @@ export class GameCore {
 
     // 1. Создание всех менеджеров (EventBus первым, т.к. другие могут его использовать)
     debugGroup('Создание менеджеров');
+    // 1. Создание EventBus для публикации событий
     this.eventBus = new EventBus();
+    // 2. Создание CommandRegistry для регистрации хэндлеров команд
     const commandRegistry = new CommandRegistry();
+    // 3. Создание MapManager для управления картой
     this.mapManager = new MapManager(this);
+    // 4. Инициализация MapManager
     this.mapManager.initialize();
+    // 5. Создание ECSManager для управления сущностями и компонентами
     this.ecsManager = new ECSManager();
+    // 6. Создание ModuleManager для управления модулями
     this.moduleManager = new ModuleManager(commandRegistry);
+    // 7. Создание CommandProcessor для обработки команд
     this.commandProcessor = new CommandProcessor(this.eventBus, this.ecsManager, commandRegistry);
+    // 8. Создание SaveManager для управления сохранением и загрузкой состояния
     this.saveManager = new SaveManager();
+    // 9. Создание SimulationLoop для управления циклом симуляции и обработки команд и систем ECS
     this.simulationLoop = new SimulationLoop(this.eventBus, this.commandProcessor, this.ecsManager);
+    // 10. Создание TickManager для управления тиками симуляции
     this.tickManager = new TickManager({
       tickRate: config?.tickRate ?? 10,
       maxCatchUpTicks: config?.maxCatchUpTicks ?? 5,
