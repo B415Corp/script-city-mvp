@@ -45,7 +45,7 @@
 - **ModuleManager**: регистрация модулей с зависимостями. Пример: `moduleManager.registerModule(new ToolManagerModule()); moduleManager.registerModule(new ZoningToolsModule(), ['tools']);`
 - **MapManager**: подключает `GridModule` к сцене, отдаёт доступ к карте. Пример: `core.getMapManager().attachToScene(scene);`
 - **SaveManager**: сериализация ядра/ECS/модулей. Пример: `await core.getSaveManager().save();`
-- **ToolManager** (ядро, поднимается `ToolManagerModule`): хранит инструменты, подписан на `TileHovered/TileClicked/TileUnhovered`, делегирует активный инструмент и шлёт `ToolActivated/ToolUsed`; команда `SelectTool` регистрируется в провайдере.
+- **ToolManager** (ядро, поднимается `ToolManagerModule`): хранит инструменты, подписан на `TileHovered/TileClicked/TileUnhovered`, делегирует активный инструмент и шлёт `ToolActivated/ToolUsed`; команда `SelectTool` регистрируется в провайдере. Основные вызовы: `getCategories()`, `getToolsByCategory(id)`, `getActiveTool()`, `activateTool(toolId)`, `deactivateTool()`.
 
 ## Поток симуляции на тик
 1. Phaser вызывает `TickManager.updateFromPhaser(delta)`.

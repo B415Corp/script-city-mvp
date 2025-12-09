@@ -83,8 +83,9 @@ sub.unsubscribe();
 ## Как добавить новый инструмент (Tool)?
 1. Убедитесь, что `ToolManagerModule` зарегистрирован (даёт `ToolManager`).
 2. Создайте модуль или хук и регистрируйте инструмент через `toolManager.registerTool({ category, tool })`, где `tool.behavior.onUse/onHover/onUnhover` работают через `enqueueCommand`.
-3. Используйте команду `SelectTool` (регистрируется `ToolManagerModule`) для смены инструмента, `ToolManager` сам слушает `TileClicked/TileHovered` и эмитит `ToolUsed/ToolActivated`.
-4. Инструмент должен генерировать команды в `CommandProcessor` или публиковать события для логики.
+3. Используйте команду `SelectTool` (регистрируется `ToolManagerModule`) для смены инструмента; `ToolManager` сам слушает `TileClicked/TileHovered/TileUnhovered` и эмитит `ToolUsed/ToolActivated/ToolHovered/ToolUnhovered`.
+4. Получить список: `toolManager.getCategories()` / `getToolsByCategory(categoryId)`; активный — `getActiveTool()`; снять выбор — `deactivateTool()`.
+5. Инструмент должен генерировать команды в `CommandProcessor` или публиковать события для логики.
 
 ## Где смотреть последовательность запуска?
 - См. `docs/development/dev_instructions/workflow.md` и архитектурную схему `docs/core_schema.md`.

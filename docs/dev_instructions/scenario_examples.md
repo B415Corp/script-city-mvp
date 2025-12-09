@@ -133,6 +133,7 @@ registerHandler({
 - Поток использования: при клике по карте `GridModule` шлёт событие `TileClicked`; `ToolManager` вызывает `behavior.onUse`, инструмент генерирует команды/события, `ToolManager` эмитит `Events.ToolUsed/ToolHovered/ToolUnhovered` для UI.
 - Сохранения: активный инструмент можно хранить в `ToolManager` и сериализовать через `SaveManager`, если нужно восстанавливать состояние UI.
 - Диагностика: при `enableDebug` видно `ToolActivated/ToolUsed` и команды в `DebugModule`.
+- Быстрые вызовы: `toolManager.getCategories()`, `toolManager.getToolsByCategory('zoning')`, `toolManager.getActiveTool()`, `toolManager.deactivateTool()`.
 
 ```ts
 // Регистрация нового инструмента из модуля
@@ -184,6 +185,40 @@ eventBus.on(Events.TileClicked, ({ tileX, tileY }) => {
   // onUse уже вызовется внутри ToolManager; если нужен overlay/log — подпишись на ToolUsed
 });
 ```
+
+### Мини-сценарий: инструмент постройки одного здания
+**Теги**: `arch:tools`, `arch:commands`, `gameplay:building`, `status:mvp`
+
+```ts
+// В модуле BuildingToolsModule
+toolManager.registerTool({
+  category: { id: 'build', name: 'Строительство', icon: '🏗️', order: 1 },
+  tool: {
+    id: 'build_house_small',
+    type: 'build_house_small',
+    name: 'Дом (мал.)',
+    icon: '🏠',
+    description: 'Построить одиночный дом',
+    categoryId: 'build',
+    order: 1,
+    hotkey: 'B',
+    behavior: {
+      onUse: ({ tile, enqueueCommand }) =>
+        enqueueCommand({
+          type: 'BuildBuilding',
+          buildingType: 'house_small',
+          position: { x: tile.x, y: tile.y },
+          timestamp: Date.now(),
+        }),
+    },
+  },
+});
+```
+
+Использование:
+- UI отправляет `SelectTool` с `toolId: 'build_house_small'`.
+- Пользователь кликает по тайлу → `GridModule` эмитит `TileClicked` → `ToolManager` вызывает `onUse` → команда `BuildBuilding` уходит в `CommandProcessor`.
+- Сброс: `toolManager.deactivateTool()` или команда `SelectTool` на другой инструмент/кнопка «Отмена».
 
 ## Общение модулей между собой (пример)
 **Теги**: `arch:module`, `arch:events`, `arch:commands`, `arch:core`, `status:mvp`
