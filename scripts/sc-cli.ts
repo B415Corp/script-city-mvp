@@ -12,12 +12,15 @@ import {
   SyntaxKind,
 } from 'ts-morph';
 
-type CLICommand = 'generate';
-type GenerateTarget = 'module' | 'scene' | 'system' | 'tool';
+type CLICommand = 'generate' | 'plan' | 'check' | 'help';
+type GenerateTarget = 'module' | 'scene' | 'system' | 'tool' | 'run';
 
 type BaseOptions = {
   yes: boolean;
   dryRun: boolean;
+  file?: string;
+  fix?: boolean;
+  verbose?: boolean;
 };
 
 type ModuleAnswers = {
@@ -56,6 +59,55 @@ type ToolAnswers = {
   moduleId: string;
 };
 
+type PlanFile = {
+  modules?: ModuleAnswers[];
+  scenes?: SceneAnswers[];
+  systems?: SystemAnswers[];
+  tools?: ToolAnswers[];
+  order?: Array<'modules' | 'systems' | 'tools' | 'scenes'>;
+};
+
+const HELP_TEXT = [
+  'Использование:',
+  '  npm run cli -- <команда> [...аргументы]',
+  '  npm run sc-cli -- <команда> [...аргументы]',
+  '  npx tsx scripts/sc-cli.ts <команда> [...аргументы]',
+  '',
+  'Команды:',
+  '  help',
+  '    Показать эту справку.',
+  '',
+  '  generate module [--yes] [--dry-run]',
+  '    Поля: moduleId, moduleClass, scenes[], withCommandHandler (+commandName), withUiScaffold, dependencies[]',
+  '    --yes: moduleId=new_module, moduleClass=NewModule, без сцен/хэндлера/UI/зависимостей',
+  '    --dry-run: только вывод действий, без записи на диск',
+  '',
+  '  generate scene [--yes] [--dry-run]',
+  '    Поля: sceneKey, sceneClass, modules[]',
+  '    --yes: sceneKey=Sandbox, sceneClass=SandboxScene, без модулей',
+  '',
+  '  generate system [--yes] [--dry-run]',
+  '    Поля: systemId, systemClass, priority, updateInterval, moduleIds[]',
+  '    --yes: systemId=custom_system, priority=50, updateInterval=1, без модулей',
+  '',
+  '  generate tool [--yes] [--dry-run]',
+  '    Поля: moduleId, toolId, toolName, toolType, categoryId/categoryName/icon/order, scenes[]',
+  '    --yes: пример zoning:rectangle, moduleId=tools, scenes=[Game], type=select, category=zoning, order=10',
+  '',
+  '  plan run --file plan.json [--dry-run]',
+  '    Плановое создание нескольких сущностей по одному файлу.',
+  '    plan.json:',
+  '      order?: ["modules","systems","tools","scenes"]',
+  '      modules?: ModuleAnswers[]',
+  '      systems?: SystemAnswers[]',
+  '      tools?: ToolAnswers[]',
+  '      scenes?: SceneAnswers[]',
+  '',
+  '  check [--verbose] [--fix]',
+  '    Валидация структуры: src/core, src/ecs/systems (+index), src/modules/<id>/<id>_module.ts, src/scenes/*_scene.ts, SCENE_CONFIGS в src/app/game_app.ts, enum SceneKey',
+  '    --fix: создаёт недостающие каталоги и экспорты в systems/index.ts',
+].join('\n');
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
@@ -75,7 +127,13 @@ function parseArgs(): {
   const options: BaseOptions = {
     yes: args.includes('--yes'),
     dryRun: args.includes('--dry-run'),
+    fix: args.includes('--fix'),
+    verbose: args.includes('--verbose'),
   };
+  const fileIndex = args.findIndex((a) => a === '--file');
+  if (fileIndex >= 0 && args[fileIndex + 1]) {
+    options.file = args[fileIndex + 1];
+  }
 
   const filtered = args.filter((a) => !a.startsWith('--'));
   const command = (filtered[0] as CLICommand) ?? null;
@@ -288,9 +346,9 @@ async function listModuleIds(): Promise<string[]> {
   }
 }
 
-async function generateModule(options: BaseOptions): Promise<void> {
+async function generateModule(options: BaseOptions, preset?: ModuleAnswers): Promise<void> {
   const sceneKeys = getSceneKeys();
-  if (options.yes) {
+  if (options.yes && !preset) {
     prompts.override({
       moduleId: 'new_module',
       moduleClass: 'NewModule',
@@ -301,54 +359,56 @@ async function generateModule(options: BaseOptions): Promise<void> {
     });
   }
 
-  const answers = (await prompts(
-    [
-      {
-        type: 'text',
-        name: 'moduleId',
-        message: 'ID модуля (значение module.id, латиница/слэш/нижнее подчёркивание)',
-        initial: 'new_module',
-      },
-      {
-        type: 'text',
-        name: 'moduleClass',
-        message: 'Название класса модуля (PascalCase)',
-        initial: (prev: string) => `${toPascalCase(prev || 'New')}Module`,
-      },
-      {
-        type: 'multiselect',
-        name: 'scenes',
-        message: 'Какие сцены подключить автоматически?',
-        choices: sceneKeys.map((key) => ({ title: key, value: key })),
-      },
-      {
-        type: 'confirm',
-        name: 'withCommandHandler',
-        message: 'Нужен ли новый хэндлер команды для CommandProcessor?',
-        initial: false,
-      },
-      {
-        type: (prev: boolean) => (prev ? 'text' : null),
-        name: 'commandName',
-        message: 'Как будет называться тип команды (Command.type)? Пример: SelectTool',
-        initial: 'CustomCommand',
-      },
-      {
-        type: 'confirm',
-        name: 'withUiScaffold',
-        message: 'Создать простой UI-контейнер с названием модуля на сцене?',
-        initial: false,
-      },
-      {
-        type: 'list',
-        name: 'dependencies',
-        message: 'Какие модули должны грузиться раньше? (id через запятую, можно пусто)',
-        initial: '',
-        separator: ',',
-      },
-    ],
-    { onCancel: () => process.exit(1) },
-  )) as ModuleAnswers;
+  const answers =
+    preset ??
+    ((await prompts(
+      [
+        {
+          type: 'text',
+          name: 'moduleId',
+          message: 'ID модуля (значение module.id, латиница/слэш/нижнее подчёркивание)',
+          initial: 'new_module',
+        },
+        {
+          type: 'text',
+          name: 'moduleClass',
+          message: 'Название класса модуля (PascalCase)',
+          initial: (prev: string) => `${toPascalCase(prev || 'New')}Module`,
+        },
+        {
+          type: 'multiselect',
+          name: 'scenes',
+          message: 'Какие сцены подключить автоматически?',
+          choices: sceneKeys.map((key) => ({ title: key, value: key })),
+        },
+        {
+          type: 'confirm',
+          name: 'withCommandHandler',
+          message: 'Нужен ли новый хэндлер команды для CommandProcessor?',
+          initial: false,
+        },
+        {
+          type: (prev: boolean) => (prev ? 'text' : null),
+          name: 'commandName',
+          message: 'Как будет называться тип команды (Command.type)? Пример: SelectTool',
+          initial: 'CustomCommand',
+        },
+        {
+          type: 'confirm',
+          name: 'withUiScaffold',
+          message: 'Создать простой UI-контейнер с названием модуля на сцене?',
+          initial: false,
+        },
+        {
+          type: 'list',
+          name: 'dependencies',
+          message: 'Какие модули должны грузиться раньше? (id через запятую, можно пусто)',
+          initial: '',
+          separator: ',',
+        },
+      ],
+      { onCancel: () => process.exit(1) },
+    )) as ModuleAnswers);
 
   const moduleFileName = `${answers.moduleId}_module.ts`;
   const moduleDir = path.join(SRC, 'modules', answers.moduleId);
@@ -449,9 +509,9 @@ export class ${handlerClass} extends BaseCommandHandler {
   }
 }
 
-async function generateScene(options: BaseOptions): Promise<void> {
+async function generateScene(options: BaseOptions, preset?: SceneAnswers): Promise<void> {
   const existingSceneKeys = getSceneKeys();
-  if (options.yes) {
+  if (options.yes && !preset) {
     prompts.override({
       sceneKey: 'Sandbox',
       sceneClass: 'SandboxScene',
@@ -459,30 +519,32 @@ async function generateScene(options: BaseOptions): Promise<void> {
     });
   }
 
-  const answers = (await prompts(
-    [
-      {
-        type: 'text',
-        name: 'sceneKey',
-        message: 'Новый ключ SceneKey (без суффикса Scene)',
-        initial: 'Sandbox',
-      },
-      {
-        type: 'text',
-        name: 'sceneClass',
-        message: 'Имя класса сцены (PascalCase)',
-        initial: (prev: string) => `${toPascalCase(prev || 'Sandbox')}Scene`,
-      },
-      {
-        type: 'list',
-        name: 'modules',
-        message: 'Какие модули подключать при старте? (id через запятую, можно пусто)',
-        initial: '',
-        separator: ',',
-      },
-    ],
-    { onCancel: () => process.exit(1) },
-  )) as SceneAnswers;
+  const answers =
+    preset ??
+    ((await prompts(
+      [
+        {
+          type: 'text',
+          name: 'sceneKey',
+          message: 'Новый ключ SceneKey (без суффикса Scene)',
+          initial: 'Sandbox',
+        },
+        {
+          type: 'text',
+          name: 'sceneClass',
+          message: 'Имя класса сцены (PascalCase)',
+          initial: (prev: string) => `${toPascalCase(prev || 'Sandbox')}Scene`,
+        },
+        {
+          type: 'list',
+          name: 'modules',
+          message: 'Какие модули подключать при старте? (id через запятую, можно пусто)',
+          initial: '',
+          separator: ',',
+        },
+      ],
+      { onCancel: () => process.exit(1) },
+    )) as SceneAnswers);
 
   if (existingSceneKeys.includes(answers.sceneKey)) {
     console.warn(`⚠ SceneKey ${answers.sceneKey} уже существует, новая запись не будет добавлена`);
@@ -530,9 +592,9 @@ export class ${answers.sceneClass} extends Phaser.Scene {
   }
 }
 
-async function generateSystem(options: BaseOptions): Promise<void> {
+async function generateSystem(options: BaseOptions, preset?: SystemAnswers): Promise<void> {
   const moduleChoices = await listModuleIds();
-  if (options.yes) {
+  if (options.yes && !preset) {
     prompts.override({
       systemId: 'custom_system',
       systemClass: 'CustomSystem',
@@ -542,41 +604,43 @@ async function generateSystem(options: BaseOptions): Promise<void> {
     });
   }
 
-  const answers = (await prompts(
-    [
-      {
-        type: 'text',
-        name: 'systemId',
-        message: 'ID системы (system.id, строка)',
-        initial: 'custom_system',
-      },
-      {
-        type: 'text',
-        name: 'systemClass',
-        message: 'Имя класса системы (PascalCase)',
-        initial: (prev: string) => `${toPascalCase(prev || 'custom_system')}System`,
-      },
-      {
-        type: 'number',
-        name: 'priority',
-        message: 'Приоритет выполнения (меньше = раньше)',
-        initial: 50,
-      },
-      {
-        type: 'number',
-        name: 'updateInterval',
-        message: 'Интервал обновления в тиках (1 = каждый тик)',
-        initial: 1,
-      },
-      {
-        type: 'multiselect',
-        name: 'moduleIds',
-        message: 'В каких модулях зарегистрировать систему? (можно пропустить)',
-        choices: moduleChoices.map((m) => ({ title: m, value: m })),
-      },
-    ],
-    { onCancel: () => process.exit(1) },
-  )) as SystemAnswers;
+  const answers =
+    preset ??
+    ((await prompts(
+      [
+        {
+          type: 'text',
+          name: 'systemId',
+          message: 'ID системы (system.id, строка)',
+          initial: 'custom_system',
+        },
+        {
+          type: 'text',
+          name: 'systemClass',
+          message: 'Имя класса системы (PascalCase)',
+          initial: (prev: string) => `${toPascalCase(prev || 'custom_system')}System`,
+        },
+        {
+          type: 'number',
+          name: 'priority',
+          message: 'Приоритет выполнения (меньше = раньше)',
+          initial: 50,
+        },
+        {
+          type: 'number',
+          name: 'updateInterval',
+          message: 'Интервал обновления в тиках (1 = каждый тик)',
+          initial: 1,
+        },
+        {
+          type: 'multiselect',
+          name: 'moduleIds',
+          message: 'В каких модулях зарегистрировать систему? (можно пропустить)',
+          choices: moduleChoices.map((m) => ({ title: m, value: m })),
+        },
+      ],
+      { onCancel: () => process.exit(1) },
+    )) as SystemAnswers);
 
   const systemFileName = `${toSnakeCase(answers.systemId)}_system.ts`;
   const systemPath = path.join(SRC, 'ecs', 'systems', systemFileName);
@@ -645,10 +709,10 @@ export class ${answers.systemClass} implements ISystem {
   }
 }
 
-async function generateTool(options: BaseOptions): Promise<void> {
+async function generateTool(options: BaseOptions, preset?: ToolAnswers): Promise<void> {
   const sceneKeys = getSceneKeys();
   const moduleChoices = await listModuleIds();
-  if (options.yes) {
+  if (options.yes && !preset) {
     prompts.override({
       toolId: 'zoning:rectangle',
       toolName: 'Zoning Rectangle',
@@ -678,61 +742,63 @@ async function generateTool(options: BaseOptions): Promise<void> {
           initial: 'tools',
         };
 
-  const answers = (await prompts(
-    [
-      moduleIdQuestion,
-      {
-        type: 'text',
-        name: 'toolId',
-        message: 'ID инструмента (уникальный, например zoning:rectangle)',
-        initial: 'zoning:rectangle',
-      },
-      {
-        type: 'text',
-        name: 'toolName',
-        message: 'Отображаемое имя инструмента',
-        initial: 'Zoning Rectangle',
-      },
-      {
-        type: 'text',
-        name: 'toolType',
-        message: 'Тип инструмента (значение ToolType или строка)',
-        initial: 'select',
-      },
-      {
-        type: 'text',
-        name: 'categoryId',
-        message: 'ID категории (например zoning)',
-        initial: 'zoning',
-      },
-      {
-        type: 'text',
-        name: 'categoryName',
-        message: 'Название категории (как увидит пользователь)',
-        initial: 'Зонирование',
-      },
-      {
-        type: 'text',
-        name: 'icon',
-        message: 'Иконка (emoji или короткий текст)',
-        initial: '🧰',
-      },
-      {
-        type: 'number',
-        name: 'order',
-        message: 'Порядок в категории (меньше = выше)',
-        initial: 10,
-      },
-      {
-        type: 'multiselect',
-        name: 'scenes',
-        message: 'В каких сценах подключить модуль инструментов?',
-        choices: sceneKeys.map((key) => ({ title: key, value: key })),
-        initial: ['Game'],
-      },
-    ],
-    { onCancel: () => process.exit(1) },
-  )) as ToolAnswers;
+  const answers =
+    preset ??
+    ((await prompts(
+      [
+        moduleIdQuestion,
+        {
+          type: 'text',
+          name: 'toolId',
+          message: 'ID инструмента (уникальный, например zoning:rectangle)',
+          initial: 'zoning:rectangle',
+        },
+        {
+          type: 'text',
+          name: 'toolName',
+          message: 'Отображаемое имя инструмента',
+          initial: 'Zoning Rectangle',
+        },
+        {
+          type: 'text',
+          name: 'toolType',
+          message: 'Тип инструмента (значение ToolType или строка)',
+          initial: 'select',
+        },
+        {
+          type: 'text',
+          name: 'categoryId',
+          message: 'ID категории (например zoning)',
+          initial: 'zoning',
+        },
+        {
+          type: 'text',
+          name: 'categoryName',
+          message: 'Название категории (как увидит пользователь)',
+          initial: 'Зонирование',
+        },
+        {
+          type: 'text',
+          name: 'icon',
+          message: 'Иконка (emoji или короткий текст)',
+          initial: '🧰',
+        },
+        {
+          type: 'number',
+          name: 'order',
+          message: 'Порядок в категории (меньше = выше)',
+          initial: 10,
+        },
+        {
+          type: 'multiselect',
+          name: 'scenes',
+          message: 'В каких сценах подключить модуль инструментов?',
+          choices: sceneKeys.map((key) => ({ title: key, value: key })),
+          initial: ['Game'],
+        },
+      ],
+      { onCancel: () => process.exit(1) },
+    )) as ToolAnswers);
 
   const toolSlug = toKebabCase(answers.toolId.replace(':', '-'));
   const toolDir = path.join(SRC, 'core', 'tool_manager', 'tools');
@@ -819,29 +885,199 @@ export function create${toolClass}(): ToolRegistration {
   }
 }
 
+async function runPlan(options: BaseOptions): Promise<void> {
+  const planPath = options.file
+    ? path.resolve(process.cwd(), options.file)
+    : path.join(ROOT, 'plan.json');
+  const raw = await fs.readFile(planPath, 'utf8');
+  const plan: PlanFile = JSON.parse(raw);
+
+  const order = plan.order ?? ['modules', 'systems', 'tools', 'scenes'];
+  const phases: Record<string, () => Promise<void>> = {
+    modules: async () => {
+      for (const modulePreset of plan.modules ?? []) {
+        await generateModule(options, modulePreset);
+      }
+    },
+    systems: async () => {
+      for (const systemPreset of plan.systems ?? []) {
+        await generateSystem(options, systemPreset);
+      }
+    },
+    tools: async () => {
+      for (const toolPreset of plan.tools ?? []) {
+        await generateTool(options, toolPreset);
+      }
+    },
+    scenes: async () => {
+      for (const scenePreset of plan.scenes ?? []) {
+        await generateScene(options, scenePreset);
+      }
+    },
+  };
+
+  for (const phase of order) {
+    const runner = phases[phase];
+    if (!runner) continue;
+    console.log(`→ running phase: ${phase}`);
+    await runner();
+  }
+
+  console.log('✔ plan completed');
+}
+
+async function runCheck(options: BaseOptions): Promise<void> {
+  const issues: string[] = [];
+  const fixes: string[] = [];
+
+  async function ensureDirIfNeeded(dir: string, label: string): Promise<void> {
+    try {
+      const stat = await fs.stat(dir);
+      if (!stat.isDirectory()) {
+        issues.push(`${label}: существует, но это не папка`);
+      }
+    } catch {
+      issues.push(`${label}: отсутствует`);
+      if (options.fix) {
+        await ensureDir(dir);
+        fixes.push(`создана папка ${label}`);
+      }
+    }
+  }
+
+  await ensureDirIfNeeded(SRC, 'src');
+  await ensureDirIfNeeded(path.join(SRC, 'core'), 'src/core');
+  await ensureDirIfNeeded(path.join(SRC, 'ecs'), 'src/ecs');
+  await ensureDirIfNeeded(path.join(SRC, 'ecs', 'systems'), 'src/ecs/systems');
+  await ensureDirIfNeeded(path.join(SRC, 'modules'), 'src/modules');
+  await ensureDirIfNeeded(path.join(SRC, 'scenes'), 'src/scenes');
+
+  const gameAppPath = path.join('src', 'app', 'game_app.ts');
+  const gameApp = project.getSourceFile(gameAppPath);
+  if (!gameApp) {
+    issues.push('src/app/game_app.ts: не найден');
+  } else {
+    const sceneConfigs = gameApp.getVariableDeclaration('SCENE_CONFIGS');
+    if (!sceneConfigs) {
+      issues.push('SCENE_CONFIGS: не найден в src/app/game_app.ts');
+    }
+  }
+
+  const sceneTypes = project.getSourceFile(path.join('src', 'app', 'scene_controller', 'types.ts'));
+  if (!sceneTypes) {
+    issues.push('src/app/scene_controller/types.ts: не найден (SceneKey)');
+  } else if (!sceneTypes.getEnum('SceneKey')) {
+    issues.push('SceneKey: не найден в scene_controller/types.ts');
+  }
+
+  // Проверка систем: индекс и файлы
+  const systemsDir = path.join(SRC, 'ecs', 'systems');
+  try {
+    const files = await fs.readdir(systemsDir);
+    const systemFiles = files.filter((f) => f.endsWith('_system.ts'));
+    const indexPath = path.join(systemsDir, 'index.ts');
+    let indexContent = '';
+    try {
+      indexContent = await fs.readFile(indexPath, 'utf8');
+    } catch {
+      issues.push('src/ecs/systems/index.ts: отсутствует');
+      if (options.fix) {
+        await fs.writeFile(indexPath, '', 'utf8');
+        fixes.push('создан пустой index.ts для систем');
+        indexContent = '';
+      }
+    }
+
+    for (const systemFile of systemFiles) {
+      const exportLine = `export * from './${systemFile.replace('.ts', '')}';\n`;
+      if (!indexContent.includes(exportLine)) {
+        issues.push(`index.ts: отсутствует экспорт ${systemFile}`);
+        if (options.fix) {
+          await fs.appendFile(indexPath, exportLine, 'utf8');
+          fixes.push(`добавлен экспорт ${systemFile} в systems/index.ts`);
+        }
+      }
+    }
+  } catch {
+    // уже учтено ensureDirIfNeeded
+  }
+
+  // Проверка модулей: наличие <id>_module.ts
+  try {
+    const moduleEntries = await fs.readdir(path.join(SRC, 'modules'), { withFileTypes: true });
+    for (const entry of moduleEntries) {
+      if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
+      const moduleFile = path.join(SRC, 'modules', entry.name, `${entry.name}_module.ts`);
+      try {
+        await fs.stat(moduleFile);
+      } catch {
+        issues.push(`module ${entry.name}: отсутствует файл ${entry.name}_module.ts`);
+      }
+    }
+  } catch {
+    // уже учтено ensureDirIfNeeded
+  }
+
+  if (issues.length === 0) {
+    console.log('✔ check: несоответствий не найдено');
+  } else {
+    console.log('⚠ check: найдены несоответствия:');
+    issues.forEach((i) => console.log(` - ${i}`));
+  }
+
+  if (fixes.length > 0) {
+    console.log('✔ применены исправления:');
+    fixes.forEach((f) => console.log(` - ${f}`));
+  } else if (options.fix) {
+    console.log('ℹ fix: не потребовалось правок или исправления невозможны автоматически');
+  }
+}
+
+function runHelp(): void {
+  console.log(HELP_TEXT);
+}
+
 async function main() {
   const { command, target, options } = parseArgs();
-  if (command !== 'generate' || !target) {
-    console.log('Usage: sc-cli generate <module|scene|system|tool> [--yes] [--dry-run]');
+  if (!command || command === 'help') {
+    runHelp();
     process.exit(0);
   }
 
-  switch (target) {
-    case 'module':
-      await generateModule(options);
-      break;
-    case 'scene':
-      await generateScene(options);
-      break;
-    case 'system':
-      await generateSystem(options);
-      break;
-    case 'tool':
-      await generateTool(options);
-      break;
-    default:
-      console.error(`Unknown generate target: ${target}`);
+  if (command === 'generate') {
+    if (!target || !['module', 'scene', 'system', 'tool'].includes(target)) {
+      console.error('Usage: sc-cli generate <module|scene|system|tool> [--yes] [--dry-run]');
+      process.exit(1);
+    }
+    switch (target) {
+      case 'module':
+        await generateModule(options);
+        break;
+      case 'scene':
+        await generateScene(options);
+        break;
+      case 'system':
+        await generateSystem(options);
+        break;
+      case 'tool':
+        await generateTool(options);
+        break;
+    }
+    return;
   }
+
+  if (command === 'plan') {
+    await runPlan(options);
+    return;
+  }
+
+  if (command === 'check') {
+    await runCheck(options);
+    return;
+  }
+
+  console.error(`Unknown command: ${command}`);
+  runHelp();
 }
 
 main().catch((error) => {

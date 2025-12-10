@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "cli": "npm run sc-cli --",
     "sc-cli": "tsx scripts/sc-cli.ts",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
