@@ -32,7 +32,7 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
 
-      'no-console': ['warn', { allow: ['warn', 'error', 'group', 'groupEnd'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'group', 'groupEnd', 'log'] }],
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
     },
