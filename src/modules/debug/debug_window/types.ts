@@ -5,7 +5,7 @@ import Phaser from 'phaser';
  * Теги: debug:types, arch:ui
  */
 
-export type TabName = 'common' | 'ecs' | 'modules' | 'events';
+export type TabName = 'common' | 'ecs' | 'modules' | 'tools' | 'events';
 
 export interface TabButton {
   background: Phaser.GameObjects.Rectangle;
