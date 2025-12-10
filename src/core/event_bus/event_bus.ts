@@ -15,7 +15,6 @@ export class EventBus {
 
   constructor() {
     console.log('EventBus init', this.phaser);
-    new ModuleManager(this);
 
     window.addEventListener('resize', () => {
       this.phaser?.scale.resize(window.innerWidth, window.innerHeight);
@@ -24,14 +23,16 @@ export class EventBus {
 
   public async init(): Promise<void> {
     this.phaser = new Phaser.Game(config);
-
-    // this.moduleManager = new ModuleManager(this);
+    await this.initModules();
   }
 
-  public getScene(sceneId: string): void {
-    this.phaser?.events.once('create', () => {
-      const scene = this.phaser!.scene.getScenes();
-      console.log('getScene', scene);
+  private initModules(): Promise<void> {
+    return new Promise((res) => {
+      this.phaser?.events.once('ready', () => {
+        const scene = this.phaser!.scene.getScene('main_scene');
+        this.moduleManager = new ModuleManager(scene);
+        res();
+      });
     });
   }
 }

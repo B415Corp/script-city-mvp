@@ -1,11 +1,18 @@
 import BaseModule from '../base_module';
-import { EventBus } from '../../event_bus/event_bus';
 
 export class KekModule extends BaseModule {
-  constructor(eventBus: EventBus) {
-    super(eventBus);
+  protected scene!: Phaser.Scene;
+
+  constructor(scene: Phaser.Scene) {
+    super(scene);
     console.log('KekModule init');
-    // eventBus.phaser?.scene.add;
+    this.scene = scene;
+
+    this.addText('KekModule: ahuel ?');
+  }
+
+  private addText(text: string): void {
+    this.scene.add.text(20, 20, text);
   }
 }
 

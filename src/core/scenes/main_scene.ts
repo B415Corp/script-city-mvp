@@ -5,7 +5,6 @@ class MainScene extends Phaser.Scene {
 
   create(): void {
     console.log('MainScene create');
-    this.add.text(20, 20, 'text');
   }
 
   update(time: number, delta: number): void {

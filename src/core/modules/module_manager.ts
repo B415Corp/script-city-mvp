@@ -3,17 +3,17 @@ import BaseModule from './base_module';
 import KekModule from './base_modules/kek_module';
 
 export class ModuleManager {
-  private eventBus: EventBus;
+  private scene!: Phaser.Scene;
   private baseModules: (typeof BaseModule)[] = [KekModule];
 
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     this.initbaseModules();
   }
 
   private initbaseModules(): void {
     this.baseModules.forEach((module) => {
-      new module(this.eventBus);
+      new module(this.scene);
     });
   }
 }

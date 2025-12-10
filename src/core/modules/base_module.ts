@@ -1,11 +1,10 @@
 import { EventBus } from '../event_bus/event_bus';
 
 class BaseModule {
-  public eventBus: EventBus;
+  protected scene!: Phaser.Scene;
 
-  constructor(eventBus: EventBus) {
-    this.eventBus = eventBus;
-    console.log('BaseModule init');
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
   }
 }
 
