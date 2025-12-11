@@ -1,4 +1,3 @@
-import { EventBus } from '../event_bus/event_bus';
 import BaseModule from './base_module';
 import KekModule from './base_modules/kek_module';
 
@@ -8,10 +7,9 @@ export class ModuleManager {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.initbaseModules();
   }
 
-  private initbaseModules(): void {
+  public initBaseModules(): void {
     this.baseModules.forEach((module) => {
       new module(this.scene);
     });
