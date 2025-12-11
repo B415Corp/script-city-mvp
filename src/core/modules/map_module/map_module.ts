@@ -89,12 +89,19 @@ export class MapModule extends BaseModule {
     this.container.add(this.highlightGraphics);
 
     this.centerMap();
-    this.drawGrid();
     this.setupCameraControls();
 
     scene.input.on('pointermove', this.handlePointerMove, this);
     scene.input.on('pointerout', this.clearHighlight, this);
     scene.input.on('pointerdown', this.handlePointerDown, this);
+
+    // Подписываемся на событие готовности сцены
+    this.eventBus.on(Events.SceneReady, () => this.onSceneReady());
+  }
+
+  /** Обработчик события готовности сцены */
+  private onSceneReady(): void {
+    this.drawGrid();
   }
 
   /** Центрирование карты */
@@ -127,39 +134,42 @@ export class MapModule extends BaseModule {
   }
 
   /** Отрисовка плитки текстурой */
-private drawTileTexture(tileX: number, tileY: number, tileType: number): void {
-  if (!this.scene || !this.container || !this.isometricMath) return;
+  private drawTileTexture(tileX: number, tileY: number, tileType: number): void {
+    if (!this.scene || !this.container || !this.isometricMath) return;
 
-  const textureKey = TextureType[tileType];
+    const textureKey = TextureType[tileType];
 
-  // КРИТИЧНО: Проверяем текстуру ПЕРЕД созданием
-  if (!this.scene.textures.exists(textureKey)) {
-    console.warn(`Texture ${textureKey} missing for tile ${tileX},${tileY}`);
-    return; // НЕ рисуем ничего вместо fallback
+    // КРИТИЧНО: Проверяем текстуру ПЕРЕД созданием
+    if (!this.scene.textures.exists(textureKey)) {
+      console.warn(`Texture ${textureKey} missing for tile ${tileX},${tileY}`);
+      return; // НЕ рисуем ничего вместо fallback
+    }
+
+    const center = this.isometricMath.tileToScreen(tileX, tileY);
+
+    // Создаем image с явной проверкой
+    const img = this.scene.add.image(center.x, center.y, textureKey);
+
+    // НЕПРАВИЛЬНО: setDisplaySize растягивает текстуру
+    // img.setDisplaySize(this.tileWidth, this.tileHeight);
+
+    // ПРАВИЛЬНО: scale сохраняет пропорции
+    const texture = this.scene.textures.get(textureKey);
+    console.log(`Texture ${textureKey}:`, texture.source[0]?.width, texture.source[0]?.height);
+
+    img.setOrigin(0.5, 0.5);
+    img.setScale(
+      this.tileWidth / texture.source[0]?.width!,
+      this.tileHeight / texture.source[0]?.height!,
+    );
+
+    // Depth для сортировки изометрии
+    img.setDepth(tileY * this.gridWidth + tileX);
+
+    this.container.add(img);
+
+    console.log(`Tile ${tileX},${tileY} added:`, img.texture.key, img.scaleX, img.visible);
   }
-
-  const center = this.isometricMath.tileToScreen(tileX, tileY);
-
-  // Создаем image с явной проверкой
-  const img = this.scene.add.image(center.x, center.y, textureKey);
-
-  // НЕПРАВИЛЬНО: setDisplaySize растягивает текстуру
-  // img.setDisplaySize(this.tileWidth, this.tileHeight);
-
-  // ПРАВИЛЬНО: scale сохраняет пропорции
-  const texture = this.scene.textures.get(textureKey);
-  console.log(`Texture ${textureKey}:`, texture.source[0]?.width, texture.source[0]?.height);
-
-  img.setOrigin(0.5, 0.5);
-  img.setScale(this.tileWidth / texture.source[0]?.width!, this.tileHeight / texture.source[0]?.height!);
-
-  // Depth для сортировки изометрии
-  img.setDepth(tileY * this.gridWidth + tileX);
-
-  this.container.add(img);
-
-  console.log(`Tile ${tileX},${tileY} added:`, img.texture.key, img.scaleX, img.visible);
-}
 
   /** Подсветка */
   private drawHighlight(tileX: number, tileY: number): void {

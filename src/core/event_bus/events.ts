@@ -8,6 +8,7 @@ export enum Events {
   TickStarted = 'TickStarted',
   TickEnded = 'TickEnded',
   MapCentered = 'MapCentered',
+  SceneReady = 'SceneReady',
   //
   TileUnhovered = 'TileUnhovered',
   TileHovered = 'TileHovered',
