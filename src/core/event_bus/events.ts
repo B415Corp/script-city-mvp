@@ -7,4 +7,10 @@ export enum Events {
   // Состояние тиков
   TickStarted = 'TickStarted',
   TickEnded = 'TickEnded',
+  MapCentered = 'MapCentered',
+  //
+  TileUnhovered = 'TileUnhovered',
+  TileHovered = 'TileHovered',
+  CameraZoomed = 'CameraZoomed',
+  TileClicked = 'TileClicked',
 }
