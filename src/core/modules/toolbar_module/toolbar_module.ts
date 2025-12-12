@@ -7,11 +7,8 @@ export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
 
-  private isHovered = false;
-
   // UI элементы
   private container!: Phaser.GameObjects.Container;
-  private toolBar!: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     console.log('ToolbarModule init');
@@ -24,6 +21,7 @@ export class ToolbarModule extends BaseModule {
     this.createToolbar();
   }
 
+  // UI контейнер в модуле
   private barContainer!: Phaser.GameObjects.Container;
 
   private createToolbar(): void {
@@ -45,6 +43,7 @@ export class ToolbarModule extends BaseModule {
       },
     });
 
+    // Кнопка выбора жилой зоны
     const commercialZoneBtn = new ButtonUI(this.scene, {
       xPos: 15 + livingZoneBtn.width + 15,
       yPos: height / 2 - 15,
@@ -53,10 +52,12 @@ export class ToolbarModule extends BaseModule {
       text: 'Коммерческая зона',
       depth: 1001,
       onClick: (): void => {
+        // Отправляем событие в шину по клику
         this.eventBus.emit(Events.SelectTool, { type: 'commercial-zone' });
       },
     });
 
+    // Кнопка выбора коммерческой зоны
     const clearZoneBtn = new ButtonUI(this.scene, {
       xPos: commercialZoneBtn.xPosition + commercialZoneBtn.width + 15,
       yPos: height / 2 - 15,
@@ -65,6 +66,7 @@ export class ToolbarModule extends BaseModule {
       text: 'Очистить зону',
       depth: 1001,
       onClick: (): void => {
+        // Отправляем событие в шину по клику
         this.eventBus.emit(Events.SelectTool, { type: 'clear-zone' });
       },
     });
@@ -80,23 +82,14 @@ export class ToolbarModule extends BaseModule {
     // bg.lineStyle(2, 0x222222, 1);
     bg.strokeRoundedRect(0, 0, width, height, 16);
 
-    this.barContainer.on('pointerover', () => {
-      this.isHovered = true;
-      bg.fillStyle(0x222222, 1);
-      this.scene.input.setDefaultCursor('pointer');
-    });
-
-    this.barContainer.on('pointerout', () => {
-      this.isHovered = false;
-      bg.fillStyle(0x222222, 0.7);
-      this.scene.input.setDefaultCursor('default');
-    });
-
     this.barContainer.add(bg);
 
+    // Добавляем кнопки в бар
     this.barContainer.add(livingZoneBtn.container);
     this.barContainer.add(commercialZoneBtn.container);
     this.barContainer.add(clearZoneBtn.container);
+
+    // Добавляем бар в контейнер модуля
     this.container.add(this.barContainer);
   }
 }
