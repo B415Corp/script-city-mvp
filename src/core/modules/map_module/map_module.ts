@@ -3,23 +3,7 @@ import { Events } from '@/core/event_bus/events';
 import BaseModule from '../base_module';
 import { IsometricMath } from './infrastructure/isometric_math';
 import { DEFAULT_MAP } from './maps/default_map';
-
-const TextureType: Record<number, string> = {
-  1: 'GRASS_BASE_0',
-  2: 'SAND_BASE_0',
-  3: 'SNOW_BASE_0',
-  4: 'FOREST_BASE_0',
-  5: 'MOUNTAIN_BASE_0',
-  // 6: 'ROAD_STRAIGHT_0',
-  // 7: 'ROAD_CROSSROADS_0',
-  // 8: 'RESIDENTIAL_ZONE_0',
-  // 9: 'COMMERCIAL_ZONE_0',
-  // 10: 'INDUSTRIAL_ZONE_0',
-  // 11: 'POWER_PLANT_0',
-  // 12: 'POLICE_STATION_0',
-  // 13: 'HOSPITAL_0',
-  // 14: 'PARK_0',
-};
+import { getTextureType } from '@/core/scenes/tiles';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -64,7 +48,7 @@ export class MapModule extends BaseModule {
     }
 
     const tileType = DEFAULT_MAP.tiles[tileY][tileX];
-    const typeName = TextureType[tileType] || 'UNKNOWN';
+    const typeName = getTextureType(tileType);
 
     return {
       x: tileX,
@@ -137,7 +121,7 @@ export class MapModule extends BaseModule {
   private drawTileTexture(tileX: number, tileY: number, tileType: number): void {
     if (!this.scene || !this.container || !this.isometricMath) return;
 
-    const textureKey = TextureType[tileType];
+    const textureKey = getTextureType(tileType);
 
     // КРИТИЧНО: Проверяем текстуру ПЕРЕД созданием
     if (!this.scene.textures.exists(textureKey)) {

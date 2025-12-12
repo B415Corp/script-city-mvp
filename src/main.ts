@@ -1,18 +1,20 @@
 import { EventBus } from './core/event_bus/event_bus';
 import MainScene from './core/scenes/main_scene';
 
-export interface PhaserConfig {
-  type: number;
-  width: number;
-  height: number;
-  scene: typeof MainScene;
-}
-
-const phaserConfig: PhaserConfig = {
+const phaserConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: window.innerWidth,
   height: window.innerHeight,
-  scene: MainScene,
+  parent: 'game-root',
+  backgroundColor: '#000001',
+  scene: [MainScene],
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { x: 0, y: 0 },
+      debug: true,
+    },
+  },
 };
 
 async function startGame(): Promise<void> {

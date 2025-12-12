@@ -1,5 +1,6 @@
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
+import { Tiles } from './tiles';
 
 class MainScene extends Phaser.Scene {
   private eventBus!: EventBus;
@@ -8,11 +9,8 @@ class MainScene extends Phaser.Scene {
     super({ key: 'main_scene' });
   }
   preload(): void {
-    this.load.image('GRASS_BASE_0', '/assets/tiles/GRASS_BASE_0.png');
-    this.load.image('SAND_BASE_0', '/assets/tiles/SAND_BASE_0.png');
-    this.load.image('SNOW_BASE_0', '/assets/tiles/SNOW_BASE_0.png');
-    this.load.image('FOREST_BASE_0', '/assets/tiles/FOREST_BASE_0.png');
-    this.load.image('MOUNTAIN_BASE_0', '/assets/tiles/MOUNTAIN_BASE_0.png');
+    // Загрузка текстур тайлов для карты
+    this.loadTilesTextures();
   }
 
   init(eventBus: EventBus): void {
@@ -30,6 +28,15 @@ class MainScene extends Phaser.Scene {
     this.eventBus.emit(Events.TickStarted, { time, delta });
     // Этот метод вызывается каждый кадр
     // console.log('Tick', time, delta);
+  }
+
+  private loadTilesTextures(): void {
+    // Загрузка тайлов из Tiles
+    this.load.setPath('/assets/tiles');
+
+    Object.values(Tiles).forEach((key) => {
+      this.load.image(key, `${key}.png`);
+    });
   }
 }
 
