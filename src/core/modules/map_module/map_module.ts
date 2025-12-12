@@ -134,12 +134,7 @@ export class MapModule extends BaseModule {
     // Создаем image с явной проверкой
     const img = this.scene.add.image(center.x, center.y, textureKey);
 
-    // НЕПРАВИЛЬНО: setDisplaySize растягивает текстуру
-    // img.setDisplaySize(this.tileWidth, this.tileHeight);
-
-    // ПРАВИЛЬНО: scale сохраняет пропорции
     const texture = this.scene.textures.get(textureKey);
-    console.log(`Texture ${textureKey}:`, texture.source[0]?.width, texture.source[0]?.height);
 
     img.setOrigin(0.5, 0.5);
     img.setScale(
@@ -151,8 +146,6 @@ export class MapModule extends BaseModule {
     img.setDepth(tileY * this.gridWidth + tileX);
 
     this.container.add(img);
-
-    console.log(`Tile ${tileX},${tileY} added:`, img.texture.key, img.scaleX, img.visible);
   }
 
   /** Подсветка */
