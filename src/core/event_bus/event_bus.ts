@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import ModuleManager from '../modules/module_manager';
-import { PhaserConfig } from '@/main';
+
 import { EventHandler, HandlerInfo, Subscription } from './types';
 import { Events } from './events';
 import MainScene from '../scenes/main_scene';
@@ -9,11 +9,11 @@ export class EventBus {
   private handlers: Map<string, Set<HandlerInfo>> = new Map();
 
   private moduleManager!: ModuleManager | null;
-  private phaserConfig!: PhaserConfig;
+  private phaserConfig!: Phaser.Types.Core.GameConfig;
 
   public phaser!: Phaser.Game | null;
 
-  constructor(phaserConfig: PhaserConfig) {
+  constructor(phaserConfig: Phaser.Types.Core.GameConfig) {
     console.log('EventBus init', this.phaser);
     this.phaserConfig = phaserConfig;
 

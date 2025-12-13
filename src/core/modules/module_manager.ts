@@ -2,11 +2,12 @@ import { EventBus } from '../event_bus/event_bus';
 import BaseModule from './base_module';
 import KekModule from './base_modules/kek_module';
 import MapModule from './map_module/map_module';
+import { ToolsModule } from './toosl_module/toosl_module';
 
 export class ModuleManager {
   private scene!: Phaser.Scene;
   private eventBus!: EventBus;
-  private baseModules: (typeof BaseModule)[] = [KekModule, MapModule];
+  private baseModules: (typeof BaseModule)[] = [MapModule, ToolsModule, KekModule];
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     this.scene = scene;

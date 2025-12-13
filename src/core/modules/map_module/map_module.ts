@@ -139,7 +139,6 @@ export class MapModule extends BaseModule {
 
     // ПРАВИЛЬНО: scale сохраняет пропорции
     const texture = this.scene.textures.get(textureKey);
-    console.log(`Texture ${textureKey}:`, texture.source[0]?.width, texture.source[0]?.height);
 
     img.setOrigin(0.5, 0.5);
     img.setScale(
@@ -151,8 +150,6 @@ export class MapModule extends BaseModule {
     img.setDepth(tileY * this.gridWidth + tileX);
 
     this.container.add(img);
-
-    console.log(`Tile ${tileX},${tileY} added:`, img.texture.key, img.scaleX, img.visible);
   }
 
   /** Подсветка */
