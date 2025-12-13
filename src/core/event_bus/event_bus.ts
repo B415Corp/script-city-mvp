@@ -31,7 +31,7 @@ export class EventBus {
         const scene = this.phaser!.scene.getScene('main_scene') as MainScene;
         scene.init(this);
         this.moduleManager = new ModuleManager(scene, this);
-        this.moduleManager.initBaseModules();
+        this.moduleManager.init();
         res();
       });
     });

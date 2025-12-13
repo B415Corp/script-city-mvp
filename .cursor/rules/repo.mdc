@@ -14,8 +14,4 @@ alwaysApply: true
 
 Используй нейминг по типу 'core_folder', 'command_processor'
 
-Ядро лежит в .\src\core
-ECS - .\src\ecs
-Сцены - .\src\scenes
-
 Соблюдай OOP, SOLID, Clean code.

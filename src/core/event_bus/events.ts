@@ -14,4 +14,9 @@ export enum Events {
   TileHovered = 'TileHovered',
   CameraZoomed = 'CameraZoomed',
   TileClicked = 'TileClicked',
+
+  // модули
+  ModuleEnabled = 'ModuleEnabled',
+  ModuleDisabled = 'ModuleDisabled',
+  ModuleError = 'ModuleError',
 }
