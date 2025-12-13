@@ -2,6 +2,7 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import BaseModule from '../base_module';
 import { Events } from '@/core/event_bus/events';
 import { ButtonUI } from '@/ui/button.ui';
+import { ToolsEvents } from '../toosl_module/types';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -39,7 +40,7 @@ export class ToolbarModule extends BaseModule {
       text: 'Жилая зона',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit(Events.SelectTool, { type: 'living-zone' });
+        this.eventBus.emit<ToolsEvents>(Events.SelectTool, { type: 'living_zone' });
       },
     });
 
@@ -53,7 +54,7 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         // Отправляем событие в шину по клику
-        this.eventBus.emit(Events.SelectTool, { type: 'commercial-zone' });
+        this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
       },
     });
 
@@ -67,7 +68,7 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         // Отправляем событие в шину по клику
-        this.eventBus.emit(Events.SelectTool, { type: 'clear-zone' });
+        this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
       },
     });
 
