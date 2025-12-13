@@ -1,5 +1,5 @@
-import { EventBus } from '../event_bus/event_bus';
-import { Events } from '../event_bus/events';
+import { EventBus } from '../../event_bus/event_bus';
+import { Events } from '../../event_bus/events';
 
 // Базовый класс для критических системных модулей без которых игра не сможет работать.
 // Такие модули обеспечивают основную функциональность: рендеринг, ядро, инфраструктуру.

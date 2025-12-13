@@ -19,8 +19,6 @@ class MainScene extends Phaser.Scene {
 
   create(): void {
     console.log('MainScene create');
-    console.log(this.textures.exists('GRASS_BASE_0'));
-    console.log(this.textures.exists('SAND_BASE_0'));
     this.eventBus.emit(Events.SceneReady, {});
   }
 

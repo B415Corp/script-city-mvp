@@ -1,6 +1,5 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import CustomModule from '../custom_module';
-
+import CustomModule from '../extends/custom_module';
 export class KekModule extends CustomModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
@@ -13,9 +12,7 @@ export class KekModule extends CustomModule {
 
     this.addText('KekModule: ahuel ?');
 
-    // this.eventBus.on(Events.TickStarted, (res) => {
-    //   console.log('res', res);
-    // });
+    // this.eventBus.emit<ToolsEvents>(Events.SelectTool, { type: 'test_tool' });
   }
 
   private addText(text: string): void {

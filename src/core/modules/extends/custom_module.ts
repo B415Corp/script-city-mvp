@@ -1,9 +1,10 @@
-import { EventBus } from '../event_bus/event_bus';
-import { Events } from '../event_bus/events';
-
 // Базовый класс для дополнительных модулей, расширений и модов.
 // Такие модули расширяют возможности игры: UI-панели, инструменты, пользовательский контент.
 // Могут быть загружены/выгружены динамически без нарушения работы ядра игры.
+
+import { EventBus } from '@/core/event_bus/event_bus';
+import { Events } from '@/core/event_bus/events';
+
 // Регистрируются в customModuleRegistry ModuleManager'а.
 abstract class CustomModule {
   // название модуля

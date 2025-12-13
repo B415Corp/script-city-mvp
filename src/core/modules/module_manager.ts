@@ -1,12 +1,16 @@
 import { EventBus } from '../event_bus/event_bus';
-import BaseModule from './base_module';
-import KekModule from './base_modules/kek_module';
-import CustomModule from './custom_module';
-import MapModule from './map_module/map_module';
+import BaseModule from './extends/base_module';
+import CustomModule from './extends/custom_module';
+import KekModule from './custom_modules/kek_module';
+import MapModule from './base_modules/map_module/map_module';
+import ToolbarModule from './base_modules/toolbar_module/toolbar_module';
+import { ToolsModule } from './base_modules/toosl_module/toosl_module';
 
 // названия базовых модулей с их классами
 const baseModuleRegistry = {
   MapModule: MapModule,
+  ToolsModule: ToolsModule,
+  ToolbarModule: ToolbarModule,
 } as const;
 
 // названия кастомных модулей с их классами
