@@ -1,6 +1,5 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import BaseModule from '../base_module';
-import { Events } from '@/core/event_bus/events';
 
 export class KekModule extends BaseModule {
   protected scene!: Phaser.Scene;
