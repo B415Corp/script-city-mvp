@@ -1,10 +1,10 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import BaseModule from '../base_module';
 import { ToolsEvents, ToolStackType } from './types';
 import { Events } from '@/core/event_bus/events';
 import { LivingZoneTool } from './tools/living_zone_tool';
 import { CommercialZoneTool } from './tools/commercial_zone_tool';
 import { ClearZoneTool } from './tools/clear_zone_tool';
+import BaseModule from '../../extends/base_module';
 
 export class ToolsModule extends BaseModule {
   protected scene!: Phaser.Scene;

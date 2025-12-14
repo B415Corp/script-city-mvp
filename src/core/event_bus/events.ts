@@ -18,4 +18,9 @@ export enum Events {
 
   // Ивенты инструментов
   SelectTool = 'SelectTool',
+
+  // модули
+  ModuleEnabled = 'ModuleEnabled',
+  ModuleDisabled = 'ModuleDisabled',
+  ModuleError = 'ModuleError',
 }

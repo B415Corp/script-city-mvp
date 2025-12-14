@@ -1,6 +1,6 @@
 import { ButtonUI } from '@/ui/button.ui';
 import { EventBus } from '../event_bus/event_bus';
-import BaseModule from './base_module';
+import { BaseModule } from './extends';
 
 type panelCategories = 'tick' | 'events' | 'tools' | 'map';
 
