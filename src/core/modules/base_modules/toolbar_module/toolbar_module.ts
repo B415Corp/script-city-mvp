@@ -1,8 +1,8 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import BaseModule from '../base_module';
 import { Events } from '@/core/event_bus/events';
 import { ButtonUI } from '@/ui/button.ui';
 import { ToolsEvents } from '../toosl_module/types';
+import BaseModule from '../../extends/base_module';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -28,7 +28,7 @@ export class ToolbarModule extends BaseModule {
   private createToolbar(): void {
     const margin = { left: 10, right: 10, top: 10, bottom: 10 };
     const height = 60;
-    const width = this.scene.cameras.main.width / 2 - (margin.right + margin.left);
+    const width = this.scene.cameras.main.width - (margin.right + margin.left);
     const x = margin.left + this.scene.cameras.main.width / 2 - width / 2;
     const y = this.scene.cameras.main.height - height - margin.bottom;
 
