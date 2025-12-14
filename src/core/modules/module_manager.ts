@@ -4,7 +4,7 @@ import CustomModule from './extends/custom_module';
 import KekModule from './custom_modules/kek_module';
 import MapModule from './base_modules/map_module/map_module';
 import ToolbarModule from './base_modules/toolbar_module/toolbar_module';
-import { ToolsModule } from './base_modules/toosl_module/toosl_module';
+import { ToolsModule } from './base_modules/tools_module/toosl_module';
 
 // названия базовых модулей с их классами
 const baseModuleRegistry = {
