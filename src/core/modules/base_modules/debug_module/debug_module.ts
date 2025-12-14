@@ -134,7 +134,7 @@ export class DebugModule extends BaseModule {
       { name: 'map', component: mapBtn },
     ];
     btns.forEach((btn, ind) => {
-      if (ind === 0) {
+      if (btns[ind].name === this.currentTab) {
         btn.component.setActiveTab(true);
       }
       tabsContainer.add(btn.component.container);
