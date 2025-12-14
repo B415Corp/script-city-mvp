@@ -157,7 +157,7 @@ export class DebugModule extends BaseModule {
 
     // Создаем контент в зависимости от текущей вкладки
     const contentWidth = 305;
-    const contentHeight = 400;
+    const contentHeight = 695;
 
     // Фон контейнера контента
     const contentBg = this.scene.add.graphics();
@@ -196,14 +196,6 @@ export class DebugModule extends BaseModule {
 
   private createTickContent(): void {
     const yOffset = 50;
-    this.scene.add
-      .text(15, yOffset, 'Tick Debug Info:', {
-        fontSize: '14px',
-        fontFamily: 'Arial',
-        color: '#cccccc',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0);
     this.contentContainer.add(
       this.scene.add
         .text(15, yOffset + 25, '• Current tick: 0', {
@@ -227,14 +219,6 @@ export class DebugModule extends BaseModule {
 
   private createEventsContent(): void {
     const yOffset = 50;
-    this.scene.add
-      .text(15, yOffset, 'Events Log:', {
-        fontSize: '14px',
-        fontFamily: 'Arial',
-        color: '#cccccc',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0);
     this.contentContainer.add(
       this.scene.add
         .text(15, yOffset + 25, '• No events yet', {
@@ -248,15 +232,6 @@ export class DebugModule extends BaseModule {
 
   private createToolsContent(): void {
     const yOffset = 50;
-    this.scene.add
-      .text(15, yOffset, 'Available Tools:', {
-        fontSize: '14px',
-        fontFamily: 'Arial',
-        color: '#cccccc',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0);
-
     this.contentContainer.add(
       this.scene.add
         .text(15, yOffset + 25, '• Performance Monitor', {
@@ -280,14 +255,6 @@ export class DebugModule extends BaseModule {
 
   private createMapContent(): void {
     const yOffset = 50;
-    this.scene.add
-      .text(15, yOffset, 'Map Debug:', {
-        fontSize: '14px',
-        fontFamily: 'Arial',
-        color: '#cccccc',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0);
 
     this.contentContainer.add(
       this.scene.add
