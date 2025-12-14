@@ -16,17 +16,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-    },
-  },
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    coverage: {
-      provider: 'v8',
-    },
-    env: {
-      VITE_DEBUG: 'false',
+      '@/base_modules': resolve(__dirname, './src/core/modules/base_modules'),
+      '@/custom_modules': resolve(__dirname, './src/core/modules/custom_modules'),
+      '@/scenes': resolve(__dirname, './src/core/scenes'),
+      '@/event_bus': resolve(__dirname, './src/core/event_bus'),
     },
   },
   server: {
@@ -34,4 +27,3 @@ export default defineConfig({
     open: true,
   },
 });
-
