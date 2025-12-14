@@ -23,10 +23,14 @@
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/extends/*": ["src/core/modules/extends/*"],
+      "@/base_modules/*": ["src/core/modules/base_modules/*"],
+      "@/custom_modules/*": ["src/core/modules/custom_modules/*"],
+      "@/scenes/*": ["src/core/scenes/*"],
+      "@/event_bus/*": ["src/core/event_bus/*"]
     }
   },
   "include": ["src/**/*", "vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
-

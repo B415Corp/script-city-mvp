@@ -2,7 +2,7 @@ import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { Tiles } from './tiles';
 
-class MainScene extends Phaser.Scene {
+export class MainScene extends Phaser.Scene {
   private eventBus!: EventBus;
 
   constructor() {
@@ -37,5 +37,3 @@ class MainScene extends Phaser.Scene {
     });
   }
 }
-
-export default MainScene;

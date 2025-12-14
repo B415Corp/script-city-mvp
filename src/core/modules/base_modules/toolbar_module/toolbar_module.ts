@@ -1,8 +1,8 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { ButtonUI } from '@/ui/button.ui';
-import { ToolsEvents } from '../toosl_module/types';
-import BaseModule from '../../extends/base_module';
+import { BaseModule } from '../../extends';
+import { ToolsEvents } from '../tools_module/types';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;

@@ -6,7 +6,7 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 
 // Регистрируются в customModuleRegistry ModuleManager'а.
-abstract class CustomModule {
+export abstract class CustomModule {
   // название модуля
   protected id!: string;
 
@@ -51,5 +51,3 @@ abstract class CustomModule {
     this.eventBus.emit(Events.ModuleDisabled, { id: this.id });
   }
 }
-
-export default CustomModule;

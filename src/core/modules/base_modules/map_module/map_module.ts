@@ -1,9 +1,9 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import { Events } from '@/core/event_bus/events';
-import { getTextureType } from '@/core/scenes/tiles';
-import BaseModule from '../../extends/base_module';
+import { getTextureType } from '@/core/scenes';
+import { BaseModule } from '../../extends';
 import { IsometricMath } from './infrastructure/isometric_math';
 import { DEFAULT_MAP } from './infrastructure/maps/default_map';
+import { Events } from '@/core/event_bus/events';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -142,8 +142,10 @@ export class MapModule extends BaseModule {
       this.tileHeight / texture.source[0]?.height!,
     );
 
-    // Depth для сортировки изометрии
-    img.setDepth(tileY * this.gridWidth + tileX);
+    // Depth для сортировки изометрии (базовая глубина карты 10 + небольшое смещение для правильного порядка)
+    const baseDepth = 10;
+    const sortOffset = (tileY + tileX) * 0.01; // Минимальное смещение для сортировки
+    img.setDepth(baseDepth + sortOffset);
 
     this.container.add(img);
   }

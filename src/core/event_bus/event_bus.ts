@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import ModuleManager from '../modules/module_manager';
 import { EventHandler, HandlerInfo, Subscription } from './types';
-import { Events } from './events';
-import MainScene from '../scenes/main_scene';
+import { Events } from '@/event_bus/events';
+import { MainScene } from '@/scenes/main_scene';
 
 export class EventBus {
   private handlers: Map<string, Set<HandlerInfo>> = new Map();
