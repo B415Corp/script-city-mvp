@@ -1,5 +1,5 @@
 import { EventBus } from './core/event_bus/event_bus';
-import MainScene from './core/scenes/main_scene';
+import { MainScene } from './core/scenes';
 
 const phaserConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

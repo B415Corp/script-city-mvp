@@ -1,2 +1,2 @@
-export { BaseModule } from './base_module';
-export { CustomModule } from './custom_module';
+export * from './base_module';
+export * from './custom_module';

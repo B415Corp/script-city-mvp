@@ -24,6 +24,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
+      "@/extends/*": ["src/core/modules/extends/*"],
       "@/base_modules/*": ["src/core/modules/base_modules/*"],
       "@/custom_modules/*": ["src/core/modules/custom_modules/*"],
       "@/scenes/*": ["src/core/scenes/*"],

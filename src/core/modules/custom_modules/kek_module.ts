@@ -1,5 +1,6 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import CustomModule from '../extends/custom_module';
+import { CustomModule } from '../extends';
+
 export class KekModule extends CustomModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;

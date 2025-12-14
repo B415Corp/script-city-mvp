@@ -16,10 +16,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@/base_modules': resolve(__dirname, './src/core/modules/base_modules'),
-      '@/custom_modules': resolve(__dirname, './src/core/modules/custom_modules'),
-      '@/scenes': resolve(__dirname, './src/core/scenes'),
-      '@/event_bus': resolve(__dirname, './src/core/event_bus'),
+      '@/extends/*': resolve(__dirname, './src/core/modules/extends/*'),
+      '@/base_modules/*': resolve(__dirname, './src/core/modules/base_modules/*'),
+      '@/custom_modules/*': resolve(__dirname, './src/core/modules/custom_modules/*'),
+      '@/scenes/*': resolve(__dirname, './src/core/scenes/*'),
+      '@/event_bus/*': resolve(__dirname, './src/core/event_bus/*'),
     },
   },
   server: {

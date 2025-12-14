@@ -1,8 +1,9 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import { Events } from '@/core/event_bus/events';
-import { getTextureType } from '@/core/scenes/tiles';
+import { getTextureType } from '@/core/scenes';
+import { BaseModule } from '../../extends';
 import { IsometricMath } from './infrastructure/isometric_math';
 import { DEFAULT_MAP } from './infrastructure/maps/default_map';
+import { Events } from '@/core/event_bus/events';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;

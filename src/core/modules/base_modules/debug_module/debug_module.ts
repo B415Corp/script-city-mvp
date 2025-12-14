@@ -1,6 +1,6 @@
 import { ButtonUI } from '@/ui/button.ui';
-import { EventBus } from '../event_bus/event_bus';
-import { BaseModule } from './extends';
+import { BaseModule } from '../../extends';
+import { EventBus } from '@/core/event_bus/event_bus';
 
 type panelCategories = 'tick' | 'events' | 'tools' | 'map';
 
@@ -40,7 +40,7 @@ export class DebugModule extends BaseModule {
 
   private createPanel(): Phaser.GameObjects.Container {
     const margin = { left: 0, right: 10, top: 10, bottom: 10 };
-    const height = this.scene.cameras.main.height - (margin.top + margin.bottom);
+    const height = this.scene.cameras.main.height / 1.2 - (margin.top + margin.bottom);
     const width = 335 - (margin.right + margin.left);
     const x = this.scene.cameras.main.width - width - margin.right;
     const y = margin.top;
