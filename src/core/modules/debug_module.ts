@@ -45,11 +45,14 @@ export class DebugModule extends BaseModule {
     // Фон бара
     const bg = this.scene.add.graphics();
     bg.fillStyle(0x222222, 0.8);
-    bg.fillRoundedRect(x, y, width, height, 16);
+    bg.fillRoundedRect(0, 0, width, height, 16);
     // // bg.lineStyle(2, 0x222222, 1);
     bg.strokeRoundedRect(0, 0, width, height, 16);
 
-    // Добавляем бар в контейнер модуля
+    // Добавляем фон в контейнер панели
+    this.panelContainer.add(bg);
+
+    // Добавляем панель в контейнер модуля
     this.container.add(this.panelContainer);
   }
 }

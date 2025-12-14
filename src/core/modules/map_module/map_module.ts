@@ -142,8 +142,10 @@ export class MapModule extends BaseModule {
       this.tileHeight / texture.source[0]?.height!,
     );
 
-    // Depth для сортировки изометрии
-    img.setDepth(tileY * this.gridWidth + tileX);
+    // Depth для сортировки изометрии (базовая глубина карты 10 + небольшое смещение для правильного порядка)
+    const baseDepth = 10;
+    const sortOffset = (tileY + tileX) * 0.01; // Минимальное смещение для сортировки
+    img.setDepth(baseDepth + sortOffset);
 
     this.container.add(img);
   }
