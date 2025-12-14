@@ -26,9 +26,7 @@ export class DebugModule extends BaseModule {
     this.createPanel();
 
     const panel = this.createPanel();
-    const tabs = this.createTabs(panel);
-    panel.add(tabs);
-    this.container.add(panel);
+    this.createTabs(panel);
   }
 
   private openDebugPanel(): void {
@@ -64,13 +62,14 @@ export class DebugModule extends BaseModule {
     return panelContainer;
   }
 
-  private createTabs(parentContainer: Phaser.GameObjects.Container): Phaser.GameObjects.Container {
-    const x = parentContainer.originX;
-    const y = parentContainer.originY;
+  private createTabs(panelContainer: Phaser.GameObjects.Container): Phaser.GameObjects.Container {
+    // Получаем координаты панели
+    const x = panelContainer.x;
+    const y = panelContainer.y;
 
     // Контейнер табов
     const tabsContainer = this.scene.add.container(x, y);
-    tabsContainer.setDepth(parentContainer.depth + 101);
+    tabsContainer.setDepth(panelContainer.depth + 100);
 
     // Кнопка выбора коммерческой зоны
     const tickBtn = new ButtonUI(this.scene, {
