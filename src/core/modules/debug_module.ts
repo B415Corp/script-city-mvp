@@ -81,6 +81,7 @@ export class DebugModule extends BaseModule {
       depth: tabsContainer.depth + 1,
       onClick: (): void => {
         this.changeTab('tick');
+        toggleBtns('tick');
       },
     });
 
@@ -94,6 +95,7 @@ export class DebugModule extends BaseModule {
       depth: tabsContainer.depth + 1,
       onClick: (): void => {
         this.changeTab('events');
+        toggleBtns('events');
       },
     });
 
@@ -107,6 +109,7 @@ export class DebugModule extends BaseModule {
       depth: tabsContainer.depth + 1,
       onClick: (): void => {
         this.changeTab('tools');
+        toggleBtns('tools');
       },
     });
 
@@ -120,13 +123,32 @@ export class DebugModule extends BaseModule {
       depth: tabsContainer.depth + 1,
       onClick: (): void => {
         this.changeTab('map');
+        toggleBtns('map');
       },
     });
 
-    tabsContainer.add(tickBtn.container);
-    tabsContainer.add(eventsBtn.container);
-    tabsContainer.add(toolsBtn.container);
-    tabsContainer.add(mapBtn.container);
+    const btns: Array<{ name: panelCategories; component: ButtonUI }> = [
+      { name: 'tick', component: tickBtn },
+      { name: 'events', component: eventsBtn },
+      { name: 'tools', component: toolsBtn },
+      { name: 'map', component: mapBtn },
+    ];
+    btns.forEach((btn, ind) => {
+      if (ind === 0) {
+        btn.component.setActiveTab(true);
+      }
+      tabsContainer.add(btn.component.container);
+    });
+
+    function toggleBtns(buttonName: panelCategories): void {
+      btns.forEach((btn) => {
+        if (btn.name === buttonName) {
+          btn.component.setActiveTab(true);
+        } else {
+          btn.component.setActiveTab(false);
+        }
+      });
+    }
 
     return tabsContainer;
   }
