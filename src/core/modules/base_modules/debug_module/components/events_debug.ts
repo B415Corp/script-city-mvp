@@ -35,7 +35,7 @@ const getEventColor = (event: Events): string => {
 export class EventsDebug extends DebugComponent {
   private container!: Phaser.GameObjects.Container;
   private eventLog: EventLogEntry[] = [];
-  private maxEvents = 20;
+  private maxEvents = 10;
   private eventTexts: Phaser.GameObjects.Text[] = [];
   private eventUnsubscribers: (() => void)[] = [];
 
