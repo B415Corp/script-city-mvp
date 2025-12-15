@@ -3,10 +3,12 @@ import { BaseModule } from '../../extends';
 import { EventBus } from '@/core/event_bus/event_bus';
 import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
+import { TickDebug } from './components/tick_debug';
 
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
   events: EventsDebug,
+  // tick: TickDebug,
 } as const;
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
@@ -36,8 +38,13 @@ export class DebugModule extends BaseModule {
 
     this.registerComponents();
     this.createPanel();
+
+    // Активируем начальный компонент
+    const initialComponent = this.debugComponentsApi.get(this.currentTab);
+    initialComponent?.onActivate();
   }
 
+  // регистрация компонентов
   private registerComponents(): void {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
       const component = new ModuleClass(this.scene, this.eventBus);
@@ -46,16 +53,27 @@ export class DebugModule extends BaseModule {
     });
   }
 
+  // открытие панели отладки
   private openDebugPanel(): void {
     this.isOpen = !this.isOpen;
   }
 
+  // изменение вкладки
   private changeTab(tabName: ComponentsRegister): void {
+    // Деактивируем предыдущий компонент
+    const prevComponent = this.debugComponentsApi.get(this.currentTab);
+    prevComponent?.onDeactivate();
+
     this.currentTab = tabName;
     this.updateContentContainer();
     console.log('Current tab:', this.currentTab);
+
+    // Активируем новый компонент
+    const newComponent = this.debugComponentsApi.get(this.currentTab);
+    newComponent?.onActivate();
   }
 
+  // создание панели отладки
   private createPanel(): void {
     const margin = { left: 0, right: 10, top: 10, bottom: 10 };
     const height = this.scene.cameras.main.height / 1.2 - (margin.top + margin.bottom);
@@ -81,6 +99,7 @@ export class DebugModule extends BaseModule {
     this.createContentContainer();
   }
 
+  // создание табов
   private createTabs(): void {
     // Контейнер табов
     this.tabsContainer = this.scene.add.container(0, 10);
@@ -89,9 +108,9 @@ export class DebugModule extends BaseModule {
 
     Object.entries(this.debugComponents).forEach(([name, component], ind) => {
       const tickBtn = new ButtonUI(this.scene, {
-        xPos: 10 + 80 * ind,
+        xPos: 10 + 85 * ind,
         yPos: 0,
-        // w: 85,
+        w: 85,
         h: 30,
         text: name,
         depth: this.tabsContainer.depth + 1,
@@ -106,6 +125,7 @@ export class DebugModule extends BaseModule {
     });
   }
 
+  // создание контейнера для контента под табами
   private createContentContainer(): void {
     // Контейнер для контента под табами
     this.contentContainer = this.scene.add.container(10, 50);
@@ -116,6 +136,7 @@ export class DebugModule extends BaseModule {
     this.updateContentContainer();
   }
 
+  // обновление контейнера для контента под табами
   private updateContentContainer(): void {
     // Очищаем предыдущий контент
     this.contentContainer.removeAll(true);
@@ -147,6 +168,7 @@ export class DebugModule extends BaseModule {
     tab?.createContent(this.contentContainer);
   }
 
+  // переключение кнопок
   private toggleBtns(buttonName: ComponentsRegister): void {
     this.tabButtons.forEach((component, name) => {
       component.setActiveTab(name === buttonName);

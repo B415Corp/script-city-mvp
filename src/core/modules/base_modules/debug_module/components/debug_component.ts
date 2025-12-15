@@ -10,13 +10,23 @@ export abstract class DebugComponent {
     this.eventBus = eventBus;
   }
 
+  // инициализация компонента
   public onInit(): void {
     console.log('DebugComponent: init', this);
   }
 
+  // уничтожение компонента
   public onDestroy(): void {}
 
+  // обновление компонента
   public onUpdate(): void {}
 
+  // активация компонента
+  public onActivate(): void {}
+
+  // деактивация компонента
+  public onDeactivate(): void {}
+
+  // создание контента
   public createContent(contentContainer: Phaser.GameObjects.Container): void {}
 }

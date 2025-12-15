@@ -6,6 +6,10 @@ export class TickDebug extends DebugComponent {
     super(scene, eventBus);
   }
 
+  public onActivate(): void {}
+
+  public onDeactivate(): void {}
+
   public createContent(contentContainer: Phaser.GameObjects.Container): void {
     const yOffset = 50;
     contentContainer.add(

@@ -22,27 +22,42 @@ export class EventsDebug extends DebugComponent {
   private eventLog: EventLogEntry[] = [];
   private maxEvents = 20;
   private eventTexts: Phaser.GameObjects.Text[] = [];
+  private eventUnsubscribers: (() => void)[] = [];
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     super(scene, eventBus);
   }
 
+  // создание контента
   public createContent(contentContainer: Phaser.GameObjects.Container): void {
     this.container = contentContainer;
     this.container.add(this.clearButton());
+  }
+
+  // активация компонента
+  public onActivate(): void {
     this.initEvents();
   }
 
+  // деактивация компонента
+  public onDeactivate(): void {
+    this.eventUnsubscribers.forEach((unsubscribe) => unsubscribe());
+    this.eventUnsubscribers = [];
+  }
+
+  // инициализация событий
   private initEvents(): void {
     events
       .filter((el) => !excludeList.includes(el))
       .forEach((event) => {
-        this.eventBus.on(event, (payload) => {
+        const subscription = this.eventBus.on(event, (payload) => {
           this.addEvent(event, payload);
         });
+        this.eventUnsubscribers.push(subscription.unsubscribe);
       });
   }
 
+  // добавление события в лог
   private addEvent(event: Events, payload?: unknown): void {
     const entry: EventLogEntry = {
       event,
@@ -60,6 +75,7 @@ export class EventsDebug extends DebugComponent {
     this.updateEventDisplay();
   }
 
+  // обновление отображения событий
   private updateEventDisplay(): void {
     // Очищаем предыдущие текстовые объекты
     this.eventTexts.forEach((text) => text.destroy());
@@ -99,6 +115,7 @@ export class EventsDebug extends DebugComponent {
     });
   }
 
+  // кнопка очистки логов
   private clearButton(): Phaser.GameObjects.Container {
     const { container } = new ButtonUI(this.scene, {
       xPos: 220,
@@ -115,6 +132,7 @@ export class EventsDebug extends DebugComponent {
     return container;
   }
 
+  // очистка логов
   private clearLogs(): void {
     this.eventLog = [];
     this.updateEventDisplay();
