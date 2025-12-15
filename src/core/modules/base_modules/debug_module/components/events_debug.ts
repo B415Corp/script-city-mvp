@@ -17,6 +17,21 @@ const excludeList: Array<Events> = [
   Events.TileUnhovered,
 ];
 
+const palette = ['#9cdcfe', '#c586c0', '#ce9178', '#b5cea8', '#dcdcaa', '#4ec9b0'];
+const eventColorCache = new Map<Events, string>();
+
+// получение цвета для события
+const getEventColor = (event: Events): string => {
+  const cached = eventColorCache.get(event);
+  if (cached) return cached;
+
+  // цвет на основе имени события
+  const hash = Array.from(event).reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 0);
+  const color = palette[hash % palette.length];
+  eventColorCache.set(event, color);
+  return color;
+};
+
 export class EventsDebug extends DebugComponent {
   private container!: Phaser.GameObjects.Container;
   private eventLog: EventLogEntry[] = [];
@@ -103,11 +118,12 @@ export class EventsDebug extends DebugComponent {
       const time = new Date(entry.timestamp).toLocaleTimeString();
       const payloadStr = entry.payload ? ` (${JSON.stringify(entry.payload)})` : '';
       const textContent = `• ${time} - ${entry.event}${payloadStr}`;
+      const color = getEventColor(entry.event);
 
       const text = this.scene.add.text(15, currentY, textContent, {
         fontSize: '12px',
         fontFamily: 'Arial',
-        color: '#ffffff',
+        color,
         wordWrap: { width: maxWidth, useAdvancedWrap: true },
       });
       text.setWordWrapWidth(maxWidth, true);
