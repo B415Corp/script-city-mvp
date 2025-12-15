@@ -14,7 +14,8 @@ export enum Events {
   TileUnhovered = 'TileUnhovered',
   TileHovered = 'TileHovered',
   CameraZoomed = 'CameraZoomed',
-  TileClicked = 'TileClicked',
+  TileClicked = 'TileClickedDown',
+  TileClickedUp = 'TileClickedUp',
 
   // Ивенты инструментов
   SelectTool = 'SelectTool',
