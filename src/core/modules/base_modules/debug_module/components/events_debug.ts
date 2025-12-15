@@ -82,36 +82,42 @@ export class EventsDebug extends DebugComponent {
     this.eventTexts = [];
 
     const yOffset = 50;
-    const lineHeight = 20;
+    const maxWidth = 200; // ширина текста с учётом левого/правого отступа
+    let currentY = yOffset + 25;
 
     if (this.eventLog.length === 0) {
-      const noEventsText = this.scene.add
-        .text(15, yOffset + 25, '• No events yet', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0);
+      const noEventsText = this.scene.add.text(15, currentY, '• No events yet', {
+        fontSize: '12px',
+        fontFamily: 'Arial',
+        color: '#ffffff',
+        wordWrap: { width: maxWidth, useAdvancedWrap: true },
+      });
+      noEventsText.setWordWrapWidth(maxWidth, true);
+      noEventsText.setOrigin(0, 0);
       this.container.add(noEventsText);
       this.eventTexts.push(noEventsText);
       return;
     }
 
-    this.eventLog.forEach((entry, index) => {
+    this.eventLog.forEach((entry) => {
       const time = new Date(entry.timestamp).toLocaleTimeString();
-      const payloadStr = entry.payload ? ` (${JSON.stringify(entry.payload).slice(0, 50)})` : '';
+      const payloadStr = entry.payload ? ` (${JSON.stringify(entry.payload)})` : '';
       const textContent = `• ${time} - ${entry.event}${payloadStr}`;
 
-      const text = this.scene.add
-        .text(15, yOffset + 25 + index * lineHeight, textContent, {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0);
+      const text = this.scene.add.text(15, currentY, textContent, {
+        fontSize: '12px',
+        fontFamily: 'Arial',
+        color: '#ffffff',
+        wordWrap: { width: maxWidth, useAdvancedWrap: true },
+      });
+      text.setWordWrapWidth(maxWidth, true);
+      text.setOrigin(0, 0);
 
       this.container.add(text);
       this.eventTexts.push(text);
+
+      // Обновляем позицию для следующего элемента с учетом реальной высоты текста
+      currentY += text.displayHeight + 4;
     });
   }
 
