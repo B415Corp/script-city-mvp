@@ -1,22 +1,32 @@
 import { ButtonUI } from '@/ui/button.ui';
 import { BaseModule } from '../../extends';
 import { EventBus } from '@/core/event_bus/event_bus';
+import { DebugComponent } from './components/debug_component';
+import { EventsDebug } from './components/events_debug';
 
-type panelCategories = 'tick' | 'events' | 'tools' | 'map';
+// названия базовых модулей с их классами
+const debugComponentsRegister = {
+  events: EventsDebug,
+} as const;
+
+type ComponentsRegister = keyof typeof debugComponentsRegister;
 
 export class DebugModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
 
   private isOpen: boolean = false;
-  private currentTab: panelCategories = 'events';
+  private currentTab: ComponentsRegister = 'events';
+
+  // компоненты панели
+  private tabButtons: Map<string, ButtonUI> = new Map();
+  private debugComponentsApi: Map<string, DebugComponent> = new Map();
+  private debugComponents = debugComponentsRegister;
 
   // UI элементы
-  private container!: Phaser.GameObjects.Container;
   private panelContainer!: Phaser.GameObjects.Container;
   private tabsContainer!: Phaser.GameObjects.Container;
   private contentContainer!: Phaser.GameObjects.Container;
-  private btns: Array<{ name: panelCategories; component: ButtonUI }> = [];
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     console.log('DebugModule: init');
@@ -24,14 +34,23 @@ export class DebugModule extends BaseModule {
     this.scene = scene;
     this.eventBus = eventBus;
 
+    this.registerComponents();
     this.createPanel();
+  }
+
+  private registerComponents(): void {
+    Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
+      const component = new ModuleClass(this.scene, this.eventBus);
+      component.onInit();
+      this.debugComponentsApi.set(name, component);
+    });
   }
 
   private openDebugPanel(): void {
     this.isOpen = !this.isOpen;
   }
 
-  private changeTab(tabName: panelCategories): void {
+  private changeTab(tabName: ComponentsRegister): void {
     this.currentTab = tabName;
     this.updateContentContainer();
     console.log('Current tab:', this.currentTab);
@@ -68,76 +87,22 @@ export class DebugModule extends BaseModule {
     this.tabsContainer.setDepth(this.panelContainer.depth + 100);
     this.panelContainer.add(this.tabsContainer);
 
-    // Кнопка tick
-    const tickBtn = new ButtonUI(this.scene, {
-      xPos: 10,
-      yPos: 0,
-      w: 70,
-      h: 30,
-      text: 'tick',
-      depth: this.tabsContainer.depth + 1,
-      onClick: (): void => {
-        this.changeTab('tick');
-        this.toggleBtns('tick');
-      },
-    });
-
-    // Кнопка events
-    const eventsBtn = new ButtonUI(this.scene, {
-      xPos: 10 + tickBtn.width + 10,
-      yPos: 0,
-      w: 85,
-      h: 30,
-      text: 'events',
-      depth: this.tabsContainer.depth + 1,
-      onClick: (): void => {
-        this.changeTab('events');
-        this.toggleBtns('events');
-      },
-    });
-
-    // Кнопка tools
-    const toolsBtn = new ButtonUI(this.scene, {
-      xPos: 10 + eventsBtn.xPosition! + eventsBtn.width,
-      yPos: 0,
-      w: 80,
-      h: 30,
-      text: 'tools',
-      depth: this.tabsContainer.depth + 1,
-      onClick: (): void => {
-        this.changeTab('tools');
-        this.toggleBtns('tools');
-      },
-    });
-
-    // Кнопка map
-    const mapBtn = new ButtonUI(this.scene, {
-      xPos: 10 + toolsBtn.xPosition! + toolsBtn.width,
-      yPos: 0,
-      w: 80,
-      h: 30,
-      text: 'map',
-      depth: this.tabsContainer.depth + 1,
-      onClick: (): void => {
-        this.changeTab('map');
-        this.toggleBtns('map');
-      },
-    });
-
-    // Сохраняем кнопки в массив
-    this.btns = [
-      { name: 'tick', component: tickBtn },
-      { name: 'events', component: eventsBtn },
-      { name: 'tools', component: toolsBtn },
-      { name: 'map', component: mapBtn },
-    ];
-
-    // Добавляем кнопки в контейнер табов и устанавливаем активную
-    this.btns.forEach((btn) => {
-      this.tabsContainer.add(btn.component.container);
-      if (btn.name === this.currentTab) {
-        btn.component.setActiveTab(true);
-      }
+    Object.entries(this.debugComponents).forEach(([name, component], ind) => {
+      const tickBtn = new ButtonUI(this.scene, {
+        xPos: 10 + 80 * ind,
+        yPos: 0,
+        // w: 85,
+        h: 30,
+        text: name,
+        depth: this.tabsContainer.depth + 1,
+        onClick: (): void => {
+          this.changeTab(name as ComponentsRegister);
+          this.toggleBtns(name as ComponentsRegister);
+        },
+      });
+      this.tabButtons.set(name, tickBtn);
+      tickBtn.setActiveTab(name === this.currentTab);
+      this.tabsContainer.add(tickBtn.container);
     });
   }
 
@@ -178,108 +143,13 @@ export class DebugModule extends BaseModule {
     this.contentContainer.add(titleText);
 
     // Контент для каждой вкладки
-    switch (this.currentTab) {
-      case 'tick':
-        this.createTickContent();
-        break;
-      case 'events':
-        this.createEventsContent();
-        break;
-      case 'tools':
-        this.createToolsContent();
-        break;
-      case 'map':
-        this.createMapContent();
-        break;
-    }
+    const tab = this.debugComponentsApi.get(this.currentTab);
+    tab?.createContent(this.contentContainer);
   }
 
-  private createTickContent(): void {
-    const yOffset = 50;
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 25, '• Current tick: 0', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 45, '• Delta time: 16ms', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-  }
-
-  private createEventsContent(): void {
-    const yOffset = 50;
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 25, '• No events yet', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-  }
-
-  private createToolsContent(): void {
-    const yOffset = 50;
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 25, '• Performance Monitor', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 45, '• Memory Usage', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-  }
-
-  private createMapContent(): void {
-    const yOffset = 50;
-
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 25, '• Tiles loaded: 0', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-
-    this.contentContainer.add(
-      this.scene.add
-        .text(15, yOffset + 45, '• Camera pos: (0,0)', {
-          fontSize: '12px',
-          fontFamily: 'Arial',
-          color: '#ffffff',
-        })
-        .setOrigin(0, 0),
-    );
-  }
-
-  private toggleBtns(buttonName: panelCategories): void {
-    this.btns.forEach((btn) => {
-      btn.component.setActiveTab(btn.name === buttonName);
+  private toggleBtns(buttonName: ComponentsRegister): void {
+    this.tabButtons.forEach((component, name) => {
+      component.setActiveTab(name === buttonName);
     });
   }
 }

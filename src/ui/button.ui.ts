@@ -1,7 +1,7 @@
 export interface ButtonConfig {
   xPos: number;
   yPos: number;
-  w: number;
+  w?: number;
   h: number;
   text: string;
   depth: number;
@@ -34,7 +34,14 @@ export class ButtonUI {
   private initializeButton(config: ButtonConfig): void {
     const margin = { left: 0, right: 10, top: 0, bottom: 0 };
     this.height = config.h;
-    this.width = config.w - (margin.right + margin.left);
+
+    // Если ширина не указана, рассчитываем её на основе текста
+    if (config.w === undefined) {
+      this.width = this.calculateTextWidth(config.text) + 20; // 10px padding с каждой стороны
+    } else {
+      this.width = config.w - (margin.right + margin.left);
+    }
+
     this.xPosition = config.xPos + margin.left;
     this.yPosition = config.yPos + margin.top;
   }
@@ -167,5 +174,21 @@ export class ButtonUI {
     this.button.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
     this.button.lineStyle(strokeWidth, strokeColor, 1);
     this.button.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+  }
+
+  private calculateTextWidth(text: string): number {
+    // Создаем временный текст объект для измерения
+    const tempText = this.scene.add.text(0, 0, text, {
+      fontSize: '20px',
+      fontFamily: 'monospace',
+    });
+
+    const bounds = tempText.getBounds();
+    const width = bounds.width;
+
+    // Уничтожаем временный объект
+    tempText.destroy();
+
+    return width;
   }
 }
