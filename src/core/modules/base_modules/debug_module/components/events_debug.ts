@@ -1,6 +1,7 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { DebugComponent } from './debug_component';
 import { Events } from '@/core/event_bus/events';
+import { ButtonUI } from '@/ui/button.ui';
 
 interface EventLogEntry {
   event: Events;
@@ -28,6 +29,7 @@ export class EventsDebug extends DebugComponent {
 
   public createContent(contentContainer: Phaser.GameObjects.Container): void {
     this.container = contentContainer;
+    this.container.add(this.clearButton());
     this.initEvents();
   }
 
@@ -95,5 +97,26 @@ export class EventsDebug extends DebugComponent {
       this.container.add(text);
       this.eventTexts.push(text);
     });
+  }
+
+  private clearButton(): Phaser.GameObjects.Container {
+    const { container } = new ButtonUI(this.scene, {
+      xPos: 220,
+      yPos: 10,
+      // w: 85,
+      h: 30,
+      text: 'clear',
+      depth: 1,
+      onClick: (): void => {
+        this.clearLogs();
+      },
+    });
+
+    return container;
+  }
+
+  private clearLogs(): void {
+    this.eventLog = [];
+    this.updateEventDisplay();
   }
 }

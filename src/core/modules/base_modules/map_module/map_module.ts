@@ -78,6 +78,7 @@ export class MapModule extends BaseModule {
     scene.input.on('pointermove', this.handlePointerMove, this);
     scene.input.on('pointerout', this.clearHighlight, this);
     scene.input.on('pointerdown', this.handlePointerDown, this);
+    scene.input.on('pointerup', this.handlePointerUp, this);
 
     // Подписываемся на событие готовности сцены
     this.eventBus.on(Events.SceneReady, () => this.onSceneReady());
@@ -330,6 +331,48 @@ export class MapModule extends BaseModule {
     ) {
       // Эмитим событие клика по тайлу
       this.eventBus?.emit(Events.TileClicked, {
+        tileX: tile.tileX,
+        tileY: tile.tileY,
+      });
+    }
+  }
+
+  /** Обработка клика по тайлу */
+  private handlePointerUp(pointer: Phaser.Input.Pointer): void {
+    if (this.isDragging) return;
+    if (!this.scene || !this.container || !this.isometricMath) return;
+
+    // Проверка попадания над UI
+
+    // Обрабатываем только левый клик
+    if (!pointer.leftButtonReleased()) {
+      return;
+    }
+
+    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
+    const containerX = (pointer.x - this.container.x) / this.container.scale;
+    const containerY = (pointer.y - this.container.y) / this.container.scale;
+
+    // Получаем приблизительный тайл
+    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+
+    // Проверяем точное попадание в тайл
+    const tile = this.findTileAtPoint(
+      containerX,
+      containerY,
+      approximateTile.tileX,
+      approximateTile.tileY,
+    );
+
+    if (
+      tile &&
+      tile.tileX >= 0 &&
+      tile.tileX < this.gridWidth &&
+      tile.tileY >= 0 &&
+      tile.tileY < this.gridHeight
+    ) {
+      // Эмитим событие клика по тайлу
+      this.eventBus?.emit(Events.TileClickedUp, {
         tileX: tile.tileX,
         tileY: tile.tileY,
       });
