@@ -65,6 +65,9 @@ export class TickDebug extends DebugComponent {
   }
 
   private updateContent(): void {
+    if (!this.tickText || !this.deltaTimeText || !this.fpsText) {
+      return;
+    }
     this.tickText.setText(`• Current tick: ${this.tick}`);
     this.deltaTimeText.setText(`• Delta time: ${this.deltaTime}ms`);
     this.fpsText.setText(`• FPS: ${this.fps}`);
