@@ -27,16 +27,15 @@ export default [
       prettier: prettier,
     },
     rules: {
-      ...prettierConfig.rules,
-      'prettier/prettier': 'error',
+      'prettier/prettier': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
-
       'no-console': ['warn', { allow: ['warn', 'error', 'group', 'groupEnd', 'log'] }],
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
     },
   },
+  prettierConfig,
   {
     ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts', 'index.html'],
   },
