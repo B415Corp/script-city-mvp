@@ -3,6 +3,7 @@ import ModuleManager from '../modules/module_manager';
 import { EventHandler, HandlerInfo, Subscription } from './types';
 import { Events } from '@/event_bus/events';
 import { MainScene } from '@/scenes/main_scene';
+import { ECSManager } from '../ecs/ecs_manager';
 
 export class EventBus {
   private handlers: Map<string, Set<HandlerInfo>> = new Map();
@@ -10,6 +11,7 @@ export class EventBus {
 
   public moduleManager!: ModuleManager | null;
   public phaser!: Phaser.Game | null;
+  public ecsManager!: ECSManager | null;
 
   constructor(phaserConfig: Phaser.Types.Core.GameConfig) {
     console.log('EventBus init', this.phaser);
@@ -21,8 +23,13 @@ export class EventBus {
   }
 
   public async init(): Promise<void> {
+    await this.initECS();
     await this.initPhaser();
     await this.initModules();
+  }
+
+  private async initECS(): Promise<void> {
+    this.ecsManager = new ECSManager();
   }
 
   private async initModules(): Promise<void> {

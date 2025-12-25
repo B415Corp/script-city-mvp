@@ -3,7 +3,6 @@ import { BaseModule } from '../../extends';
 import { EventBus } from '@/core/event_bus/event_bus';
 import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
-import { TickDebug } from './components/tick_debug';
 
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
