@@ -1,10 +1,8 @@
 import { addEntity, createWorld, EntityId, World } from 'bitecs';
-import house from './store/entity/house';
+import { Entities } from './entities/entities';
 
 // регистрация сущностей для ECS
-const ecsEntities = {
-  house: house,
-} as const;
+const ecsEntities: string[] = Array.from(Object.values(Entities));
 
 // типы сущностей для ECS
 type ecsEntitiesNames = keyof typeof ecsEntities;
@@ -12,11 +10,13 @@ type ecsEntitiesNames = keyof typeof ecsEntities;
 // менеджер ECS
 export class ECSManager {
   private world!: World; // мир для ECS
-  private entities!: Map<ecsEntitiesNames, EntityId>; // сущности для ECS
+  private entities: Map<string, EntityId> = new Map(); // сущности для ECS
 
   constructor() {
-    console.log('ECSManager init');
     this.createWorld();
+    console.group('ECSManager init');
+    console.log('Entities registered:', this.entities);
+    console.groupEnd();
   }
 
   private createWorld(): void {
@@ -27,9 +27,9 @@ export class ECSManager {
   }
 
   private registerEntities(): void {
-    Object.entries(ecsEntities).forEach(([name, entity]) => {
+    Object.entries(ecsEntities).forEach(([name]) => {
       const entityId = addEntity(this.world);
-      this.entities.set(name as ecsEntitiesNames, entityId);
+      this.entities.set(name, entityId);
     });
   }
 }
