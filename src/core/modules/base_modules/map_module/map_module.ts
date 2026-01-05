@@ -11,6 +11,8 @@ export class MapModule extends BaseModule {
   private isometricMath?: IsometricMath;
   private container?: Phaser.GameObjects.Container;
   private highlightGraphics?: Phaser.GameObjects.Graphics;
+  private selectionGraphics?: Phaser.GameObjects.Graphics;
+  private escKey?: Phaser.Input.Keyboard.Key;
 
   // Параметры сетки
   private readonly gridWidth: number = 100;
@@ -23,8 +25,13 @@ export class MapModule extends BaseModule {
   private dragStartX = 0;
   private dragStartY = 0;
 
-  // Текущий подсвеченный тайл
+  // Hover
   private highlightedTile: { x: number; y: number } | null = null;
+
+  // Выделение области
+  private isSelecting = false;
+  private selectStartTile: { x: number; y: number } | null = null;
+  private selectedTiles: { x: number; y: number }[] = [];
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     console.log('MapModule init');
@@ -32,6 +39,7 @@ export class MapModule extends BaseModule {
     this.scene = scene;
     this.eventBus = eventBus;
     this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
+    this.escKey = scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.attachToScene(scene);
   }
 
@@ -77,8 +85,23 @@ export class MapModule extends BaseModule {
     scene.input.on('pointerdown', this.handlePointerDown, this);
     scene.input.on('pointerup', this.handlePointerUp, this);
 
+    // Контроль ESC для отмены выделения
+    this.escKey?.on('down', this.cancelSelection, this);
+
     // Подписываемся на событие готовности сцены
     this.eventBus.on(Events.SceneReady, () => this.onSceneReady());
+  }
+
+  // Отмена выделения
+  private cancelSelection(): void {
+    if (this.isSelecting || this.selectedTiles.length > 0) {
+      this.isSelecting = false;
+      this.selectStartTile = null;
+      this.selectedTiles = [];
+      this.selectionGraphics?.clear();
+
+      console.log('Selection cancelled');
+    }
   }
 
   /** Обработчик события готовности сцены */
@@ -86,10 +109,15 @@ export class MapModule extends BaseModule {
     // Сначала рисуем ВСЕ тайлы
     this.drawGrid();
 
-    // Graphics создаём и добавляем ПОСЛЕДНИМ (поверх всех)
+    // Graphics для hover (поверх тайлов)
     this.highlightGraphics = this.scene.add.graphics();
     this.highlightGraphics.setDepth(20);
     this.container!.add(this.highlightGraphics);
+
+    // Graphics для выделения области (ещё выше)
+    this.selectionGraphics = this.scene.add.graphics();
+    this.selectionGraphics.setDepth(21);
+    this.container!.add(this.selectionGraphics);
   }
 
   /** Центрирование карты */
@@ -149,7 +177,7 @@ export class MapModule extends BaseModule {
     this.container.add(img);
   }
 
-  /** Подсветка — поверх всех */
+  /** Подсветка hover */
   private drawHighlight(tileX: number, tileY: number): void {
     if (!this.highlightGraphics || !this.isometricMath) return;
 
@@ -173,7 +201,35 @@ export class MapModule extends BaseModule {
     this.highlightGraphics.strokePath();
   }
 
-  /** Очистка подсветки */
+  /** Подсветка выделенной области */
+  private drawSelectionRect(): void {
+    if (!this.selectionGraphics || !this.isometricMath) return;
+
+    this.selectionGraphics.clear();
+
+    if (this.selectedTiles.length === 0) return;
+
+    this.selectionGraphics.fillStyle(0x00ff00, 0.3);
+    this.selectionGraphics.lineStyle(2, 0xffffff, 1);
+
+    for (const { x, y } of this.selectedTiles) {
+      const center = this.isometricMath.tileToScreen(x, y);
+      const hw = this.tileWidth / 2;
+      const hh = this.tileHeight / 2;
+
+      this.selectionGraphics.beginPath();
+      this.selectionGraphics.moveTo(center.x, center.y - hh);
+      this.selectionGraphics.lineTo(center.x + hw, center.y);
+      this.selectionGraphics.lineTo(center.x, center.y + hh);
+      this.selectionGraphics.lineTo(center.x - hw, center.y);
+      this.selectionGraphics.closePath();
+
+      this.selectionGraphics.fillPath();
+      this.selectionGraphics.strokePath();
+    }
+  }
+
+  /** Очистка hover */
   private clearHighlight(): void {
     if (this.highlightedTile) {
       this.eventBus?.emit(Events.TileUnhovered, {
@@ -282,77 +338,119 @@ export class MapModule extends BaseModule {
     }
   }
 
-  /** Обработка клика по тайлу */
+  /** Обработка начала клика/выделения */
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.isDragging) return;
     if (!this.scene || !this.container || !this.isometricMath) return;
 
-    if (!pointer.leftButtonDown()) {
+    // ПКМ и СКМ используются для драга камеры - обрабатывается в setupCameraControls
+    if (pointer.rightButtonDown() || pointer.middleButtonDown()) {
       return;
     }
 
-    const containerX = (pointer.x - this.container.x) / this.container.scale;
-    const containerY = (pointer.y - this.container.y) / this.container.scale;
+    // ЛКМ - начинаем выделение
+    if (pointer.leftButtonDown()) {
+      const containerX = (pointer.x - this.container.x) / this.container.scale;
+      const containerY = (pointer.y - this.container.y) / this.container.scale;
 
-    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+      const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+      const tile = this.findTileAtPoint(
+        containerX,
+        containerY,
+        approximateTile.tileX,
+        approximateTile.tileY,
+      );
 
-    const tile = this.findTileAtPoint(
-      containerX,
-      containerY,
-      approximateTile.tileX,
-      approximateTile.tileY,
-    );
+      if (
+        tile &&
+        tile.tileX >= 0 &&
+        tile.tileX < this.gridWidth &&
+        tile.tileY >= 0 &&
+        tile.tileY < this.gridHeight
+      ) {
+        // Начинаем выделение
+        this.isSelecting = true;
+        this.selectStartTile = { x: tile.tileX, y: tile.tileY };
+        this.selectedTiles = [{ x: tile.tileX, y: tile.tileY }];
+        this.drawSelectionRect();
 
-    if (
-      tile &&
-      tile.tileX >= 0 &&
-      tile.tileX < this.gridWidth &&
-      tile.tileY >= 0 &&
-      tile.tileY < this.gridHeight
-    ) {
-      this.eventBus?.emit(Events.TileClicked, {
-        tileX: tile.tileX,
-        tileY: tile.tileY,
-      });
+        // Также эмитим событие одиночного клика для совместимости
+        this.eventBus?.emit(Events.TileClicked, {
+          tileX: tile.tileX,
+          tileY: tile.tileY,
+        });
+      }
     }
   }
 
-  /** Обработка отпускания клика */
+  /** Обработка отпускания кнопки мыши */
   private handlePointerUp(pointer: Phaser.Input.Pointer): void {
-    if (this.isDragging) return;
     if (!this.scene || !this.container || !this.isometricMath) return;
 
-    if (!pointer.leftButtonReleased()) {
+    // Завершение выделения области
+    if (this.isSelecting && pointer.leftButtonReleased()) {
+      this.isSelecting = false;
+
+      const containerX = (pointer.x - this.container.x) / this.container.scale;
+      const containerY = (pointer.y - this.container.y) / this.container.scale;
+
+      const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+      const endTile = this.findTileAtPoint(
+        containerX,
+        containerY,
+        approximateTile.tileX,
+        approximateTile.tileY,
+      );
+
+      if (this.selectStartTile && endTile) {
+        // Отправляем только начальную и конечную точки
+        const x1 = Math.min(this.selectStartTile.x, endTile.tileX);
+        const x2 = Math.max(this.selectStartTile.x, endTile.tileX);
+        const y1 = Math.min(this.selectStartTile.y, endTile.tileY);
+        const y2 = Math.max(this.selectStartTile.y, endTile.tileY);
+
+        this.eventBus?.emit(Events.TilesSelected, {
+          start: { x: x1, y: y1 },
+          end: { x: x2, y: y2 },
+          width: x2 - x1 + 1,
+          height: y2 - y1 + 1,
+          count: (x2 - x1 + 1) * (y2 - y1 + 1),
+        });
+
+        console.log(`Selected area: (${x1},${y1}) to (${x2},${y2})`);
+      }
+
       return;
     }
 
-    const containerX = (pointer.x - this.container.x) / this.container.scale;
-    const containerY = (pointer.y - this.container.y) / this.container.scale;
+    // Обычный одиночный клик (для совместимости)
+    if (pointer.leftButtonReleased()) {
+      const containerX = (pointer.x - this.container.x) / this.container.scale;
+      const containerY = (pointer.y - this.container.y) / this.container.scale;
 
-    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+      const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
+      const tile = this.findTileAtPoint(
+        containerX,
+        containerY,
+        approximateTile.tileX,
+        approximateTile.tileY,
+      );
 
-    const tile = this.findTileAtPoint(
-      containerX,
-      containerY,
-      approximateTile.tileX,
-      approximateTile.tileY,
-    );
-
-    if (
-      tile &&
-      tile.tileX >= 0 &&
-      tile.tileX < this.gridWidth &&
-      tile.tileY >= 0 &&
-      tile.tileY < this.gridHeight
-    ) {
-      this.eventBus?.emit(Events.TileClickedUp, {
-        tileX: tile.tileX,
-        tileY: tile.tileY,
-      });
+      if (
+        tile &&
+        tile.tileX >= 0 &&
+        tile.tileX < this.gridWidth &&
+        tile.tileY >= 0 &&
+        tile.tileY < this.gridHeight
+      ) {
+        this.eventBus?.emit(Events.TileClickedUp, {
+          tileX: tile.tileX,
+          tileY: tile.tileY,
+        });
+      }
     }
   }
 
-  /** Реакция на передвижение мыши */
+  /** Обработка движения мыши (hover + обновление выделения) */
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
     if (this.isDragging) return;
     if (!this.scene || !this.container || !this.isometricMath) return;
@@ -361,7 +459,6 @@ export class MapModule extends BaseModule {
     const containerY = (pointer.y - this.container.y) / this.container.scale;
 
     const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
-
     const tile = this.findTileAtPoint(
       containerX,
       containerY,
@@ -369,6 +466,29 @@ export class MapModule extends BaseModule {
       approximateTile.tileY,
     );
 
+    // Если выделяем область — обновляем прямоугольник
+    if (this.isSelecting && this.selectStartTile && tile) {
+      // Рассчитываем границы для визуализации
+      const x1 = Math.min(this.selectStartTile.x, tile.tileX);
+      const x2 = Math.max(this.selectStartTile.x, tile.tileX);
+      const y1 = Math.min(this.selectStartTile.y, tile.tileY);
+      const y2 = Math.max(this.selectStartTile.y, tile.tileY);
+
+      // Заполняем только для отрисовки
+      this.selectedTiles = [];
+      for (let ty = y1; ty <= y2; ty++) {
+        for (let tx = x1; tx <= x2; tx++) {
+          if (tx >= 0 && tx < this.gridWidth && ty >= 0 && ty < this.gridHeight) {
+            this.selectedTiles.push({ x: tx, y: ty });
+          }
+        }
+      }
+
+      this.drawSelectionRect();
+      return;
+    }
+
+    // Обычный hover
     if (
       tile &&
       tile.tileX >= 0 &&
@@ -460,7 +580,7 @@ export class MapModule extends BaseModule {
       },
     );
 
-    // Drag
+    // Drag камеры (только ПКМ и СКМ)
     this.scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.rightButtonDown() || p.middleButtonDown()) {
         this.isDragging = true;

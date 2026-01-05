@@ -19,6 +19,7 @@ export enum Events {
   CameraZoomed = 'CameraZoomed',
   TileClicked = 'TileClickedDown',
   TileClickedUp = 'TileClickedUp',
+  TilesSelected = 'TilesSelected',
 
   // Ивенты инструментов
   SelectTool = 'SelectTool',
