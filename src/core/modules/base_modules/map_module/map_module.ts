@@ -11,6 +11,7 @@ export class MapModule extends BaseModule {
   private isometricMath?: IsometricMath;
   private container?: Phaser.GameObjects.Container;
   private highlightGraphics?: Phaser.GameObjects.Graphics;
+
   // Параметры сетки
   private readonly gridWidth: number = 100;
   private readonly gridHeight: number = 100;
@@ -68,10 +69,6 @@ export class MapModule extends BaseModule {
     // Контейнер карты
     this.container = scene.add.container(0, 0).setDepth(10);
 
-    // Graphics только под подсветку!
-    this.highlightGraphics = scene.add.graphics();
-    this.container.add(this.highlightGraphics);
-
     this.centerMap();
     this.setupCameraControls();
 
@@ -86,7 +83,13 @@ export class MapModule extends BaseModule {
 
   /** Обработчик события готовности сцены */
   private onSceneReady(): void {
+    // Сначала рисуем ВСЕ тайлы
     this.drawGrid();
+
+    // Graphics создаём и добавляем ПОСЛЕДНИМ (поверх всех)
+    this.highlightGraphics = this.scene.add.graphics();
+    this.highlightGraphics.setDepth(20);
+    this.container!.add(this.highlightGraphics);
   }
 
   /** Центрирование карты */
@@ -100,14 +103,13 @@ export class MapModule extends BaseModule {
     this.container.setPosition(cx, cy);
     this.isometricMath?.setOffset(0, 0);
 
-    // Эмитим событие центрирования карты
     this.eventBus?.emit(Events.MapCentered, {
       x: cx,
       y: cy,
     });
   }
 
-  /** Основная отрисовка сетки — теперь плитки рендерятся как Image */
+  /** Основная отрисовка сетки */
   private drawGrid(): void {
     if (!this.scene || !this.container || !this.isometricMath) return;
 
@@ -124,17 +126,14 @@ export class MapModule extends BaseModule {
 
     const textureKey = getTextureType(tileType);
 
-    // КРИТИЧНО: Проверяем текстуру ПЕРЕД созданием
     if (!this.scene.textures.exists(textureKey)) {
       console.warn(`Texture ${textureKey} missing for tile ${tileX},${tileY}`);
-      return; // НЕ рисуем ничего вместо fallback
+      return;
     }
 
     const center = this.isometricMath.tileToScreen(tileX, tileY);
 
-    // Создаем image с явной проверкой
     const img = this.scene.add.image(center.x, center.y, textureKey);
-
     const texture = this.scene.textures.get(textureKey);
 
     img.setOrigin(0.5, 0.5);
@@ -143,15 +142,14 @@ export class MapModule extends BaseModule {
       this.tileHeight / texture.source[0]?.height!,
     );
 
-    // Depth для сортировки изометрии (базовая глубина карты 10 + небольшое смещение для правильного порядка)
     const baseDepth = 10;
-    const sortOffset = (tileY + tileX) * 0.01; // Минимальное смещение для сортировки
+    const sortOffset = (tileY + tileX) * 0.01;
     img.setDepth(baseDepth + sortOffset);
 
     this.container.add(img);
   }
 
-  /** Подсветка */
+  /** Подсветка — поверх всех */
   private drawHighlight(tileX: number, tileY: number): void {
     if (!this.highlightGraphics || !this.isometricMath) return;
 
@@ -161,10 +159,9 @@ export class MapModule extends BaseModule {
     const hw = this.tileWidth / 2;
     const hh = this.tileHeight / 2;
 
-    this.highlightGraphics.fillStyle(0xffffff, 1);
-    this.highlightGraphics.lineStyle(2, 0xffffff, 1);
+    this.highlightGraphics.fillStyle(0xffffff, 0.2);
+    this.highlightGraphics.lineStyle(3, 0x00ff00, 0.5);
 
-    // Фигура ромба
     this.highlightGraphics.beginPath();
     this.highlightGraphics.moveTo(center.x, center.y - hh);
     this.highlightGraphics.lineTo(center.x + hw, center.y);
@@ -179,7 +176,6 @@ export class MapModule extends BaseModule {
   /** Очистка подсветки */
   private clearHighlight(): void {
     if (this.highlightedTile) {
-      // Эмитим событие ухода с тайла
       this.eventBus?.emit(Events.TileUnhovered, {
         tileX: this.highlightedTile.x,
         tileY: this.highlightedTile.y,
@@ -207,7 +203,6 @@ export class MapModule extends BaseModule {
     this.container.setScale(newScale);
     this.container.setPosition(newX, newY);
 
-    // Эмитим событие изменения зума камеры
     this.eventBus?.emit(Events.CameraZoomed, {
       scale: newScale,
       x: newX,
@@ -215,14 +210,13 @@ export class MapModule extends BaseModule {
     });
   }
 
-  /** Публичные методы для управления камерой из UI */
+  /** Публичные методы для UI */
   public zoomIn(): void {
     if (!this.container || !this.scene) return;
 
     const oldScale = this.container.scale;
     const newScale = Phaser.Math.Clamp(oldScale + 0.1, 0.1, 2.0);
 
-    // Зумим к центру экрана
     const centerX = this.scene.cameras.main.width / 2;
     const centerY = this.scene.cameras.main.height / 2;
 
@@ -248,7 +242,6 @@ export class MapModule extends BaseModule {
     const oldScale = this.container.scale;
     const newScale = Phaser.Math.Clamp(oldScale - 0.1, 0.1, 2.0);
 
-    // Зумим от центра экрана
     const centerX = this.scene.cameras.main.width / 2;
     const centerY = this.scene.cameras.main.height / 2;
 
@@ -287,12 +280,6 @@ export class MapModule extends BaseModule {
         this.container.x -= speed;
         break;
     }
-
-    // this.eventBus?.emit(Events.CameraMoved, {
-    //   x: this.container.x,
-    //   y: this.container.y,
-    //   scale: this.container.scale,
-    // });
   }
 
   /** Обработка клика по тайлу */
@@ -300,21 +287,15 @@ export class MapModule extends BaseModule {
     if (this.isDragging) return;
     if (!this.scene || !this.container || !this.isometricMath) return;
 
-    // Проверка попадания над UI
-
-    // Обрабатываем только левый клик
     if (!pointer.leftButtonDown()) {
       return;
     }
 
-    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
     const containerX = (pointer.x - this.container.x) / this.container.scale;
     const containerY = (pointer.y - this.container.y) / this.container.scale;
 
-    // Получаем приблизительный тайл
     const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
 
-    // Проверяем точное попадание в тайл
     const tile = this.findTileAtPoint(
       containerX,
       containerY,
@@ -329,7 +310,6 @@ export class MapModule extends BaseModule {
       tile.tileY >= 0 &&
       tile.tileY < this.gridHeight
     ) {
-      // Эмитим событие клика по тайлу
       this.eventBus?.emit(Events.TileClicked, {
         tileX: tile.tileX,
         tileY: tile.tileY,
@@ -337,26 +317,20 @@ export class MapModule extends BaseModule {
     }
   }
 
-  /** Обработка клика по тайлу */
+  /** Обработка отпускания клика */
   private handlePointerUp(pointer: Phaser.Input.Pointer): void {
     if (this.isDragging) return;
     if (!this.scene || !this.container || !this.isometricMath) return;
 
-    // Проверка попадания над UI
-
-    // Обрабатываем только левый клик
     if (!pointer.leftButtonReleased()) {
       return;
     }
 
-    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
     const containerX = (pointer.x - this.container.x) / this.container.scale;
     const containerY = (pointer.y - this.container.y) / this.container.scale;
 
-    // Получаем приблизительный тайл
     const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
 
-    // Проверяем точное попадание в тайл
     const tile = this.findTileAtPoint(
       containerX,
       containerY,
@@ -371,7 +345,6 @@ export class MapModule extends BaseModule {
       tile.tileY >= 0 &&
       tile.tileY < this.gridHeight
     ) {
-      // Эмитим событие клика по тайлу
       this.eventBus?.emit(Events.TileClickedUp, {
         tileX: tile.tileX,
         tileY: tile.tileY,
@@ -384,16 +357,11 @@ export class MapModule extends BaseModule {
     if (this.isDragging) return;
     if (!this.scene || !this.container || !this.isometricMath) return;
 
-    // Проверка попадания над UI
-
-    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
     const containerX = (pointer.x - this.container.x) / this.container.scale;
     const containerY = (pointer.y - this.container.y) / this.container.scale;
 
-    // Получаем приблизительный тайл
     const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
 
-    // Проверяем точное попадание в тайл и соседние тайлы
     const tile = this.findTileAtPoint(
       containerX,
       containerY,
@@ -413,7 +381,6 @@ export class MapModule extends BaseModule {
         this.highlightedTile.x !== tile.tileX ||
         this.highlightedTile.y !== tile.tileY
       ) {
-        // Эмитим событие ухода со старого тайла, если был подсвечен другой
         if (this.highlightedTile) {
           this.eventBus?.emit(Events.TileUnhovered, {
             tileX: this.highlightedTile.x,
@@ -424,10 +391,8 @@ export class MapModule extends BaseModule {
         this.highlightedTile = { x: tile.tileX, y: tile.tileY };
         this.drawHighlight(tile.tileX, tile.tileY);
 
-        // Получаем информацию о тайле
         const tileInfo = this.getTileInfo(tile.tileX, tile.tileY);
 
-        // Эмитим событие наведения на тайл
         this.eventBus?.emit(Events.TileHovered, {
           tileX: tile.tileX,
           tileY: tile.tileY,
@@ -440,7 +405,7 @@ export class MapModule extends BaseModule {
     }
   }
 
-  /** Поиск тайла в точке с проверкой соседних тайлов */
+  /** Поиск тайла в точке */
   private findTileAtPoint(
     screenX: number,
     screenY: number,
@@ -449,17 +414,16 @@ export class MapModule extends BaseModule {
   ): { tileX: number; tileY: number } | null {
     if (!this.isometricMath) return null;
 
-    // Проверяем центральный тайл и соседние (включая диагональные)
     const offsets = [
-      [0, 0], // Центральный
-      [-1, 0], // Слева
-      [1, 0], // Справа
-      [0, -1], // Сверху
-      [0, 1], // Снизу
-      [-1, -1], // Слева-сверху
-      [1, -1], // Справа-сверху
-      [-1, 1], // Слева-снизу
-      [1, 1], // Справа-снизу
+      [0, 0],
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+      [-1, -1],
+      [1, -1],
+      [-1, 1],
+      [1, 1],
     ];
 
     for (const [dx, dy] of offsets) {
@@ -482,7 +446,7 @@ export class MapModule extends BaseModule {
 
     this.scene.input.mouse?.disableContextMenu();
 
-    // Zoom - правильная подписка на событие колесика
+    // Zoom
     this.scene.input.on(
       'wheel',
       (
@@ -508,14 +472,6 @@ export class MapModule extends BaseModule {
     this.scene.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (p.rightButtonReleased() || p.middleButtonReleased()) {
         this.isDragging = false;
-        // Эмитим событие перемещения камеры после завершения drag
-        if (this.container) {
-          // this.eventBus?.emit(Events.CameraMoved, {
-          //   x: this.container.x,
-          //   y: this.container.y,
-          //   scale: this.container.scale,
-          // });
-        }
       }
     });
 
@@ -527,13 +483,6 @@ export class MapModule extends BaseModule {
         this.container.y += dy;
         this.dragStartX = p.x;
         this.dragStartY = p.y;
-
-        // Эмитим событие перемещения камеры во время drag
-        // this.eventBus?.emit(Events.CameraMoved, {
-        //   x: this.container.x,
-        //   y: this.container.y,
-        //   scale: this.container.scale,
-        // });
       }
     });
 
