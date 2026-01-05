@@ -9,6 +9,9 @@ export enum Events {
   TickEnded = 'TickEnded',
   MapCentered = 'MapCentered',
   SceneReady = 'SceneReady',
+  LogicTick = 'LogicTick',
+  GamePauseToggle = 'GamePauseToggle',
+  SetGameSpeed = 'SetGameSpeed',
 
   // Состояние карты
   TileUnhovered = 'TileUnhovered',

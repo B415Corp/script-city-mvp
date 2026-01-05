@@ -11,8 +11,14 @@ interface EventLogEntry {
 
 const events = Object.values(Events);
 const excludeList: Array<Events> = [
+  // tick
   Events.TickStarted,
   Events.TickEnded,
+  Events.MapCentered,
+  Events.SceneReady,
+  Events.LogicTick,
+
+  // tiles
   Events.TileHovered,
   Events.TileUnhovered,
 ];
