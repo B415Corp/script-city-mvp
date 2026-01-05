@@ -6,6 +6,7 @@ import { InputHandler } from './input/input_handler';
 import { TileRenderer } from './rendering/tile_renderer';
 import { TileHighlighter } from './selection/tile_highlighter';
 import { TileSelector } from './selection/tile_selector';
+import { TileInfo } from './types';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -32,7 +33,7 @@ export class MapModule extends BaseModule {
     this.attachToScene(scene);
   }
 
-  public getTileInfo(tileX: number, tileY: number) {
+  public getTileInfo(tileX: number, tileY: number): TileInfo | null {
     return this.renderer?.getTileInfo(tileX, tileY) ?? null;
   }
 

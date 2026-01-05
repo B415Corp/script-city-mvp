@@ -1,6 +1,7 @@
 import { getTextureType } from '@/core/scenes';
 import { IsometricMath } from '../infrastructure/isometric_math';
 import { DEFAULT_MAP } from '../infrastructure/maps/default_map';
+import { TileInfo } from '../types';
 
 export class TileRenderer {
   private container: Phaser.GameObjects.Container;
@@ -51,7 +52,7 @@ export class TileRenderer {
     this.container.add(img);
   }
 
-  public getTileInfo(tileX: number, tileY: number) {
+  public getTileInfo(tileX: number, tileY: number): TileInfo | null {
     if (tileX < 0 || tileX >= this.gridWidth || tileY < 0 || tileY >= this.gridHeight) {
       return null;
     }

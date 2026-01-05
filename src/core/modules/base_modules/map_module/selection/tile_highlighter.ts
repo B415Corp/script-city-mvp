@@ -66,7 +66,7 @@ export class TileHighlighter {
     return this.highlightedTile?.x === tileX && this.highlightedTile?.y === tileY;
   }
 
-  public getHighlightedTile() {
+  public getHighlightedTile(): { x: number; y: number } | null {
     return this.highlightedTile;
   }
 }
