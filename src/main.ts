@@ -1,3 +1,4 @@
+import { Core } from './core/core';
 import { EventBus } from './core/event_bus/event_bus';
 import { MainScene } from './core/scenes';
 
@@ -22,8 +23,8 @@ const phaserConfig: Phaser.Types.Core.GameConfig = {
 };
 
 async function startGame(): Promise<void> {
-  const eventBus = new EventBus(phaserConfig);
-  await eventBus.init();
+  const core = new Core(phaserConfig);
+  await core.init();
 }
 
 if (document.readyState === 'loading') {

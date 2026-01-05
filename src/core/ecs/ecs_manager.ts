@@ -1,54 +1,69 @@
-import { addEntity, createWorld, EntityId, World } from 'bitecs';
-import { Entities } from './entities/entities';
-import { Component } from './components/extended/component';
-import { Components } from './components/list';
+import {
+  createWorld,
+  addEntity,
+  removeEntity,
+  addComponent,
+  removeComponent,
+  hasComponent,
+  World,
+  EntityId,
+} from 'bitecs';
+import { EventBus } from '../event_bus/event_bus';
+import { Events } from '../event_bus/events';
 
-// регистрация сущностей для ECS
-const ecsEntities: string[] = Array.from(Object.values(Entities));
-const ecsComponents: Record<string, unknown> = Components;
+type ComponentStore = object;
 
-// типы сущностей для ECS
-type ecsEntitiesNames = keyof typeof ecsEntities;
-type ecsComponentsNames = keyof typeof ecsComponents;
+export class ECSManager<C extends Record<string, ComponentStore>> {
+  private world: World;
+  private components: C;
+  private eventBus: EventBus;
 
-// менеджер ECS
-export class ECSManager {
-  private world!: World; // мир для ECS
-  private entities: Map<string, EntityId> = new Map(); // сущности для ECS
-  private components: Map<string, Component<Record<string, unknown>>> = new Map(); // компоненты для ECS
+  constructor(eventBus: EventBus, components: C, context?: object) {
+    console.log('ECSManager init');
+    this.components = components; // компоненты для ECS
+    this.world = context ? createWorld(context) : createWorld(); // создать мир
+    this.eventBus = eventBus;
 
-  constructor() {
-    console.group('ECSManager init');
-    this.createWorld();
-    this.registerEntities();
-    this.registerComponents();
-    console.log('Entities registered:', this.entities);
-    console.log('Components registered:', this.components);
-    console.groupEnd();
-  }
-
-  private createWorld(): void {
-    const world = createWorld();
-    this.world = world;
-
-    console.log('World created:', this.world);
-  }
-
-  private registerEntities(): void {
-    Object.entries(ecsEntities).forEach(([name]) => {
-      const entityId = addEntity(this.world);
-      this.entities.set(name, entityId);
+    // подписка на событие логического тика
+    this.eventBus.on(Events.LogicTick, () => {
+      console.log('LogicTick');
     });
   }
 
-  private registerComponents(): void {
-    Object.entries(ecsComponents).forEach(([name, component]) => {
-      const entityId = this.entities.get(name);
-      if (!entityId) {
-        throw new Error(`Entity ${name} not found`);
-      }
-      const _component = new Component(this.world, entityId, component as Record<string, unknown>);
-      _component.define();
-    });
+  // получить мир
+  public getWorld(): World {
+    return this.world;
+  }
+
+  // создать сущность
+  public createEntity(): EntityId {
+    return addEntity(this.world);
+  }
+
+  // уничтожить сущность
+  public destroyEntity(eid: EntityId): void {
+    removeEntity(this.world, eid);
+  }
+
+  // добавить компонент
+  public add<K extends keyof C>(name: K, eid: EntityId): void {
+    addComponent(this.world, eid, this.components[name]); // <-- 0.4 порядок аргументов [page:1]
+  }
+
+  // удалить компонент
+  public remove<K extends keyof C>(name: K, eid: EntityId): void {
+    removeComponent(this.world, eid, this.components[name]); // <-- 0.4 порядок аргументов [page:1]
+  }
+
+  // проверить наличие компонента
+  public has<K extends keyof C>(name: K, eid: EntityId): boolean {
+    return hasComponent(this.world, eid, this.components[name]); // <-- 0.4 порядок аргументов [page:1]
+  }
+
+  // создать сущность с набором компонентов
+  public spawn(names: readonly (keyof C)[], init?: (eid: EntityId) => void): EntityId {
+    const eid = addEntity(this.world);
+    for (const n of names) addComponent(this.world, eid, this.components[n]);
+    return eid;
   }
 }
