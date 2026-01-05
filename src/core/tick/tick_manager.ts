@@ -49,7 +49,7 @@ export class TickManager {
   }
 
   // установить скорость тиков
-  setSpeed(speed: number): void {
+  private setSpeed(speed: number): void {
     // speed = пауза
     if (!Number.isFinite(speed) || speed <= 0) {
       this.paused = true;
@@ -62,22 +62,22 @@ export class TickManager {
   }
 
   // переключить паузу
-  togglePause(): void {
+  private togglePause(): void {
     this.paused = !this.paused;
   }
 
   // пауза
-  pause(): void {
+  public pause(): void {
     this.paused = true;
   }
 
   // возобновить
-  resume(): void {
+  public resume(): void {
     this.paused = false;
   }
 
   // получить фиксированный шаг в миллисекундах
-  getFixedStepMs(): number {
+  public getFixedStepMs(): number {
     return this.fixedStepMs;
   }
 }
