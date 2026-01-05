@@ -27,14 +27,15 @@ export class ToolbarModule extends BaseModule {
 
   private createToolbar(): void {
     const margin = { left: 10, right: 10, top: 10, bottom: 10 };
-    const height = 60;
+    const height = 140; // Уменьшили высоту до 140px
     const width = this.scene.cameras.main.width - (margin.right + margin.left);
-    const x = margin.left + this.scene.cameras.main.width / 2 - width / 2;
+    const x = this.scene.cameras.main.width / 2 - width / 2;
     const y = this.scene.cameras.main.height - height - margin.bottom;
 
+    // Первый ряд кнопок (инструменты)
     const livingZoneBtn = new ButtonUI(this.scene, {
       xPos: 15,
-      yPos: height / 2 - 15,
+      yPos: 30, // Подняли верхний ряд ближе к верху
       w: 150,
       h: 30,
       text: 'Жилая зона',
@@ -44,51 +45,103 @@ export class ToolbarModule extends BaseModule {
       },
     });
 
-    // Кнопка выбора жилой зоны
     const commercialZoneBtn = new ButtonUI(this.scene, {
       xPos: 15 + livingZoneBtn.width + 15,
-      yPos: height / 2 - 15,
+      yPos: 30,
       w: 220,
       h: 30,
       text: 'Коммерческая зона',
       depth: 1001,
       onClick: (): void => {
-        // Отправляем событие в шину по клику
         this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
       },
     });
 
-    // Кнопка выбора коммерческой зоны
     const clearZoneBtn = new ButtonUI(this.scene, {
       xPos: commercialZoneBtn.xPosition + commercialZoneBtn.width + 15,
-      yPos: height / 2 - 15,
+      yPos: 30,
       w: 175,
       h: 30,
       text: 'Очистить зону',
       depth: 1001,
       onClick: (): void => {
-        // Отправляем событие в шину по клику
         this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
+      },
+    });
+
+    // Второй ряд кнопок (скорость игры)
+    const pauseBtn = new ButtonUI(this.scene, {
+      xPos: 15,
+      yPos: 75, // Уменьшили gap, второй ряд ближе к первому (разрыв всего 15px)
+      w: 80,
+      h: 30,
+      text: 'Пауза',
+      depth: 1001,
+      onClick: (): void => {
+        this.eventBus.emit(Events.GamePauseToggle, {});
+      },
+    });
+
+    const speedX1Btn = new ButtonUI(this.scene, {
+      xPos: 15 + pauseBtn.width + 15,
+      yPos: 75,
+      w: 60,
+      h: 30,
+      text: 'X1',
+      depth: 1001,
+      onClick: (): void => {
+        this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
+      },
+    });
+
+    const speedX2Btn = new ButtonUI(this.scene, {
+      xPos: speedX1Btn.xPosition + speedX1Btn.width + 15,
+      yPos: 75,
+      w: 60,
+      h: 30,
+      text: 'X2',
+      depth: 1001,
+      onClick: (): void => {
+        this.eventBus.emit(Events.SetGameSpeed, { speed: 30 });
+      },
+    });
+
+    const speedX3Btn = new ButtonUI(this.scene, {
+      xPos: speedX2Btn.xPosition + speedX2Btn.width + 15,
+      yPos: 75,
+      w: 60,
+      h: 30,
+      text: 'X3',
+      depth: 1001,
+      onClick: (): void => {
+        this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
       },
     });
 
     // Контейнер бара
     this.barContainer = this.scene.add.container(x, y);
-    this.barContainer.setDepth(1000);
+    this.barContainer.setDepth(1001);
+    // маска для перхвата нажатия
+    // Пустой обработчик поглощает событие
 
     // Фон бара
     const bg = this.scene.add.graphics();
     bg.fillStyle(0x222222, 0.8);
     bg.fillRoundedRect(0, 0, width, height, 16);
-    // bg.lineStyle(2, 0x222222, 1);
     bg.strokeRoundedRect(0, 0, width, height, 16);
 
     this.barContainer.add(bg);
 
-    // Добавляем кнопки в бар
+    // Добавляем кнопки первого ряда
     this.barContainer.add(livingZoneBtn.container);
     this.barContainer.add(commercialZoneBtn.container);
     this.barContainer.add(clearZoneBtn.container);
+
+    // Добавляем кнопки второго ряда
+    this.barContainer.add(pauseBtn.container);
+    this.barContainer.add(speedX1Btn.container);
+    this.barContainer.add(speedX2Btn.container);
+    this.barContainer.add(speedX3Btn.container);
 
     // Добавляем бар в контейнер модуля
     this.container.add(this.barContainer);

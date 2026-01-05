@@ -7,7 +7,7 @@ import { EventsDebug } from './components/events_debug';
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
   events: EventsDebug,
-  // tick: TickDebug,
+  tick: TickDebug,
 } as const;
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
