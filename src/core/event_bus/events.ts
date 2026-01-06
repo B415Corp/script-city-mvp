@@ -12,6 +12,7 @@ export enum Events {
   LogicTick = 'LogicTick',
   GamePauseToggle = 'GamePauseToggle',
   SetGameSpeed = 'SetGameSpeed',
+  GameTimeUpdated = 'GameTimeUpdated',
 
   // Состояние карты
   TileUnhovered = 'TileUnhovered',

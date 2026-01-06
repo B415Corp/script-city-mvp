@@ -14,7 +14,7 @@ import {
   type PositionData,
   type IdData,
   type RenderData,
-  SpriteType
+  SpriteType,
 } from '../components';
 
 /**
@@ -32,7 +32,7 @@ export class PersonFactory {
     personData: PersonData,
     citizenData: CitizenData,
     positionData: PositionData,
-    homeId?: EntityId
+    homeId?: EntityId,
   ): EntityId {
     const eid = addEntity(this.world);
 
@@ -54,7 +54,7 @@ export class PersonFactory {
       visible: 1,
       layer: 3, // UNITS layer
       spriteType: SpriteType.PERSON,
-      color: personData.gender === Gender.MALE ? '#4A90E2' : '#E94B3C'
+      color: personData.gender === Gender.MALE ? '#4A90E2' : '#E94B3C',
     });
 
     // Связываем с домом если указан
@@ -76,7 +76,7 @@ export class PersonFactory {
     const personData: PersonData = {
       age,
       gender,
-      name: this.generateName(gender)
+      name: this.generateName(gender),
     };
 
     const citizenData: CitizenData = {
@@ -84,7 +84,7 @@ export class PersonFactory {
       home: homeId || 0,
       workplace: undefined,
       money: 100 + Math.random() * 900, // 100-1000
-      energy: 80 + Math.random() * 20 // 80-100
+      energy: 80 + Math.random() * 20, // 80-100
     };
 
     return this.create(personData, citizenData, positionData, homeId);
@@ -94,8 +94,26 @@ export class PersonFactory {
    * Генерирует имя в зависимости от пола
    */
   private generateName(gender: Gender): string {
-    const maleNames = ['Александр', 'Дмитрий', 'Иван', 'Михаил', 'Сергей', 'Андрей', 'Алексей', 'Николай'];
-    const femaleNames = ['Анна', 'Елена', 'Мария', 'Ольга', 'Татьяна', 'Ирина', 'Наталья', 'Светлана'];
+    const maleNames = [
+      'Александр',
+      'Дмитрий',
+      'Иван',
+      'Михаил',
+      'Сергей',
+      'Андрей',
+      'Алексей',
+      'Николай',
+    ];
+    const femaleNames = [
+      'Анна',
+      'Елена',
+      'Мария',
+      'Ольга',
+      'Татьяна',
+      'Ирина',
+      'Наталья',
+      'Светлана',
+    ];
 
     const names = gender === Gender.MALE ? maleNames : femaleNames;
     return names[Math.floor(Math.random() * names.length)];

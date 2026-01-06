@@ -1,12 +1,6 @@
 import { addEntity, addComponent } from 'bitecs';
 import { World, EntityId } from 'bitecs';
-import {
-  Job,
-  Goods,
-  type JobData,
-  type GoodsData,
-  GoodsType
-} from '../components';
+import { Job, Goods, type JobData, type GoodsData, GoodsType } from '../components';
 
 /**
  * Фабрика для создания рабочих мест и товаров
@@ -50,7 +44,7 @@ export class JobFactory {
       title: 'Кассир',
       salary,
       requirements: ['basic_education'],
-      available: true
+      available: true,
     };
 
     return this.createJob(jobData);
@@ -64,7 +58,7 @@ export class JobFactory {
       title: 'Офисный работник',
       salary,
       requirements: ['higher_education'],
-      available: true
+      available: true,
     };
 
     return this.createJob(jobData);
@@ -78,7 +72,7 @@ export class JobFactory {
       type: GoodsType.FOOD,
       quantity,
       price,
-      producer: 0 // Магазин-источник
+      producer: 0, // Магазин-источник
     };
 
     return this.createGoods(goodsData);
@@ -92,7 +86,7 @@ export class JobFactory {
       type: GoodsType.CLOTHES,
       quantity,
       price,
-      producer: 0 // Магазин-источник
+      producer: 0, // Магазин-источник
     };
 
     return this.createGoods(goodsData);
@@ -106,7 +100,7 @@ export class JobFactory {
       type: GoodsType.ELECTRONICS,
       quantity,
       price,
-      producer: 0 // Магазин-источник
+      producer: 0, // Магазин-источник
     };
 
     return this.createGoods(goodsData);

@@ -66,7 +66,8 @@ export const DailyRoutineSystem: System = {
   name: 'DailyRoutine',
   components: ['Person', 'Citizen', 'Needs'],
 
-  update(world: World, entities: readonly number[], delta?: number, gameTime?: number) {
+  update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
+    const gameTime = extraData as number | undefined;
     // Определяем время суток (предполагаем gameTime в минутах)
     const hourOfDay = gameTime ? (gameTime / 60) % 24 : 8; // По умолчанию утро
 

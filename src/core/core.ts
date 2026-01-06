@@ -10,7 +10,7 @@ export class Core {
   private phaser!: Phaser.Game | null;
 
   public moduleManager!: ModuleManager | null;
-  public ecsManager!: ECSManager<Record<string, object>>;
+  public ecsManager!: ECSManager;
   public eventBus!: EventBus;
   public tickManager!: TickManager;
 
@@ -28,6 +28,7 @@ export class Core {
     await this.initTickManager();
     await this.initECSManager();
     await this.initModules();
+    await this.startSimulation();
   }
 
   private async initEventBus(): Promise<void> {
@@ -51,10 +52,22 @@ export class Core {
   }
 
   private async initECSManager(): Promise<void> {
-    this.ecsManager = new ECSManager<Record<string, object>>(this.eventBus, {}, {});
+    this.ecsManager = new ECSManager(this.eventBus);
   }
 
   private async initTickManager(): Promise<void> {
     this.tickManager = new TickManager(this.eventBus, 10);
+  }
+
+  private async startSimulation(): Promise<void> {
+    return new Promise((res) => {
+      // Ждем когда все модули готовы
+      this.phaser?.events.once('ready', () => {
+        console.log('🎮 Starting Script City simulation...');
+        this.ecsManager.firstSimulationStep();
+        console.log('✅ Simulation started successfully!');
+        res();
+      });
+    });
   }
 }

@@ -4,7 +4,7 @@
  */
 export const ID = {
   /** Уникальный числовой ID */
-  value: [] as number[]
+  value: [] as number[],
 } as const;
 
 /**

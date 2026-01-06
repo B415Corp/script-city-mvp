@@ -12,17 +12,17 @@ export const Workplace = {
   /** Текущий работник (может быть undefined) */
   worker: [] as (EntityId | undefined)[],
   /** Здание, где находится рабочее место */
-  building: [] as EntityId[]
+  building: [] as EntityId[],
 } as const;
 
 /**
  * Типы работ
  */
 export enum JobType {
-  CASHIER = 'cashier',      // Кассир в магазине
-  MANAGER = 'manager',      // Менеджер
-  WORKER = 'worker',        // Рабочий
-  CLERK = 'clerk'           // Клерк
+  CASHIER = 'cashier', // Кассир в магазине
+  MANAGER = 'manager', // Менеджер
+  WORKER = 'worker', // Рабочий
+  CLERK = 'clerk', // Клерк
 }
 
 /**

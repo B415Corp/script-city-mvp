@@ -12,17 +12,17 @@ export const Goods = {
   /** Цена за единицу */
   price: [] as number[],
   /** Производитель товара */
-  producer: [] as EntityId[]
+  producer: [] as EntityId[],
 } as const;
 
 /**
  * Типы товаров
  */
 export enum GoodsType {
-  FOOD = 'food',        // Еда
-  CLOTHES = 'clothes',  // Одежда
+  FOOD = 'food', // Еда
+  CLOTHES = 'clothes', // Одежда
   ELECTRONICS = 'electronics', // Электроника
-  HOUSEHOLD = 'household' // Хозяйственные товары
+  HOUSEHOLD = 'household', // Хозяйственные товары
 }
 
 /**

@@ -8,7 +8,7 @@ export const Person = {
   /** Пол: 0 = мужской, 1 = женский */
   gender: [] as number[],
   /** Имя человека */
-  name: [] as string[]
+  name: [] as string[],
 } as const;
 
 /**
@@ -16,7 +16,7 @@ export const Person = {
  */
 export enum Gender {
   MALE = 0,
-  FEMALE = 1
+  FEMALE = 1,
 }
 
 /**

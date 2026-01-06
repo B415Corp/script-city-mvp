@@ -10,7 +10,7 @@ export const Needs = {
   /** Потребность в работе (0-100, 100 = нужна работа) */
   work: [] as number[],
   /** Потребность во сне (0-100, 100 = очень хочет спать) */
-  sleep: [] as number[]
+  sleep: [] as number[],
 } as const;
 
 /**
@@ -27,9 +27,9 @@ export type NeedsData = {
  * Уровни потребностей
  */
 export enum NeedLevel {
-  SATISFIED = 0,     // Удовлетворена
-  LOW = 25,          // Низкая
-  MEDIUM = 50,       // Средняя
-  HIGH = 75,         // Высокая
-  CRITICAL = 90      // Критическая
+  SATISFIED = 0, // Удовлетворена
+  LOW = 25, // Низкая
+  MEDIUM = 50, // Средняя
+  HIGH = 75, // Высокая
+  CRITICAL = 90, // Критическая
 }

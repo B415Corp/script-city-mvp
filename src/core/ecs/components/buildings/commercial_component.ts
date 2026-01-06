@@ -12,16 +12,16 @@ export const Commercial = {
   /** Сотрудники */
   employees: [] as EntityId[][],
   /** Текущие покупатели/клиенты */
-  customers: [] as EntityId[][]
+  customers: [] as EntityId[][],
 } as const;
 
 /**
  * Типы коммерческих зданий
  */
 export enum CommercialType {
-  SHOP = 0,      // Магазин
-  OFFICE = 1,    // Офис
-  FACTORY = 2    // Завод
+  SHOP = 0, // Магазин
+  OFFICE = 1, // Офис
+  FACTORY = 2, // Завод
 }
 
 /**

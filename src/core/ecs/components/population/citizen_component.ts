@@ -14,7 +14,7 @@ export const Citizen = {
   /** Количество денег */
   money: [] as number[],
   /** Уровень энергии/усталости (0-100) */
-  energy: [] as number[]
+  energy: [] as number[],
 } as const;
 
 /**

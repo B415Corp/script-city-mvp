@@ -14,7 +14,7 @@ import {
   type IdData,
   type RenderData,
   CommercialType,
-  SpriteType
+  SpriteType,
 } from '../components';
 
 /**
@@ -28,10 +28,7 @@ export class BuildingFactory {
   /**
    * Создает жилой дом
    */
-  createHouse(
-    residentialData: ResidentialData,
-    positionData: PositionData
-  ): EntityId {
+  createHouse(residentialData: ResidentialData, positionData: PositionData): EntityId {
     const eid = addEntity(this.world);
 
     // Добавляем компоненты
@@ -48,7 +45,7 @@ export class BuildingFactory {
       visible: 1,
       layer: 2, // BUILDINGS layer
       spriteType: SpriteType.HOUSE,
-      color: '#8B4513' // Коричневый для домов
+      color: '#8B4513', // Коричневый для домов
     });
 
     return eid;
@@ -57,10 +54,7 @@ export class BuildingFactory {
   /**
    * Создает коммерческое здание (магазин или офис)
    */
-  createCommercial(
-    commercialData: CommercialData,
-    positionData: PositionData
-  ): EntityId {
+  createCommercial(commercialData: CommercialData, positionData: PositionData): EntityId {
     const eid = addEntity(this.world);
 
     // Добавляем компоненты
@@ -77,7 +71,7 @@ export class BuildingFactory {
       visible: 1,
       layer: 2, // BUILDINGS layer
       spriteType: commercialData.type === CommercialType.SHOP ? SpriteType.SHOP : SpriteType.OFFICE,
-      color: commercialData.type === CommercialType.SHOP ? '#32CD32' : '#4169E1' // Зеленый для магазинов, синий для офисов
+      color: commercialData.type === CommercialType.SHOP ? '#32CD32' : '#4169E1', // Зеленый для магазинов, синий для офисов
     });
 
     return eid;
@@ -86,10 +80,7 @@ export class BuildingFactory {
   /**
    * Создает рабочее место
    */
-  createWorkplace(
-    workplaceData: WorkplaceData,
-    positionData: PositionData
-  ): EntityId {
+  createWorkplace(workplaceData: WorkplaceData, positionData: PositionData): EntityId {
     const eid = addEntity(this.world);
 
     // Добавляем компоненты
@@ -106,7 +97,7 @@ export class BuildingFactory {
       visible: 1,
       layer: 2, // BUILDINGS layer
       spriteType: SpriteType.OFFICE,
-      color: '#708090' // Серый для рабочих мест
+      color: '#708090', // Серый для рабочих мест
     });
 
     return eid;
@@ -119,7 +110,7 @@ export class BuildingFactory {
     const residentialData: ResidentialData = {
       capacity: 15,
       occupants: [],
-      quality: 75
+      quality: 75,
     };
 
     return this.createHouse(residentialData, positionData);
@@ -134,10 +125,10 @@ export class BuildingFactory {
       inventory: {
         food: 100,
         clothes: 50,
-        electronics: 25
+        electronics: 25,
       },
       employees: [],
-      customers: []
+      customers: [],
     };
 
     return this.createCommercial(commercialData, positionData);
@@ -151,7 +142,7 @@ export class BuildingFactory {
       jobType: 'office_work',
       salary,
       worker: undefined,
-      building: 0 // Будет установлено позже
+      building: 0, // Будет установлено позже
     };
 
     return this.createWorkplace(workplaceData, positionData);

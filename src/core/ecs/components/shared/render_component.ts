@@ -10,7 +10,7 @@ export const Render = {
   /** Тип спрайта или текстуры */
   spriteType: [] as string[],
   /** Цвет/тема для отображения */
-  color: [] as string[]
+  color: [] as string[],
 } as const;
 
 /**
@@ -22,7 +22,7 @@ export enum RenderLayer {
   BUILDINGS = 2,
   UNITS = 3,
   EFFECTS = 4,
-  UI = 5
+  UI = 5,
 }
 
 /**
@@ -33,7 +33,7 @@ export enum SpriteType {
   HOUSE = 'house',
   SHOP = 'shop',
   OFFICE = 'office',
-  CAR = 'car'
+  CAR = 'car',
 }
 
 /**

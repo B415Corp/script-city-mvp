@@ -10,7 +10,7 @@ export const Residential = {
   /** Текущие жители (массив EntityId) */
   occupants: [] as EntityId[][],
   /** Качество жилья (0-100, влияет на счастье жителей) */
-  quality: [] as number[]
+  quality: [] as number[],
 } as const;
 
 /**

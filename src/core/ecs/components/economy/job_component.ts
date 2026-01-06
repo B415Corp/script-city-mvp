@@ -10,7 +10,7 @@ export const Job = {
   /** Требуемые навыки/требования */
   requirements: [] as string[][],
   /** Доступна ли вакансия */
-  available: [] as boolean[]
+  available: [] as boolean[],
 } as const;
 
 /**

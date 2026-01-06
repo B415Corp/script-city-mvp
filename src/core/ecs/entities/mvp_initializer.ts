@@ -9,7 +9,7 @@ import { Gender } from '../components';
 export class MVPInitializer {
   constructor(
     private world: World,
-    private entityFactory: EntityFactory
+    private entityFactory: EntityFactory,
   ) {}
 
   /**
@@ -38,13 +38,15 @@ export class MVPInitializer {
     // Создаем жителей (5 мужчин + 5 женщин)
     const citizens = this.createCitizens(house);
 
-    console.log(`✅ Created: ${citizens.length} citizens, 1 house, 2 shops, ${workplaces.length} workplaces`);
+    console.log(
+      `✅ Created: ${citizens.length} citizens, 1 house, 2 shops, ${workplaces.length} workplaces`,
+    );
 
     return {
       house,
       shops: [foodShop, goodsShop],
       workplaces,
-      citizens
+      citizens,
     };
   }
 
@@ -58,7 +60,7 @@ export class MVPInitializer {
     for (let i = 0; i < 5; i++) {
       const citizen = this.entityFactory.persons.createRandom(
         { x: 100 + i * 20, y: 120 + i * 10 },
-        houseId
+        houseId,
       );
       citizens.push(citizen);
     }
@@ -67,7 +69,7 @@ export class MVPInitializer {
     for (let i = 0; i < 5; i++) {
       const citizen = this.entityFactory.persons.createRandom(
         { x: 100 + i * 20, y: 140 + i * 10 },
-        houseId
+        houseId,
       );
       citizens.push(citizen);
     }
