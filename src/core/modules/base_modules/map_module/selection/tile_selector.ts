@@ -2,12 +2,20 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '../infrastructure/isometric_math';
 
+type SelectionStyle = {
+  fill: number;
+  fillAlpha: number;
+  line: number;
+  lineAlpha: number;
+  lineWidth: number;
+};
+
 export class TileSelector {
   private graphics: Phaser.GameObjects.Graphics; // графический объект для рисования выделения
   private isSelecting = false; // флаг выделения
   private selectStartTile: { x: number; y: number } | null = null; // начальный тайл выделения
   private selectedTiles: { x: number; y: number }[] = []; // выбранные тайлы
-  private style = {
+  private style: SelectionStyle = {
     fill: 0x00ff00,
     fillAlpha: 0.3,
     line: 0xffffff,
@@ -93,10 +101,11 @@ export class TileSelector {
 
   // Рисование выделения
   private draw(): void {
-    this.graphics.clear();
+    this.graphics.clear(); // сбрасывает стили [web:84]
 
     if (this.selectedTiles.length === 0) return;
 
+    // Важно: стиль после clear()
     this.graphics.fillStyle(this.style.fill, this.style.fillAlpha);
     this.graphics.lineStyle(this.style.lineWidth, this.style.line, this.style.lineAlpha);
 
@@ -135,13 +144,12 @@ export class TileSelector {
   }
 
   // Установка стиля выделения
-  public setStyle(style: {
-    fill: number;
-    fillAlpha: number;
-    line: number;
-    lineAlpha: number;
-    lineWidth: number;
-  }): void {
+  public setStyle(style: SelectionStyle): void {
     this.style = style;
+
+    // Если есть текущее выделение — перерисовать сразу
+    if (this.selectedTiles.length > 0) {
+      this.draw();
+    }
   }
 }

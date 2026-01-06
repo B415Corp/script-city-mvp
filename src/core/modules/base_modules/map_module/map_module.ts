@@ -149,6 +149,10 @@ export class MapModule extends BaseModule {
 
     this.inputHandler?.setMode(payload.mode);
 
+    // курсор
+    this.scene.input.setDefaultCursor(payload.cursor); // Phaser API [web:61]
+
+    // опционально: очистить выделение при смене инструмента
     this.selector?.cancel();
   };
 }

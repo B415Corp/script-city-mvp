@@ -8,6 +8,7 @@ export class SelectTool extends Tool {
     return {
       type: this.id,
       mode: 'hover_only',
+      cursor: 'help',
       style: {
         hover: { fill: 0xffffff, fillAlpha: 0.06, line: 0xffffff, lineAlpha: 0.9, lineWidth: 2 },
         selection: { fill: 0xffffff, fillAlpha: 0.25, line: 0xffffff, lineAlpha: 1, lineWidth: 2 },

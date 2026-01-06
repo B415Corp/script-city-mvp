@@ -8,6 +8,7 @@ export class LivingZoneTool extends Tool {
     return {
       type: this.id,
       mode: 'area_select',
+      cursor: 'pointer', // 'url(assets/cursors/bulldozer.cur), pointer'
       style: {
         hover: { fill: 0xffffff, fillAlpha: 0.06, line: 0x00ff00, lineAlpha: 0.8, lineWidth: 2 },
         selection: { fill: 0x00ff00, fillAlpha: 0.25, line: 0xffffff, lineAlpha: 1, lineWidth: 2 },

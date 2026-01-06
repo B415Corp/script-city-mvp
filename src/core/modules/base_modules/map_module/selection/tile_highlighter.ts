@@ -2,10 +2,18 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '../infrastructure/isometric_math';
 
+type HoverStyle = {
+  fill: number;
+  fillAlpha: number;
+  line: number;
+  lineAlpha: number;
+  lineWidth: number;
+};
+
 export class TileHighlighter {
   private graphics: Phaser.GameObjects.Graphics; // графический объект для рисования выделения
   private highlightedTile: { x: number; y: number } | null = null; // выделенный тайл
-  private style = {
+  private style: HoverStyle = {
     fill: 0xffffff,
     fillAlpha: 0.2,
     line: 0x00ff00,
@@ -39,14 +47,15 @@ export class TileHighlighter {
 
   // Рисование выделения
   private draw(tileX: number, tileY: number): void {
-    this.graphics.clear();
+    this.graphics.clear(); // сбрасывает стили [web:84]
 
     const center = this.isometricMath.tileToScreen(tileX, tileY);
     const hw = this.tileWidth / 2;
     const hh = this.tileHeight / 2;
 
-    this.graphics.fillStyle(0xffffff, 0.2);
-    this.graphics.lineStyle(3, 0x00ff00, 0.5);
+    // Всегда заново выставляем стиль после clear()
+    this.graphics.fillStyle(this.style.fill, this.style.fillAlpha);
+    this.graphics.lineStyle(this.style.lineWidth, this.style.line, this.style.lineAlpha);
 
     this.graphics.beginPath();
     this.graphics.moveTo(center.x, center.y - hh);
@@ -83,13 +92,12 @@ export class TileHighlighter {
   }
 
   // Установка стиля выделения
-  public setStyle(style: {
-    fill: number;
-    fillAlpha: number;
-    line: number;
-    lineAlpha: number;
-    lineWidth: number;
-  }): void {
+  public setStyle(style: HoverStyle): void {
     this.style = style;
+
+    // Важно: если сейчас уже есть подсвеченный тайл — перерисовать
+    if (this.highlightedTile) {
+      this.draw(this.highlightedTile.x, this.highlightedTile.y);
+    }
   }
 }

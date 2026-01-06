@@ -40,4 +40,5 @@ export interface ToolActivatedPayload {
   type: ToolId;
   mode: MapInteractionMode;
   style: ToolStyle;
+  cursor: string; // CSS cursor string
 }

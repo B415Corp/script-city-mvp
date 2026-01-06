@@ -30,6 +30,11 @@ export class InputHandler {
     this.scene.input.on('pointerout', () => this.highlighter.clear());
     this.scene.input.on('pointerdown', this.handlePointerDown, this);
     this.scene.input.on('pointerup', this.handlePointerUp, this);
+
+    this.scene.input.on('pointerout', () => {
+      this.highlighter.clear();
+      this.scene.input.setDefaultCursor('default');
+    });
   }
 
   // Обработка движения мыши

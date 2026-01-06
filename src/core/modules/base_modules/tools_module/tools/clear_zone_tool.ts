@@ -8,6 +8,7 @@ export class ClearZoneTool extends Tool {
     return {
       type: this.id,
       mode: 'area_select',
+      cursor: 'crosshair',
       style: {
         hover: { fill: 0xffffff, fillAlpha: 0.06, line: 0xffff00, lineAlpha: 0.9, lineWidth: 2 },
         selection: { fill: 0xffff00, fillAlpha: 0.25, line: 0xffffff, lineAlpha: 1, lineWidth: 2 },
