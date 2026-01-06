@@ -7,6 +7,7 @@ import { TileRenderer } from './rendering/tile_renderer';
 import { TileHighlighter } from './selection/tile_highlighter';
 import { TileSelector } from './selection/tile_selector';
 import { TileInfo } from './types';
+import { ToolActivatedPayload } from '../tools_module/types';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -56,11 +57,14 @@ export class MapModule extends BaseModule {
     this.cameraController.centerMap();
 
     // Подписываемся на событие готовности сцены
-    this.eventBus.on(Events.SceneReady, () => this.onSceneReady());
+    this.eventBus.on<ToolActivatedPayload>(Events.SceneReady, (payload) => {
+      if (!payload) return;
+      this.onSceneReady(payload);
+    });
   }
 
   // Событие готовности сцены
-  private onSceneReady(): void {
+  private onSceneReady(payload: ToolActivatedPayload): void {
     if (!this.container || !this.renderer) return;
 
     // Рисуем тайлы
@@ -101,6 +105,24 @@ export class MapModule extends BaseModule {
       () => this.cameraController?.isDraggingCamera() ?? false,
       (x, y) => this.getTileInfo(x, y),
     );
+
+    // 1) слушаем активацию инструмента
+    this.eventBus.on<ToolActivatedPayload>(Events.ToolActivated, this.onToolActivated);
+
+    // 2) при закрытии/рестарте сцены снимаем слушатель (чтобы не дублировался)
+    this.scene.sys.events.once('shutdown', () => {
+      this.eventBus.off(Events.ToolActivated, this.onToolActivated);
+    });
+
+    const escKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+    escKey?.on('down', () => {
+      this.selector?.cancel(); // убрать рамку выделения
+      this.eventBus.emit(Events.ResetToolToDefault, null); // сказать tools-module вернуть select
+    });
+
+    // 3) сбросить tool на select
+    this.eventBus.emit(Events.ResetToolToDefault, null);
   }
 
   // Публичное API для UI
@@ -118,6 +140,17 @@ export class MapModule extends BaseModule {
   public moveCamera(direction: 'up' | 'down' | 'left' | 'right'): void {
     this.cameraController?.moveCamera(direction);
   }
+
+  private onToolActivated = (payload?: ToolActivatedPayload): void => {
+    if (!payload) return;
+
+    this.highlighter?.setStyle(payload.style.hover);
+    this.selector?.setStyle(payload.style.selection);
+
+    this.inputHandler?.setMode(payload.mode);
+
+    this.selector?.cancel();
+  };
 }
 
 export default MapModule;

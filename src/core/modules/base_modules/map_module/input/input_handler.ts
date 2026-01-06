@@ -4,8 +4,11 @@ import { TileSelector } from '../selection/tile_selector';
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { TileInfo, TileCoordinates } from '../types';
+import { MapInteractionMode } from '../../tools_module/types';
 
 export class InputHandler {
+  private mode: MapInteractionMode = 'area_select';
+
   constructor(
     private scene: Phaser.Scene,
     private container: Phaser.GameObjects.Container,
@@ -59,6 +62,8 @@ export class InputHandler {
 
   // Обработка нажатия мыши
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.mode === 'hover_only') return;
+
     if (pointer.rightButtonDown() || pointer.middleButtonDown()) return;
 
     if (pointer.leftButtonDown()) {
@@ -71,6 +76,8 @@ export class InputHandler {
 
   // Обработка отпускания мыши
   private handlePointerUp(pointer: Phaser.Input.Pointer): void {
+    if (this.mode === 'hover_only') return;
+
     if (this.selector.isSelectingArea() && pointer.leftButtonReleased()) {
       const tile = this.getTileAtPointer(pointer);
       if (tile) {
@@ -135,5 +142,10 @@ export class InputHandler {
     }
 
     return null;
+  }
+
+  // Установка режима ввода
+  public setMode(mode: MapInteractionMode): void {
+    this.mode = mode;
   }
 }

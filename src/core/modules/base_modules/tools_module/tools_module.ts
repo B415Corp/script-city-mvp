@@ -1,18 +1,27 @@
 import { EventBus } from '@/core/event_bus/event_bus';
-import { ToolsEvents, ToolStackType } from './types';
+import { ToolId, ToolsEvents, ToolStackType } from './types';
 import { Events } from '@/core/event_bus/events';
 import { LivingZoneTool } from './tools/living_zone_tool';
 import { CommercialZoneTool } from './tools/commercial_zone_tool';
 import { ClearZoneTool } from './tools/clear_zone_tool';
 import { BaseModule } from '../../extends';
+import { SelectTool } from './tools/select_tool';
 
 export class ToolsModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+
   public selectedTool!: string;
+  private readonly defaultTool: ToolId = 'select';
 
   // Список доступных инструментов
   private readonly toolsStack: ToolStackType = {
+    select: {
+      localeName: 'select',
+      description: null,
+      icon: null,
+      class: new SelectTool(),
+    },
     living_zone: {
       localeName: 'living_zone',
       description: null,
@@ -34,30 +43,22 @@ export class ToolsModule extends BaseModule {
   };
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('ToolsModule: init');
     super(scene, eventBus);
 
-    this.scene = scene;
-    this.eventBus = eventBus;
-
-    // событие при выборе инструмента по его типу
     eventBus.on<ToolsEvents>(Events.SelectTool, (payload) => {
-      if (!payload) {
-        console.error('ToolsModule: нет данных');
-        return;
-      }
+      const entry = this.toolsStack[payload?.type ?? ''];
+      if (!entry) return;
 
-      if (!this.toolsStack[payload?.type]) {
-        console.error(`ToolsModule: не найден инструмент с названием ${payload.type}`);
-      }
+      entry.class.activate(this.eventBus);
+      this.selectedTool = payload?.type ?? '';
+    });
 
-      // вызов
-      try {
-        this.toolsStack[payload?.type].class.emit(payload.type);
-        this.selectedTool = payload.type;
-      } catch (error) {
-        console.error(error);
-      }
+    eventBus.on(Events.ResetToolToDefault, () => {
+      const entry = this.toolsStack[this.defaultTool];
+      if (!entry) return;
+
+      entry.class.activate(this.eventBus);
+      this.selectedTool = this.defaultTool;
     });
   }
 

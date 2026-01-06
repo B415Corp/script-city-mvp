@@ -7,6 +7,13 @@ export class TileSelector {
   private isSelecting = false; // флаг выделения
   private selectStartTile: { x: number; y: number } | null = null; // начальный тайл выделения
   private selectedTiles: { x: number; y: number }[] = []; // выбранные тайлы
+  private style = {
+    fill: 0x00ff00,
+    fillAlpha: 0.3,
+    line: 0xffffff,
+    lineAlpha: 1,
+    lineWidth: 2,
+  };
 
   constructor(
     private scene: Phaser.Scene,
@@ -90,8 +97,8 @@ export class TileSelector {
 
     if (this.selectedTiles.length === 0) return;
 
-    this.graphics.fillStyle(0x00ff00, 0.3);
-    this.graphics.lineStyle(2, 0xffffff, 1);
+    this.graphics.fillStyle(this.style.fill, this.style.fillAlpha);
+    this.graphics.lineStyle(this.style.lineWidth, this.style.line, this.style.lineAlpha);
 
     for (const { x, y } of this.selectedTiles) {
       const center = this.isometricMath.tileToScreen(x, y);
@@ -125,5 +132,16 @@ export class TileSelector {
   // Проверка, выделена ли область
   public isSelectingArea(): boolean {
     return this.isSelecting;
+  }
+
+  // Установка стиля выделения
+  public setStyle(style: {
+    fill: number;
+    fillAlpha: number;
+    line: number;
+    lineAlpha: number;
+    lineWidth: number;
+  }): void {
+    this.style = style;
   }
 }

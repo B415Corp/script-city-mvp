@@ -5,6 +5,13 @@ import { IsometricMath } from '../infrastructure/isometric_math';
 export class TileHighlighter {
   private graphics: Phaser.GameObjects.Graphics; // графический объект для рисования выделения
   private highlightedTile: { x: number; y: number } | null = null; // выделенный тайл
+  private style = {
+    fill: 0xffffff,
+    fillAlpha: 0.2,
+    line: 0x00ff00,
+    lineAlpha: 0.5,
+    lineWidth: 3,
+  };
 
   constructor(
     private scene: Phaser.Scene,
@@ -73,5 +80,16 @@ export class TileHighlighter {
   // Получение выделенного тайла
   public getHighlightedTile(): { x: number; y: number } | null {
     return this.highlightedTile;
+  }
+
+  // Установка стиля выделения
+  public setStyle(style: {
+    fill: number;
+    fillAlpha: number;
+    line: number;
+    lineAlpha: number;
+    lineWidth: number;
+  }): void {
+    this.style = style;
   }
 }

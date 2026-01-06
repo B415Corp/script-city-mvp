@@ -23,6 +23,8 @@ export enum Events {
 
   // Ивенты инструментов
   SelectTool = 'SelectTool',
+  ToolActivated = 'ToolActivated',
+  ResetToolToDefault = 'ResetToolToDefault',
 
   // модули
   ModuleEnabled = 'ModuleEnabled',

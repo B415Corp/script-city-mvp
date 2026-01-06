@@ -13,3 +13,31 @@ export type ToolStackType = Record<
     class: Tool;
   }
 >;
+
+export type ToolId =
+  | 'info'
+  | 'select'
+  | 'area_select'
+  | 'living_zone'
+  | 'commercial_zone'
+  | 'clear_zone';
+
+export type MapInteractionMode = 'hover_only' | 'area_select';
+
+export interface ToolStyle {
+  hover: { fill: number; fillAlpha: number; line: number; lineAlpha: number; lineWidth: number };
+  selection: {
+    fill: number;
+    fillAlpha: number;
+    line: number;
+    lineAlpha: number;
+    lineWidth: number;
+  };
+}
+
+// Инструмент сообщает миру: “я активирован, вот как рисовать”
+export interface ToolActivatedPayload {
+  type: ToolId;
+  mode: MapInteractionMode;
+  style: ToolStyle;
+}
