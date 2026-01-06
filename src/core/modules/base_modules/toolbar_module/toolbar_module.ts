@@ -118,6 +118,16 @@ export class ToolbarModule extends BaseModule {
       },
     });
 
+    const gameTimeText = new ButtonUI(this.scene, {
+      xPos: speedX3Btn.xPosition + speedX3Btn.width + 15,
+      yPos: 75,
+      w: 220,
+      h: 30,
+      text: '16:00',
+      depth: 1001,
+      onClick: (): void => {},
+    });
+
     // Контейнер бара
     this.barContainer = this.scene.add.container(x, y);
     this.barContainer.setDepth(1001);
@@ -138,6 +148,7 @@ export class ToolbarModule extends BaseModule {
     this.barContainer.add(clearZoneBtn.container);
 
     // Добавляем кнопки второго ряда
+    this.barContainer.add(gameTimeText.container);
     this.barContainer.add(pauseBtn.container);
     this.barContainer.add(speedX1Btn.container);
     this.barContainer.add(speedX2Btn.container);
