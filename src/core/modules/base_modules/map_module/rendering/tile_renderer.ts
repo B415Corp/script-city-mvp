@@ -4,8 +4,8 @@ import { DEFAULT_MAP } from '../infrastructure/maps/default_map';
 import { TileInfo } from '../types';
 
 export class TileRenderer {
-  private container: Phaser.GameObjects.Container;
-  private isometricMath: IsometricMath;
+  private container: Phaser.GameObjects.Container; // контейнер для рендеринга тайлов
+  private isometricMath: IsometricMath; // изометрическая математика
 
   constructor(
     private scene: Phaser.Scene,
@@ -19,6 +19,7 @@ export class TileRenderer {
     this.isometricMath = new IsometricMath(tileWidth, tileHeight);
   }
 
+  // Рендеринг сетки тайлов
   public renderGrid(): void {
     for (let y = 0; y < this.gridHeight; y++) {
       for (let x = 0; x < this.gridWidth; x++) {
@@ -27,6 +28,7 @@ export class TileRenderer {
     }
   }
 
+  // Рендеринг тайла
   private renderTile(tileX: number, tileY: number, tileType: number): void {
     const textureKey = getTextureType(tileType);
 
@@ -52,6 +54,7 @@ export class TileRenderer {
     this.container.add(img);
   }
 
+  // Получение информации о тайле
   public getTileInfo(tileX: number, tileY: number): TileInfo | null {
     if (tileX < 0 || tileX >= this.gridWidth || tileY < 0 || tileY >= this.gridHeight) {
       return null;
@@ -63,6 +66,7 @@ export class TileRenderer {
     return { x: tileX, y: tileY, type: tileType, typeName };
   }
 
+  // Получение изометрической математики
   public getIsometricMath(): IsometricMath {
     return this.isometricMath;
   }

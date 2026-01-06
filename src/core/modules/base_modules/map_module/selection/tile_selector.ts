@@ -3,10 +3,10 @@ import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '../infrastructure/isometric_math';
 
 export class TileSelector {
-  private graphics: Phaser.GameObjects.Graphics;
-  private isSelecting = false;
-  private selectStartTile: { x: number; y: number } | null = null;
-  private selectedTiles: { x: number; y: number }[] = [];
+  private graphics: Phaser.GameObjects.Graphics; // графический объект для рисования выделения
+  private isSelecting = false; // флаг выделения
+  private selectStartTile: { x: number; y: number } | null = null; // начальный тайл выделения
+  private selectedTiles: { x: number; y: number }[] = []; // выбранные тайлы
 
   constructor(
     private scene: Phaser.Scene,
@@ -25,11 +25,13 @@ export class TileSelector {
     this.setupEscKey();
   }
 
+  // Настройка клавиши ESC для отмены выделения
   private setupEscKey(): void {
     const escKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     escKey?.on('down', () => this.cancel());
   }
 
+  // Начало выделения
   public startSelection(tileX: number, tileY: number): void {
     this.isSelecting = true;
     this.selectStartTile = { x: tileX, y: tileY };
@@ -39,6 +41,7 @@ export class TileSelector {
     this.eventBus.emit(Events.TileClicked, { tileX, tileY });
   }
 
+  // Обновление выделения
   public updateSelection(tileX: number, tileY: number): void {
     if (!this.isSelecting || !this.selectStartTile) return;
 
@@ -59,6 +62,7 @@ export class TileSelector {
     this.draw();
   }
 
+  // Конец выделения
   public endSelection(tileX: number, tileY: number): void {
     if (!this.isSelecting || !this.selectStartTile) return;
 
@@ -80,6 +84,7 @@ export class TileSelector {
     console.log(`Selected area: (${x1},${y1}) to (${x2},${y2})`);
   }
 
+  // Рисование выделения
   private draw(): void {
     this.graphics.clear();
 
@@ -105,6 +110,7 @@ export class TileSelector {
     }
   }
 
+  // Отмена выделения
   public cancel(): void {
     if (this.isSelecting || this.selectedTiles.length > 0) {
       this.isSelecting = false;
@@ -116,6 +122,7 @@ export class TileSelector {
     }
   }
 
+  // Проверка, выделена ли область
   public isSelectingArea(): boolean {
     return this.isSelecting;
   }

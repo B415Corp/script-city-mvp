@@ -2,9 +2,9 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 
 export class CameraController {
-  private isDragging = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
+  private isDragging = false; // флаг перетаскивания камеры
+  private dragStartX = 0; // начальная координата X перетаскивания
+  private dragStartY = 0; // начальная координата Y перетаскивания
 
   constructor(
     private scene: Phaser.Scene,
@@ -14,6 +14,7 @@ export class CameraController {
     this.setupControls();
   }
 
+  // Настройка контролов
   private setupControls(): void {
     this.scene.input.mouse?.disableContextMenu();
     this.setupZoom();
@@ -21,6 +22,7 @@ export class CameraController {
     this.setupKeyboard();
   }
 
+  // Настройка масштабирования
   private setupZoom(): void {
     this.scene.input.on(
       'wheel',
@@ -48,6 +50,7 @@ export class CameraController {
     );
   }
 
+  // Настройка перетаскивания
   private setupDrag(): void {
     this.scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.rightButtonDown() || p.middleButtonDown()) {
@@ -75,6 +78,7 @@ export class CameraController {
     });
   }
 
+  // Настройка клавиатуры
   private setupKeyboard(): void {
     const arrows = this.scene.input.keyboard?.createCursorKeys();
     if (!arrows) return;
@@ -90,14 +94,17 @@ export class CameraController {
     });
   }
 
+  // Увеличение масштаба камеры
   public zoomIn(): void {
     this.zoom(0.1);
   }
 
+  // Уменьшение масштаба камеры
   public zoomOut(): void {
     this.zoom(-0.1);
   }
 
+  // Масштабирование камеры
   private zoom(delta: number): void {
     const oldScale = this.container.scale;
     const newScale = Phaser.Math.Clamp(oldScale + delta, 0.1, 2.0);
@@ -117,6 +124,7 @@ export class CameraController {
     this.eventBus.emit(Events.CameraZoomed, { scale: newScale, x: newX, y: newY });
   }
 
+  // Перемещение камеры
   public moveCamera(direction: 'up' | 'down' | 'left' | 'right'): void {
     const speed = 50;
 
@@ -136,6 +144,7 @@ export class CameraController {
     }
   }
 
+  // Центрирование карты
   public centerMap(): void {
     const camera = this.scene.cameras.main;
     const cx = camera.width / 2;
@@ -145,6 +154,7 @@ export class CameraController {
     this.eventBus.emit(Events.MapCentered, { x: cx, y: cy });
   }
 
+  // Проверка, перетаскивается ли камера
   public isDraggingCamera(): boolean {
     return this.isDragging;
   }

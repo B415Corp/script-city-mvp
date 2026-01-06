@@ -21,6 +21,7 @@ export class InputHandler {
     this.attachListeners();
   }
 
+  // Прикрепление слушателей
   private attachListeners(): void {
     this.scene.input.on('pointermove', this.handlePointerMove, this);
     this.scene.input.on('pointerout', () => this.highlighter.clear());
@@ -28,6 +29,7 @@ export class InputHandler {
     this.scene.input.on('pointerup', this.handlePointerUp, this);
   }
 
+  // Обработка движения мыши
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
     if (this.getCameraIsDragging()) return;
 
@@ -55,6 +57,7 @@ export class InputHandler {
     });
   }
 
+  // Обработка нажатия мыши
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
     if (pointer.rightButtonDown() || pointer.middleButtonDown()) return;
 
@@ -66,6 +69,7 @@ export class InputHandler {
     }
   }
 
+  // Обработка отпускания мыши
   private handlePointerUp(pointer: Phaser.Input.Pointer): void {
     if (this.selector.isSelectingArea() && pointer.leftButtonReleased()) {
       const tile = this.getTileAtPointer(pointer);
@@ -86,6 +90,7 @@ export class InputHandler {
     }
   }
 
+  // Получение тайла под курсором
   private getTileAtPointer(pointer: Phaser.Input.Pointer): TileCoordinates | null {
     const containerX = (pointer.x - this.container.x) / this.container.scale;
     const containerY = (pointer.y - this.container.y) / this.container.scale;
@@ -99,6 +104,7 @@ export class InputHandler {
     );
   }
 
+  // Поиск тайла по точке
   private findTileAtPoint(
     screenX: number,
     screenY: number,

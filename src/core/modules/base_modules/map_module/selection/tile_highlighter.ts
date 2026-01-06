@@ -3,8 +3,8 @@ import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '../infrastructure/isometric_math';
 
 export class TileHighlighter {
-  private graphics: Phaser.GameObjects.Graphics;
-  private highlightedTile: { x: number; y: number } | null = null;
+  private graphics: Phaser.GameObjects.Graphics; // графический объект для рисования выделения
+  private highlightedTile: { x: number; y: number } | null = null; // выделенный тайл
 
   constructor(
     private scene: Phaser.Scene,
@@ -19,6 +19,7 @@ export class TileHighlighter {
     container.add(this.graphics);
   }
 
+  // Выделение тайла
   public highlight(tileX: number, tileY: number): void {
     if (this.isHighlighted(tileX, tileY)) return;
 
@@ -29,6 +30,7 @@ export class TileHighlighter {
     this.eventBus.emit(Events.TileHovered, { tileX, tileY });
   }
 
+  // Рисование выделения
   private draw(tileX: number, tileY: number): void {
     this.graphics.clear();
 
@@ -50,6 +52,7 @@ export class TileHighlighter {
     this.graphics.strokePath();
   }
 
+  // Очистка выделения
   public clear(): void {
     if (this.highlightedTile) {
       this.eventBus.emit(Events.TileUnhovered, {
@@ -62,10 +65,12 @@ export class TileHighlighter {
     this.highlightedTile = null;
   }
 
+  // Проверка, выделен ли тайл
   private isHighlighted(tileX: number, tileY: number): boolean {
     return this.highlightedTile?.x === tileX && this.highlightedTile?.y === tileY;
   }
 
+  // Получение выделенного тайла
   public getHighlightedTile(): { x: number; y: number } | null {
     return this.highlightedTile;
   }

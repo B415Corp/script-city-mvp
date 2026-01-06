@@ -12,12 +12,12 @@ export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
 
-  private container?: Phaser.GameObjects.Container;
-  private renderer?: TileRenderer;
-  private cameraController?: CameraController;
-  private highlighter?: TileHighlighter;
-  private selector?: TileSelector;
-  private inputHandler?: InputHandler;
+  private container?: Phaser.GameObjects.Container; // контейнер для рендеринга тайлов
+  private renderer?: TileRenderer; // рендер тайлов
+  private cameraController?: CameraController; // контроллер камеры
+  private highlighter?: TileHighlighter; // выделение тайла
+  private selector?: TileSelector; // селектор тайлов
+  private inputHandler?: InputHandler; // обработчик ввода
 
   // Параметры сетки
   private readonly gridWidth: number = 100;
@@ -37,6 +37,7 @@ export class MapModule extends BaseModule {
     return this.renderer?.getTileInfo(tileX, tileY) ?? null;
   }
 
+  // Прикрепление к сцене
   attachToScene(scene: Phaser.Scene): void {
     this.scene = scene;
     this.container = scene.add.container(0, 0).setDepth(10);
@@ -58,16 +59,17 @@ export class MapModule extends BaseModule {
     this.eventBus.on(Events.SceneReady, () => this.onSceneReady());
   }
 
+  // Событие готовности сцены
   private onSceneReady(): void {
     if (!this.container || !this.renderer) return;
 
     // Рисуем тайлы
     this.renderer.renderGrid();
 
-    const isometricMath = this.renderer.getIsometricMath();
+    const isometricMath = this.renderer.getIsometricMath(); // получаем изометрическую математику
 
     // Инициализация интерактивных модулей
-    this.highlighter = new TileHighlighter(
+    this.highlighter = new TileHighlighter( // инициализация выделения тайла
       this.scene,
       this.container,
       isometricMath,
@@ -76,7 +78,7 @@ export class MapModule extends BaseModule {
       this.tileHeight,
     );
 
-    this.selector = new TileSelector(
+    this.selector = new TileSelector( // инициализация селектора тайлов
       this.scene,
       this.container,
       isometricMath,
@@ -87,7 +89,7 @@ export class MapModule extends BaseModule {
       this.gridHeight,
     );
 
-    this.inputHandler = new InputHandler(
+    this.inputHandler = new InputHandler( // инициализация обработчика ввода
       this.scene,
       this.container,
       isometricMath,
@@ -102,14 +104,17 @@ export class MapModule extends BaseModule {
   }
 
   // Публичное API для UI
+  // Увеличение масштаба камеры
   public zoomIn(): void {
     this.cameraController?.zoomIn();
   }
 
+  // Уменьшение масштаба камеры
   public zoomOut(): void {
     this.cameraController?.zoomOut();
   }
 
+  // Перемещение камеры
   public moveCamera(direction: 'up' | 'down' | 'left' | 'right'): void {
     this.cameraController?.moveCamera(direction);
   }
