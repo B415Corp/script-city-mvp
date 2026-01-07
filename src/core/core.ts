@@ -60,14 +60,6 @@ export class Core {
   }
 
   private async startSimulation(): Promise<void> {
-    return new Promise((res) => {
-      // Ждем когда все модули готовы
-      this.phaser?.events.once('ready', () => {
-        console.log('🎮 Starting Script City simulation...');
-        this.ecsManager.firstSimulationStep();
-        console.log('✅ Simulation started successfully!');
-        res();
-      });
-    });
+    // TODO: Implement simulation start logic
   }
 }

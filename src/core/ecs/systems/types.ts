@@ -9,7 +9,12 @@ export interface System {
   /** Требуемые компоненты (массив строк с названиями) */
   components: readonly string[];
   /** Функция обновления системы */
-  update: (world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) => void;
+  update: (
+    world: World,
+    entities: readonly EntityId[],
+    delta?: number,
+    extraData?: unknown,
+  ) => void;
 }
 
 /**
@@ -37,5 +42,9 @@ export interface EventDrivenSystem {
   /** Требуемые компоненты */
   components: readonly string[];
   /** Функция обновления */
-  update: (world: World, entities: readonly EntityId[], eventData?: Record<string, unknown>) => void;
+  update: (
+    world: World,
+    entities: readonly EntityId[],
+    eventData?: Record<string, unknown>,
+  ) => void;
 }

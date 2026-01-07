@@ -8,4 +8,5 @@ export * from './systems';
 export * from './entities';
 
 // ECS менеджер
-export { ECSManager, type GameTimeUpdateData } from './ecs_manager';
+export { ECSManager } from './ecs_manager';
+export type { GameTimeUpdateData } from './types';
