@@ -6,6 +6,7 @@ import { EntityFactory } from './entities';
 import { PopulationSystem, NeedsSystem, DailyRoutineSystem } from './systems/clusters';
 import { System } from './systems/types';
 import { GameTimeUpdateData } from './types';
+import { LogicTickData } from '../tick/types';
 
 export type systemsClusters = Record<number, System[]>;
 
@@ -13,20 +14,9 @@ export class ECSManager {
   private world: World;
   private entityFactory: EntityFactory; // Фабрика сущностей для создания новых сущностей
   private systems: System[] = []; // Системы для обновления сущностей
-  private gameTime = 8 * 60; // общее игровое время в минутах (стартуем с 8:00 первого дня)
   private systemsClusters: systemsClusters = {
     1: [PopulationSystem, NeedsSystem, DailyRoutineSystem],
   };
-  // Константы времени
-  private readonly MINUTES_PER_DAY = 24 * 60; // 1440 минут в сутках
-  private readonly MINUTES_PER_TICK = 15; // 15 минут игры за 1 логический тик
-
-  /**
-   * Получить время дня (минуты от начала текущего дня)
-   */
-  private get gameTimeOfDay(): number {
-    return this.gameTime % this.MINUTES_PER_DAY;
-  }
 
   constructor(private eventBus: EventBus) {
     console.log('🚀 ECSManager initialized');
@@ -35,8 +25,8 @@ export class ECSManager {
 
     // Подписываемся на LogicTick для обновления систем
     this.eventBus.on(Events.LogicTick, (payload) => {
-      const { delta } = payload as { delta: number };
-      this.updateSystems(delta);
+      const tickData = payload as LogicTickData;
+      this.updateSystems(tickData);
     });
   }
 
@@ -52,17 +42,11 @@ export class ECSManager {
    * Обновляет все зарегистрированные системы
    * Вызывается на каждый LogicTick
    */
-  private updateSystems(delta: number): void {
-    // Добавляем фиксированное количество минут за каждый тик
-    this.gameTime += this.MINUTES_PER_TICK;
-
-    // Отправляем обновление времени в UI
-    this.emitTimeUpdate();
-
+  private updateSystems(tickData: LogicTickData): void {
     for (const system of this.systems) {
       // Получаем сущности для этой системы
       const entities = this.queryEntities(system.components);
-      system.update(this.world, entities, this.MINUTES_PER_TICK, this.gameTimeOfDay);
+      system.update(this.world, entities, tickData.delta, tickData.gameTimeOfDay);
     }
   }
 
@@ -105,54 +89,13 @@ export class ECSManager {
   }
 
   /**
-   * Форматирует время дня в читаемый формат HH:MM
-   */
-  private formatTimeOfDay(minutesOfDay: number): string {
-    const hours = Math.floor(minutesOfDay / 60);
-    const minutes = Math.floor(minutesOfDay % 60);
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  }
-
-  /**
-   * Отправляет обновление времени в eventBus для UI
-   * Использование в компонентах:
-   * eventBus.on(Events.GameTimeUpdated, (data: GameTimeUpdateData) => {
-   *   console.log(`Day ${data.day}, ${data.timeOfDay}`);
-   * });
-   */
-  private emitTimeUpdate(): void {
-    const day = Math.floor(this.gameTime / this.MINUTES_PER_DAY) + 1;
-    const hours = Math.floor(this.gameTimeOfDay / 60);
-    const minutes = Math.floor(this.gameTimeOfDay % 60);
-
-    const timeData: GameTimeUpdateData = {
-      totalMinutes: this.gameTime,
-      timeOfDay: this.formatTimeOfDay(this.gameTimeOfDay),
-      day,
-      hour: hours,
-      minute: minutes,
-      minutesOfDay: this.gameTimeOfDay,
-    };
-
-    this.eventBus.emit(Events.GameTimeUpdated, timeData);
-  }
-
-  /**
    * Получить статистику симуляции
    */
   getStats(): {
-    gameTime: number;
-    gameTimeOfDay: string;
-    day: number;
     systemsCount: number;
     systems: string[];
   } {
-    const day = Math.floor(this.gameTime / this.MINUTES_PER_DAY) + 1;
-
     return {
-      gameTime: Math.floor(this.gameTime),
-      gameTimeOfDay: this.formatTimeOfDay(this.gameTimeOfDay),
-      day,
       systemsCount: this.systems.length,
       systems: this.systems.map((s) => s.name),
     };

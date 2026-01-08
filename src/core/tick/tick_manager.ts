@@ -1,83 +1,102 @@
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
+import { TickController } from './controllers/tick_controller';
+import { TimeController } from './controllers/time_controller';
+import { LogicTickData, SetSpeedPayload } from './types';
 
-type SetSpeedPayload = { speed: number };
-
+/**
+ * TickManager - оркестратор управления тиками и временем
+ * Использует TickController для fixed timestep логики и TimeController для игрового времени
+ */
 export class TickManager {
-  private accumulator = 0; // накопленное время
-
-  private tickRate = 10; // тиков в секунду
-  private fixedStepMs = 1000 / 10; // ms на тик
-
-  private paused = false;
-
-  // чтобы при лагах не догонять вечность
-  private maxAccumulatedMs = 250;
+  private tickController: TickController;
+  private timeController: TimeController;
 
   constructor(
     private readonly eventBus: EventBus,
     initialTickRate = 10,
   ) {
-    this.setSpeed(initialTickRate); // установить начальную скорость тиков
+    this.tickController = new TickController(initialTickRate);
+    this.timeController = new TimeController(eventBus);
 
-    this.eventBus.on(Events.GamePauseToggle, () => this.togglePause());
+    // Подписываемся на события управления
+    this.eventBus.on(Events.GamePauseToggle, () => this.tickController.togglePause());
     this.eventBus.on(Events.SetGameSpeed, (payload) => {
       const { speed } = payload as SetSpeedPayload;
-      this.setSpeed(speed);
+      this.tickController.setSpeed(speed);
     });
   }
 
-  // обновление тиков
+  /**
+   * Основное обновление - обрабатывает тики и время
+   */
   update(time: number, delta: number): void {
-    // “TickStarted” можно оставить как кадр-событие (каждый rAF)
+    // "TickStarted" можно оставить как кадр-событие (каждый rAF)
     this.eventBus.emit(Events.TickStarted, { time, delta });
 
-    if (this.paused) return;
+    // Получаем количество тиков для выполнения
+    const ticksToExecute = this.tickController.update(delta);
 
-    // Защита от огромного delta (свернули вкладку и т.п.)
-    this.accumulator += Math.min(delta, this.maxAccumulatedMs);
+    // Выполняем тики
+    for (let i = 0; i < ticksToExecute; i++) {
+      // Обновляем игровое время
+      this.timeController.tick();
 
-    // пока накопленное время больше или равно фиксированному шагу, выполняем логику тика
-    while (this.accumulator >= this.fixedStepMs) {
-      this.accumulator -= this.fixedStepMs;
+      // Эмитим обновление времени
+      this.timeController.emitTimeUpdate();
 
-      this.eventBus.emit(Events.LogicTick, {
-        time,
-        delta: this.fixedStepMs,
-      });
+      // Эмитим LogicTick с данными от обоих контроллеров
+      this.eventBus.emit(Events.LogicTick, this.createLogicTickData(time, ticksToExecute));
     }
   }
 
-  // установить скорость тиков
-  private setSpeed(speed: number): void {
-    // speed = пауза
-    if (!Number.isFinite(speed) || speed <= 0) {
-      this.paused = true;
-      return;
-    }
-
-    this.paused = false;
-    this.tickRate = speed;
-    this.fixedStepMs = 1000 / speed;
+  /**
+   * Создает данные для LogicTick события
+   */
+  private createLogicTickData(time: number, ticksExecuted: number): LogicTickData {
+    return {
+      delta: this.tickController.getFixedStepMs(),
+      gameTime: this.timeController.getGameTime(),
+      gameTimeOfDay: this.timeController.getGameTimeOfDay(),
+      day: this.timeController.getDay(),
+      ticksExecuted,
+    };
   }
 
-  // переключить паузу
-  private togglePause(): void {
-    this.paused = !this.paused;
-  }
+  // Делегируем методы контроллерам
 
-  // пауза
+  // Управление паузой
   public pause(): void {
-    this.paused = true;
+    this.tickController.pause();
   }
 
-  // возобновить
   public resume(): void {
-    this.paused = false;
+    this.tickController.resume();
   }
 
-  // получить фиксированный шаг в миллисекундах
+  public togglePause(): void {
+    this.tickController.togglePause();
+  }
+
+  // Доступ к контроллерам
+  public getTickController(): TickController {
+    return this.tickController;
+  }
+
+  public getTimeController(): TimeController {
+    return this.timeController;
+  }
+
+  // Геттеры для обратной совместимости
   public getFixedStepMs(): number {
-    return this.fixedStepMs;
+    return this.tickController.getFixedStepMs();
+  }
+
+  public getTickRate(): number {
+    return this.tickController.getTickRate();
+  }
+
+  public isPaused(): boolean {
+    return this.tickController.isPaused();
   }
 }
