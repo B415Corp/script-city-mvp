@@ -6,5 +6,5 @@ export type {
   TileClickedPayload,
   TilesSelectedPayload,
   CameraZoomedPayload,
-  MapCenteredPayload
+  MapCenteredPayload,
 } from './types';

@@ -2,13 +2,16 @@
 import { Events } from './events';
 import { LogicTickData, SetSpeedPayload, TickStartedPayload } from '../tick/types';
 import { GameTimeUpdateData } from '../ecs/types';
-import { ToolActivatedPayload, SelectToolPayload } from '../modules/base_modules/tools_module/types';
+import {
+  ToolActivatedPayload,
+  SelectToolPayload,
+} from '../modules/base_modules/tools_module/types';
 import {
   TileHoveredPayload,
   TileClickedPayload,
   TilesSelectedPayload,
   CameraZoomedPayload,
-  MapCenteredPayload
+  MapCenteredPayload,
 } from '../modules/base_modules/map_module/types';
 import { ModuleStatePayload, ModuleErrorPayload } from '../modules/extends/types';
 

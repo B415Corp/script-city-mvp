@@ -7,5 +7,5 @@ export type {
   MapInteractionMode,
   ToolStyle,
   ToolActivatedPayload,
-  SelectToolPayload
+  SelectToolPayload,
 } from './types';
