@@ -16,6 +16,17 @@ export interface LogicTickData {
 }
 
 /**
+ * Данные события TickStarted
+ * Содержит информацию о начале тика
+ */
+export interface TickStartedPayload {
+  /** Время тика в миллисекундах */
+  time: number;
+  /** Дельта времени с предыдущего тика */
+  delta: number;
+}
+
+/**
  * Типы для контроллеров
  */
 export type SetSpeedPayload = { speed: number };

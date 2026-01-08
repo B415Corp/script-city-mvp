@@ -16,13 +16,14 @@ export class TickDebug extends DebugComponent {
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     super(scene, eventBus);
 
-    this.eventBus.on(Events.LogicTick, (payload) => {
-      const { time, delta } = payload as { time: number; delta: number };
-      this.tick = time;
-      this.deltaTime = Math.round(delta);
-      this.fps = Math.round(1000 / delta);
+    this.eventBus.on(Events.TickStarted, (payload) => {
+      if (payload) {
+        this.tick = payload.time;
+        this.deltaTime = Math.round(payload.delta);
+        this.fps = Math.round(1000 / payload.delta);
 
-      this.updateContent();
+        this.updateContent();
+      }
     });
   }
 

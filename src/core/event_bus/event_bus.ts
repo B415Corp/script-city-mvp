@@ -1,11 +1,11 @@
-import { EventHandler, HandlerInfo, Subscription } from './types';
-import { Events } from '@/event_bus/events';
+import { EventHandler, HandlerInfo, Subscription, EventPayload } from './types';
+import { Events } from './events';
 
 export class EventBus {
   private handlers: Map<string, Set<HandlerInfo>> = new Map();
 
   // Публикация события в шине
-  public emit<T = unknown>(eventType: Events, payload: T): void {
+  public emit<T extends Events>(eventType: T, payload?: EventPayload<T>): void {
     const handlers = this.handlers.get(eventType);
     if (!handlers || handlers.size === 0) {
       return;
@@ -29,7 +29,7 @@ export class EventBus {
   }
 
   // подписка на событие шины
-  public on<T = unknown>(eventType: Events, handler: EventHandler<T>): Subscription {
+  public on<T extends Events>(eventType: T, handler: EventHandler<EventPayload<T>>): Subscription {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
@@ -49,7 +49,10 @@ export class EventBus {
   }
 
   // Одноразовая подписка на событие шины
-  public once<T>(eventType: Events, handler: EventHandler<T>): Subscription {
+  public once<T extends Events>(
+    eventType: T,
+    handler: EventHandler<EventPayload<T>>,
+  ): Subscription {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
     }
@@ -69,7 +72,7 @@ export class EventBus {
   }
 
   // отписка от события шины
-  public off<T = unknown>(eventType: Events, handler: EventHandler<T>): void {
+  public off<T extends Events>(eventType: T, handler: EventHandler<EventPayload<T>>): void {
     const eventHandlers = this.handlers.get(eventType);
     if (!eventHandlers || eventHandlers.size === 0) {
       return;

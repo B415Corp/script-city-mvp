@@ -57,14 +57,13 @@ export class MapModule extends BaseModule {
     this.cameraController.centerMap();
 
     // Подписываемся на событие готовности сцены
-    this.eventBus.on<ToolActivatedPayload>(Events.SceneReady, (payload) => {
-      if (!payload) return;
-      this.onSceneReady(payload);
+    this.eventBus.on(Events.SceneReady, () => {
+      this.onSceneReady();
     });
   }
 
   // Событие готовности сцены
-  private onSceneReady(payload: ToolActivatedPayload): void {
+  private onSceneReady(): void {
     if (!this.container || !this.renderer) return;
 
     // Рисуем тайлы
@@ -107,7 +106,7 @@ export class MapModule extends BaseModule {
     );
 
     // 1) слушаем активацию инструмента
-    this.eventBus.on<ToolActivatedPayload>(Events.ToolActivated, this.onToolActivated);
+    this.eventBus.on(Events.ToolActivated, this.onToolActivated);
 
     // 2) при закрытии/рестарте сцены снимаем слушатель (чтобы не дублировался)
     this.scene.sys.events.once('shutdown', () => {

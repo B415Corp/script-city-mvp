@@ -41,7 +41,7 @@ export class ToolbarModule extends BaseModule {
       text: 'Жилая зона',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit<ToolsEvents>(Events.SelectTool, { type: 'living_zone' });
+        this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
       },
     });
 
@@ -78,7 +78,7 @@ export class ToolbarModule extends BaseModule {
       text: 'Пауза',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit(Events.GamePauseToggle, {});
+        this.eventBus.emit(Events.GamePauseToggle);
       },
     });
 

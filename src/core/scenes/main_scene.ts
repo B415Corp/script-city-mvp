@@ -23,7 +23,7 @@ export class MainScene extends Phaser.Scene {
   create(): void {
     console.log('MainScene create');
 
-    this.eventBus.emit(Events.SceneReady, {});
+    this.eventBus.emit(Events.SceneReady);
   }
 
   update(time: number, delta: number): void {

@@ -45,7 +45,7 @@ export class ToolsModule extends BaseModule {
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     super(scene, eventBus);
 
-    eventBus.on<ToolsEvents>(Events.SelectTool, (payload) => {
+    eventBus.on(Events.SelectTool, (payload) => {
       const entry = this.toolsStack[payload?.type ?? ''];
       if (!entry) return;
 

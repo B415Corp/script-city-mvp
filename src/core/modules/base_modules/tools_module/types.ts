@@ -35,10 +35,19 @@ export interface ToolStyle {
   };
 }
 
-// Инструмент сообщает миру: “я активирован, вот как рисовать”
+// Инструмент сообщает миру: "я активирован, вот как рисовать"
 export interface ToolActivatedPayload {
   type: ToolId;
   mode: MapInteractionMode;
   style: ToolStyle;
   cursor: string; // CSS cursor string
+}
+
+/**
+ * Данные события SelectTool
+ * Содержит информацию о выбранном инструменте
+ */
+export interface SelectToolPayload {
+  /** Тип выбранного инструмента */
+  type: string;
 }
