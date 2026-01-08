@@ -152,7 +152,7 @@ export class BaseUI {
     this.updateAppearance();
   }
 
-  private updateAppearance(): void {
+  protected updateAppearance(): void {
     this.graphics.clear();
 
     // Если неактивна - серая кнопка без интерактива

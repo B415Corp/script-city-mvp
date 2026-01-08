@@ -3,6 +3,7 @@ import { Events } from '@/core/event_bus/events';
 import { ButtonUI } from '@/ui/button.ui';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
+import { BadgeUI } from '@/ui/badge.ui';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -42,6 +43,7 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
+        switchActiveTool('living_zone');
       },
     });
 
@@ -54,6 +56,7 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
+        switchActiveTool('commercial_zone');
       },
     });
 
@@ -66,7 +69,12 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
+        switchActiveTool('clear_zone');
       },
+    });
+
+    this.eventBus.on(Events.ResetToolToDefault, (payload) => {
+      switchActiveTool('select');
     });
 
     // Второй ряд кнопок (скорость игры)
@@ -79,6 +87,7 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         this.eventBus.emit(Events.GamePauseToggle);
+        switchTimeButton('pause');
       },
     });
 
@@ -89,10 +98,13 @@ export class ToolbarModule extends BaseModule {
       h: 30,
       text: 'X1',
       depth: 1001,
+      isActive: true,
       onClick: (): void => {
         this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
+        switchTimeButton('speedX1');
       },
     });
+    speedX1Btn.setActiveTab(true);
 
     const speedX2Btn = new ButtonUI(this.scene, {
       xPos: speedX1Btn.xPosition + speedX1Btn.width + 15,
@@ -103,6 +115,7 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         this.eventBus.emit(Events.SetGameSpeed, { speed: 30 });
+        switchTimeButton('speedX2');
       },
     });
 
@@ -115,17 +128,24 @@ export class ToolbarModule extends BaseModule {
       depth: 1001,
       onClick: (): void => {
         this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
+        switchTimeButton('speedX3');
       },
     });
 
-    const gameTimeText = new ButtonUI(this.scene, {
+    const gameTimeText = new BadgeUI(this.scene, {
       xPos: speedX3Btn.xPosition + speedX3Btn.width + 15,
       yPos: 75,
       w: 220,
       h: 30,
       text: '16:00',
       depth: 1001,
-      onClick: (): void => {},
+    });
+
+    this.eventBus.on(Events.GameTimeUpdated, (payload) => {
+      if (payload) {
+        const { date, timeOfDay } = payload;
+        gameTimeText.update(`${date} ${timeOfDay}`);
+      }
     });
 
     // Контейнер бара
@@ -154,6 +174,41 @@ export class ToolbarModule extends BaseModule {
     this.barContainer.add(speedX2Btn.container);
     this.barContainer.add(speedX3Btn.container);
 
+    function switchActiveTool(toolName: string): void {
+      livingZoneBtn.setActiveTab(false);
+      commercialZoneBtn.setActiveTab(false);
+      clearZoneBtn.setActiveTab(false);
+
+      if (toolName === 'living_zone') {
+        livingZoneBtn.setActiveTab(true);
+      }
+      if (toolName === 'commercial_zone') {
+        commercialZoneBtn.setActiveTab(true);
+      }
+      if (toolName === 'clear_zone') {
+        clearZoneBtn.setActiveTab(true);
+      }
+    }
+
+    function switchTimeButton(buttonName: string): void {
+      pauseBtn.setActiveTab(false);
+      speedX1Btn.setActiveTab(false);
+      speedX2Btn.setActiveTab(false);
+      speedX3Btn.setActiveTab(false);
+
+      if (buttonName === 'pause') {
+        pauseBtn.setActiveTab(true);
+      }
+      if (buttonName === 'speedX1') {
+        speedX1Btn.setActiveTab(true);
+      }
+      if (buttonName === 'speedX2') {
+        speedX2Btn.setActiveTab(true);
+      }
+      if (buttonName === 'speedX3') {
+        speedX3Btn.setActiveTab(true);
+      }
+    }
     // Добавляем бар в контейнер модуля
     this.container.add(this.barContainer);
   }
