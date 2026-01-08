@@ -31,4 +31,7 @@ export enum Events {
   ModuleEnabled = 'ModuleEnabled',
   ModuleDisabled = 'ModuleDisabled',
   ModuleError = 'ModuleError',
+
+  // ECS системы
+  CallSystem = 'CallSystem',
 }

@@ -1,11 +1,11 @@
 import { createWorld, addEntity, removeEntity, World, EntityId, query } from 'bitecs';
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
-import { EventPayload } from '../event_bus/types';
+import { CallSystemPayload } from '../event_bus/types';
 
 import { EntityFactory } from './entities';
 import { PopulationSystem, NeedsSystem, DailyRoutineSystem } from './systems/clusters';
-import { System, EventDrivenSystem, SystemCluster } from './systems/types';
+import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
 import { Person, Citizen, Needs } from './components';
 
@@ -52,7 +52,6 @@ export class ECSManager {
     },
   };
   private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
-  private eventHandlers: Map<Events, Set<string>> = new Map(); // Событие -> имена систем
 
   constructor(private eventBus: EventBus) {
     console.log('🚀 ECSManager initialized');
@@ -71,8 +70,11 @@ export class ECSManager {
       this.updateSystems(tickData);
     });
 
-    // Настраиваем единый event handler
-    this.setupEventHandler();
+    // Подписываемся на CallSystem для вызова систем по событиям
+    this.eventBus.on(Events.CallSystem, (payload) => {
+      const callData = payload as CallSystemPayload;
+      this.handleCallSystem(callData);
+    });
   }
 
   /**
@@ -109,6 +111,23 @@ export class ECSManager {
   }
 
   /**
+   * Обрабатывает событие CallSystem
+   */
+  private handleCallSystem(callData: CallSystemPayload): void {
+    try {
+      if (callData.entityId !== undefined) {
+        // Вызвать систему для конкретной сущности
+        this.callSystemForEntity(callData.systemName, callData.entityId, callData.extraData);
+      } else {
+        // Вызвать систему для всех подходящих сущностей
+        this.callSystem(callData.systemName, undefined, callData.extraData);
+      }
+    } catch (error) {
+      console.error(`Error calling system "${callData.systemName}":`, error);
+    }
+  }
+
+  /**
    * Регистрирует систему по имени
    */
   registerSystem(name: string, system: System): void {
@@ -119,24 +138,6 @@ export class ECSManager {
     this.validateSystem(system);
     this.systems[name] = system;
     console.log(`📋 Registered system: ${name}`);
-  }
-
-  /**
-   * Регистрирует event-driven систему
-   */
-  registerEventDrivenSystem(name: string, system: EventDrivenSystem): void {
-    this.validateEventDrivenSystem(system);
-
-    // Регистрируем систему в общей коллекции
-    this.systems[name] = system as System;
-
-    // Добавляем в event handlers
-    if (!this.eventHandlers.has(system.eventName)) {
-      this.eventHandlers.set(system.eventName, new Set());
-    }
-    this.eventHandlers.get(system.eventName)!.add(name);
-
-    console.log(`📋 Registered event-driven system: ${name} (event: ${system.eventName})`);
   }
 
   /**
@@ -180,43 +181,6 @@ export class ECSManager {
 
     if (typeof system.update !== 'function') {
       throw new Error(`System "${system.name}" must have an update function`);
-    }
-  }
-
-  /**
-   * Валидирует event-driven систему
-   */
-  private validateEventDrivenSystem(system: EventDrivenSystem): void {
-    this.validateSystem(system as System);
-
-    if (!system.eventName) {
-      throw new Error(`EventDrivenSystem "${system.name}" must have a valid eventName`);
-    }
-  }
-
-  /**
-   * Настраивает единый event handler для всех event-driven систем
-   */
-  private setupEventHandler(): void {
-    // Создаем единый обработчик для всех событий
-    const eventHandler = (eventData: EventPayload<Events>, eventName: Events): void => {
-      const systemNames = this.eventHandlers.get(eventName);
-      if (!systemNames) return;
-
-      for (const systemName of systemNames) {
-        try {
-          this.callSystem(systemName, undefined, eventData);
-        } catch (error) {
-          console.error(`Error calling system "${systemName}" for event ${eventName}:`, error);
-        }
-      }
-    };
-
-    // Подписываемся на все используемые события
-    for (const eventName of this.eventHandlers.keys()) {
-      this.eventBus.on(eventName, (eventData) => eventHandler(eventData, eventName));
-      const systemCount = this.eventHandlers.get(eventName)?.size || 0;
-      console.log(`📋 Subscribed ${systemCount} systems to event: ${eventName}`);
     }
   }
 
@@ -315,7 +279,7 @@ export class ECSManager {
   }
 
   /**
-   * Получить мир
+   * Получить мир (использовать осторожно - предоставляет прямой доступ к Bitecs)
    */
   getWorld(): World {
     return this.world;
@@ -362,6 +326,47 @@ export class ECSManager {
   }
 
   /**
+   * Добавить систему в кластер
+   */
+  addSystemToCluster(clusterName: string, systemName: string): void {
+    const cluster = this.systemsClusters[clusterName];
+    if (!cluster) {
+      throw new Error(`Cluster "${clusterName}" not found`);
+    }
+
+    if (!this.systems[systemName]) {
+      throw new Error(`System "${systemName}" not found`);
+    }
+
+    if (cluster.systemNames.includes(systemName)) {
+      console.warn(`System "${systemName}" is already in cluster "${clusterName}"`);
+      return;
+    }
+
+    cluster.systemNames.push(systemName);
+    console.log(`📋 Added system "${systemName}" to cluster "${clusterName}"`);
+  }
+
+  /**
+   * Удалить систему из кластера
+   */
+  removeSystemFromCluster(clusterName: string, systemName: string): void {
+    const cluster = this.systemsClusters[clusterName];
+    if (!cluster) {
+      throw new Error(`Cluster "${clusterName}" not found`);
+    }
+
+    const index = cluster.systemNames.indexOf(systemName);
+    if (index === -1) {
+      console.warn(`System "${systemName}" not found in cluster "${clusterName}"`);
+      return;
+    }
+
+    cluster.systemNames.splice(index, 1);
+    console.log(`📋 Removed system "${systemName}" from cluster "${clusterName}"`);
+  }
+
+  /**
    * Добавить кластер систем
    */
   addCluster(clusterName: string, cluster: SystemCluster): void {
@@ -382,6 +387,42 @@ export class ECSManager {
   }
 
   /**
+   * Получить список всех зарегистрированных систем
+   */
+  getRegisteredSystems(): string[] {
+    return Object.keys(this.systems);
+  }
+
+  /**
+   * Проверить, зарегистрирована ли система
+   */
+  isSystemRegistered(systemName: string): boolean {
+    return systemName in this.systems;
+  }
+
+  /**
+   * Проверить, включен ли кластер
+   */
+  isClusterEnabled(clusterName: string): boolean {
+    const cluster = this.systemsClusters[clusterName];
+    return cluster ? cluster.enabled : false;
+  }
+
+  /**
+   * Удалить кластер систем
+   */
+  removeCluster(clusterName: string): void {
+    if (!this.systemsClusters[clusterName]) {
+      console.warn(`Cluster "${clusterName}" not found`);
+      return;
+    }
+
+    delete this.systemsClusters[clusterName];
+    this.clusterTimers.delete(clusterName);
+    console.log(`📋 Removed cluster "${clusterName}"`);
+  }
+
+  /**
    * Получить статистику симуляции
    */
   getStats(): {
@@ -396,8 +437,6 @@ export class ECSManager {
         interval?: number;
       }
     >;
-    eventDrivenSystemsCount: number;
-    eventDrivenSystems: string[];
   } {
     const clusters: Record<
       string,
@@ -418,24 +457,10 @@ export class ECSManager {
       };
     }
 
-    // Подсчитываем event-driven системы
-    let eventDrivenCount = 0;
-    const eventDrivenNames: string[] = [];
-
-    for (const systemName of Object.keys(this.systems)) {
-      const system = this.systems[systemName];
-      if ('eventName' in system) {
-        eventDrivenCount++;
-        eventDrivenNames.push(systemName);
-      }
-    }
-
     return {
       totalSystemsCount: Object.keys(this.systems).length,
       clustersCount: Object.keys(clusters).length,
       clusters,
-      eventDrivenSystemsCount: eventDrivenCount,
-      eventDrivenSystems: eventDrivenNames,
     };
   }
 }

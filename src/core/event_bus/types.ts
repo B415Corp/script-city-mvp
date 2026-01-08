@@ -14,6 +14,14 @@ import {
   MapCenteredPayload,
 } from '../modules/base_modules/map_module/types';
 import { ModuleStatePayload, ModuleErrorPayload } from '../modules/extends/types';
+import { EntityId } from 'bitecs';
+
+// Payload для вызова систем
+export interface CallSystemPayload {
+  systemName: string;
+  entityId?: EntityId;
+  extraData?: unknown;
+}
 
 export interface Subscription {
   unsubscribe(): void;
@@ -51,6 +59,7 @@ export interface EventPayloadMap {
   [Events.ModuleEnabled]: ModuleStatePayload;
   [Events.ModuleDisabled]: ModuleStatePayload;
   [Events.ModuleError]: ModuleErrorPayload;
+  [Events.CallSystem]: CallSystemPayload;
 }
 
 // Вспомогательный тип для получения payload типа по событию

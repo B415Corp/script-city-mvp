@@ -22,27 +22,13 @@ export interface System {
  */
 export interface SystemCluster {
   /** Имена систем в кластере */
-  systemNames: SystemName[];
+  systemNames: string[];
   /** Интервал выполнения в секундах (undefined = каждый тик) */
   interval?: number;
   /** Включен ли кластер */
   enabled: boolean;
 }
 
-import { Events } from '../../event_bus/events';
-import { EventPayload } from '../../event_bus/types';
-import { SystemName } from '../ecs_manager';
-
-/**
- * Event-driven система
- */
-export interface EventDrivenSystem {
-  /** Название системы */
-  name: string;
-  /** Название события для подписки */
-  eventName: Events;
-  /** Требуемые компоненты */
-  components: readonly string[];
-  /** Функция обновления */
-  update: (world: World, entities: readonly EntityId[], eventData?: EventPayload<Events>) => void;
-}
+// Event-driven системы теперь работают через событие CallSystem
+// Вместо специального интерфейса используются обычные System
+// SystemName теперь просто string
