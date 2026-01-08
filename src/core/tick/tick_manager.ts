@@ -45,20 +45,17 @@ export class TickManager {
       // Эмитим обновление времени
       this.timeController.emitTimeUpdate();
 
-      // Эмитим LogicTick с данными от обоих контроллеров
-      this.eventBus.emit(Events.LogicTick, this.createLogicTickData(time, ticksToExecute));
+      // Эмитим LogicTick только с данными тика
+      this.eventBus.emit(Events.LogicTick, this.createLogicTickData(ticksToExecute));
     }
   }
 
   /**
    * Создает данные для LogicTick события
    */
-  private createLogicTickData(time: number, ticksExecuted: number): LogicTickData {
+  private createLogicTickData(ticksExecuted: number): LogicTickData {
     return {
       delta: this.tickController.getFixedStepMs(),
-      gameTime: this.timeController.getGameTime(),
-      gameTimeOfDay: this.timeController.getGameTimeOfDay(),
-      day: this.timeController.getDay(),
       ticksExecuted,
     };
   }

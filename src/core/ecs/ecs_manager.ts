@@ -8,6 +8,7 @@ import { PopulationSystem, NeedsSystem, DailyRoutineSystem } from './systems/clu
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
 import { Person, Citizen, Needs } from './components';
+import { TestSystem } from './systems/clusters/test_system';
 
 /**
  * Реестр компонентов для запросов по именам
@@ -21,10 +22,11 @@ const COMPONENT_REGISTRY: Record<
   Needs,
 };
 
-const systemRegistry = {
+const systemRegistry: Record<string, System> = {
   Population: PopulationSystem,
   Needs: NeedsSystem,
   DailyRoutine: DailyRoutineSystem,
+  Test: TestSystem,
 } as const;
 
 export type SystemName = keyof typeof systemRegistry;
@@ -36,22 +38,23 @@ export class ECSManager {
   private systems: Record<string, System> = {}; // Все системы по именам
   private systemsClusters: systemsClusters = {
     population: {
-      systemNames: ['Population', 'Needs', 'DailyRoutine'],
+      systemNames: [],
       enabled: true,
-      interval: 1.0, // Каждую секунду
+      interval: 60.0, // Каждую секунду
     },
     economy: {
       systemNames: [], // Можно добавить экономические системы
       enabled: true,
-      interval: 5.0, // Каждые 5 секунд
+      interval: 120.0,
     },
     infrastructure: {
-      systemNames: [], // Можно добавить инфраструктурные системы
+      systemNames: ['Test'], // Можно добавить инфраструктурные системы
       enabled: true,
-      interval: 10.0, // Каждые 10 секунд
+      interval: 240.0,
     },
   };
   private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
+  private currentGameTimeOfDay: number = 0; // Текущее время дня в минутах
 
   constructor(private eventBus: EventBus) {
     console.log('🚀 ECSManager initialized');
@@ -68,6 +71,13 @@ export class ECSManager {
     this.eventBus.on(Events.LogicTick, (payload) => {
       const tickData = payload as LogicTickData;
       this.updateSystems(tickData);
+    });
+
+    // Подписываемся на GameTimeUpdated для получения актуального времени
+    this.eventBus.on(Events.GameTimeUpdated, (payload) => {
+      if (!payload) return;
+      const timeData = payload;
+      this.currentGameTimeOfDay = timeData.minutesOfDay;
     });
 
     // Подписываемся на CallSystem для вызова систем по событиям
@@ -96,7 +106,9 @@ export class ECSManager {
       // Проверяем, что все системы кластера зарегистрированы
       for (const systemName of cluster.systemNames) {
         if (!this.systems[systemName]) {
-          throw new Error(`System "${systemName}" not found in cluster "${clusterName}"`);
+          throw new Error(
+            `System "${systemName}" not found in cluster "${clusterName}", systems: ${Object.keys(this.systems)}`,
+          );
         }
       }
 
@@ -204,7 +216,7 @@ export class ECSManager {
       if (shouldUpdate) {
         // Обновляем все системы в кластере
         for (const systemName of cluster.systemNames) {
-          this.callSystem(systemName, undefined, tickData.gameTimeOfDay);
+          this.callSystem(systemName, undefined, this.currentGameTimeOfDay);
         }
 
         // Сбрасываем таймер
