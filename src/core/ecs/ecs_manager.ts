@@ -36,6 +36,7 @@ export class ECSManager {
   private world: World;
   private entityFactory: EntityFactory; // Фабрика сущностей для создания новых сущностей
   private systems: Record<string, System> = {}; // Все системы по именам
+  private queries: Map<string, ReturnType<typeof query>> = new Map(); // Кэш query объектов
   private systemsClusters: systemsClusters = {
     population: {
       systemNames: [],
@@ -61,6 +62,9 @@ export class ECSManager {
     this.world = createWorld();
     this.entityFactory = new EntityFactory(this.world);
 
+    // Инициализируем query объекты для часто используемых комбинаций компонентов
+    this.initializeQueries();
+
     // Регистрируем базовые системы
     this.registerBaseSystems();
 
@@ -85,6 +89,15 @@ export class ECSManager {
       const callData = payload as CallSystemPayload;
       this.handleCallSystem(callData);
     });
+  }
+
+  /**
+   * Инициализирует query объекты для часто используемых комбинаций компонентов
+   */
+  private initializeQueries(): void {
+    // В bitECS query принимает компоненты как отдельные аргументы
+    // Но для динамических запросов мы будем создавать query на лету
+    console.log(`📋 Query system initialized`);
   }
 
   /**
@@ -253,34 +266,8 @@ export class ECSManager {
       return [];
     }
 
-    // Простая реализация: проверяем все сущности
-    // В будущем можно оптимизировать с помощью bitecs query
-    const result: EntityId[] = [];
-
-    // Перебираем разумное количество сущностей (можно оптимизировать)
-    for (let eid = 0; eid < 10000; eid++) {
-      let hasAllComponents = true;
-
-      for (const component of components) {
-        // Проверяем наличие компонента (упрощенная проверка)
-        // Для каждого компонента проверяем, есть ли хотя бы одно поле
-        const componentFields = Object.keys(component);
-        if (componentFields.length === 0) continue;
-
-        const firstField = componentFields[0];
-        const fieldArray = component[firstField];
-        if (!fieldArray || eid >= fieldArray.length || fieldArray[eid] === undefined) {
-          hasAllComponents = false;
-          break;
-        }
-      }
-
-      if (hasAllComponents) {
-        result.push(eid);
-      }
-    }
-
-    return result;
+    // Используем bitECS 0.4.0 query API: query(world, [components])
+    return Array.from(query(this.world, components));
   }
 
   /**
@@ -314,7 +301,7 @@ export class ECSManager {
   /**
    * Включить/отключить кластер
    */
-  setClusterEnabled(clusterName: string, enabled: boolean): void {
+  private setClusterEnabled(clusterName: string, enabled: boolean): void {
     const cluster = this.systemsClusters[clusterName];
     if (cluster) {
       cluster.enabled = enabled;
@@ -322,80 +309,6 @@ export class ECSManager {
     } else {
       console.warn(`⚠️ Cluster "${clusterName}" not found`);
     }
-  }
-
-  /**
-   * Установить интервал для кластера
-   */
-  setClusterInterval(clusterName: string, interval: number | undefined): void {
-    const cluster = this.systemsClusters[clusterName];
-    if (cluster) {
-      cluster.interval = interval;
-      console.log(`📋 Cluster "${clusterName}" interval set to ${interval ?? 'every tick'}`);
-    } else {
-      console.warn(`⚠️ Cluster "${clusterName}" not found`);
-    }
-  }
-
-  /**
-   * Добавить систему в кластер
-   */
-  addSystemToCluster(clusterName: string, systemName: string): void {
-    const cluster = this.systemsClusters[clusterName];
-    if (!cluster) {
-      throw new Error(`Cluster "${clusterName}" not found`);
-    }
-
-    if (!this.systems[systemName]) {
-      throw new Error(`System "${systemName}" not found`);
-    }
-
-    if (cluster.systemNames.includes(systemName)) {
-      console.warn(`System "${systemName}" is already in cluster "${clusterName}"`);
-      return;
-    }
-
-    cluster.systemNames.push(systemName);
-    console.log(`📋 Added system "${systemName}" to cluster "${clusterName}"`);
-  }
-
-  /**
-   * Удалить систему из кластера
-   */
-  removeSystemFromCluster(clusterName: string, systemName: string): void {
-    const cluster = this.systemsClusters[clusterName];
-    if (!cluster) {
-      throw new Error(`Cluster "${clusterName}" not found`);
-    }
-
-    const index = cluster.systemNames.indexOf(systemName);
-    if (index === -1) {
-      console.warn(`System "${systemName}" not found in cluster "${clusterName}"`);
-      return;
-    }
-
-    cluster.systemNames.splice(index, 1);
-    console.log(`📋 Removed system "${systemName}" from cluster "${clusterName}"`);
-  }
-
-  /**
-   * Добавить кластер систем
-   */
-  addCluster(clusterName: string, cluster: SystemCluster): void {
-    if (this.systemsClusters[clusterName]) {
-      throw new Error(`Cluster "${clusterName}" already exists`);
-    }
-
-    // Проверяем, что все системы кластера зарегистрированы
-    for (const systemName of cluster.systemNames) {
-      if (!this.systems[systemName]) {
-        throw new Error(`System "${systemName}" not found for cluster "${clusterName}"`);
-      }
-    }
-
-    this.systemsClusters[clusterName] = cluster;
-    this.clusterTimers.set(clusterName, 0);
-    console.log(`📋 Added cluster "${clusterName}" with ${cluster.systemNames.length} systems`);
   }
 
   /**
@@ -421,23 +334,9 @@ export class ECSManager {
   }
 
   /**
-   * Удалить кластер систем
-   */
-  removeCluster(clusterName: string): void {
-    if (!this.systemsClusters[clusterName]) {
-      console.warn(`Cluster "${clusterName}" not found`);
-      return;
-    }
-
-    delete this.systemsClusters[clusterName];
-    this.clusterTimers.delete(clusterName);
-    console.log(`📋 Removed cluster "${clusterName}"`);
-  }
-
-  /**
    * Получить статистику симуляции
    */
-  getStats(): {
+  private getStats(): {
     totalSystemsCount: number;
     clustersCount: number;
     clusters: Record<
