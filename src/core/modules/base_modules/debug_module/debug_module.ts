@@ -1,13 +1,15 @@
-import { ButtonUI } from '@/ui/button.ui';
 import { BaseModule } from '../../extends';
 import { EventBus } from '@/core/event_bus/event_bus';
 import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
+import { TickDebug } from './components/tick_debug';
+import { ECSDebug } from './components/ecs_debug';
 
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
   events: EventsDebug,
-  // tick: TickDebug,
+  tick: TickDebug,
+  ecs: ECSDebug,
 } as const;
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
@@ -20,14 +22,14 @@ export class DebugModule extends BaseModule {
   private currentTab: ComponentsRegister = 'events';
 
   // компоненты панели
-  private tabButtons: Map<string, ButtonUI> = new Map();
   private debugComponentsApi: Map<string, DebugComponent> = new Map();
   private debugComponents = debugComponentsRegister;
 
-  // UI элементы
-  private panelContainer!: Phaser.GameObjects.Container;
-  private tabsContainer!: Phaser.GameObjects.Container;
-  private contentContainer!: Phaser.GameObjects.Container;
+  // DOM элементы
+  private debugPanel!: HTMLElement;
+  private debugToggleBtn!: HTMLElement;
+  private tabButtons: Map<string, HTMLElement> = new Map();
+  private tabContents: Map<string, HTMLElement> = new Map();
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     console.log('DebugModule: init');
@@ -36,7 +38,8 @@ export class DebugModule extends BaseModule {
     this.eventBus = eventBus;
 
     this.registerComponents();
-    this.createPanel();
+    this.initDOM();
+    this.setupEventListeners();
 
     // Активируем начальный компонент
     const initialComponent = this.debugComponentsApi.get(this.currentTab);
@@ -52,9 +55,60 @@ export class DebugModule extends BaseModule {
     });
   }
 
-  // открытие панели отладки
-  private openDebugPanel(): void {
+  // обновление компонентов
+  public update(): void {
+    const currentComponent = this.debugComponentsApi.get(this.currentTab);
+    currentComponent?.onUpdate();
+  }
+
+  // инициализация DOM элементов
+  private initDOM(): void {
+    this.debugPanel = document.getElementById('debug-panel')!;
+    this.debugToggleBtn = document.getElementById('debug-toggle')!;
+
+    // Сохраняем ссылки на табы и контент
+    document.querySelectorAll('.debug-tab').forEach((tab) => {
+      const tabName = tab.getAttribute('data-tab')!;
+      this.tabButtons.set(tabName, tab as HTMLElement);
+    });
+
+    document.querySelectorAll('.debug-tab-content').forEach((content) => {
+      const tabName = content.getAttribute('data-tab')!;
+      this.tabContents.set(tabName, content as HTMLElement);
+    });
+  }
+
+  // настройка обработчиков событий
+  private setupEventListeners(): void {
+    // Обработчик для кнопки открытия/закрытия панели
+    this.debugToggleBtn.addEventListener('click', () => {
+      this.toggleDebugPanel();
+    });
+
+    // Обработчик клавиш для переключения панели (Ctrl+D)
+    document.addEventListener('keydown', (event) => {
+      if (event.ctrlKey && event.key === 'd') {
+        event.preventDefault();
+        this.toggleDebugPanel();
+      }
+    });
+
+    // Обработчики для переключения табов
+    this.tabButtons.forEach((tabBtn, tabName) => {
+      tabBtn.addEventListener('click', () => {
+        this.changeTab(tabName as ComponentsRegister);
+      });
+    });
+  }
+
+  // открытие/закрытие панели отладки
+  private toggleDebugPanel(): void {
     this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      this.debugPanel.classList.remove('hidden');
+    } else {
+      this.debugPanel.classList.add('hidden');
+    }
   }
 
   // изменение вкладки
@@ -64,7 +118,7 @@ export class DebugModule extends BaseModule {
     prevComponent?.onDeactivate();
 
     this.currentTab = tabName;
-    this.updateContentContainer();
+    this.updateActiveTab();
     console.log('Current tab:', this.currentTab);
 
     // Активируем новый компонент
@@ -72,105 +126,17 @@ export class DebugModule extends BaseModule {
     newComponent?.onActivate();
   }
 
-  // создание панели отладки
-  private createPanel(): void {
-    const margin = { left: 0, right: 10, top: 10, bottom: 10 };
-    const height = this.scene.cameras.main.height / 1.2 - (margin.top + margin.bottom);
-    const width = 335 - (margin.right + margin.left);
-    const x = this.scene.cameras.main.width - width - margin.right;
-    const y = margin.top;
+  // обновление активного таба
+  private updateActiveTab(): void {
+    // Сбрасываем активные состояния всех табов
+    this.tabButtons.forEach((tab) => tab.classList.remove('active'));
+    this.tabContents.forEach((content) => content.classList.remove('active'));
 
-    // Основной контейнер панели
-    this.panelContainer = this.scene.add.container(x, y);
-    this.panelContainer.setDepth(2000);
+    // Активируем текущий таб и контент
+    const currentTabBtn = this.tabButtons.get(this.currentTab);
+    const currentTabContent = this.tabContents.get(this.currentTab);
 
-    // Фон панели
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x222222, 0.8);
-    bg.fillRoundedRect(0, 0, width, height, 16);
-    bg.strokeRoundedRect(0, 0, width, height, 16);
-    this.panelContainer.add(bg);
-
-    // Создаем табы
-    this.createTabs();
-
-    // Создаем контейнер для контента
-    this.createContentContainer();
-  }
-
-  // создание табов
-  private createTabs(): void {
-    // Контейнер табов
-    this.tabsContainer = this.scene.add.container(0, 10);
-    this.tabsContainer.setDepth(this.panelContainer.depth + 100);
-    this.panelContainer.add(this.tabsContainer);
-
-    Object.entries(this.debugComponents).forEach(([name, component], ind) => {
-      const tickBtn = new ButtonUI(this.scene, {
-        xPos: 10 + 85 * ind,
-        yPos: 0,
-        w: 85,
-        h: 30,
-        text: name,
-        depth: this.tabsContainer.depth + 1,
-        onClick: (): void => {
-          this.changeTab(name as ComponentsRegister);
-          this.toggleBtns(name as ComponentsRegister);
-        },
-      });
-      this.tabButtons.set(name, tickBtn);
-      tickBtn.setActiveTab(name === this.currentTab);
-      this.tabsContainer.add(tickBtn.container);
-    });
-  }
-
-  // создание контейнера для контента под табами
-  private createContentContainer(): void {
-    // Контейнер для контента под табами
-    this.contentContainer = this.scene.add.container(10, 50);
-    this.contentContainer.setDepth(this.panelContainer.depth + 50);
-    this.panelContainer.add(this.contentContainer);
-
-    // Изначально показываем контент для текущей вкладки
-    this.updateContentContainer();
-  }
-
-  // обновление контейнера для контента под табами
-  private updateContentContainer(): void {
-    // Очищаем предыдущий контент
-    this.contentContainer.removeAll(true);
-
-    // Создаем контент в зависимости от текущей вкладки
-    const contentWidth = 305;
-    const contentHeight = 695;
-
-    // Фон контейнера контента
-    const contentBg = this.scene.add.graphics();
-    contentBg.fillStyle(0x333333, 0.9);
-    contentBg.fillRoundedRect(0, 0, contentWidth, contentHeight, 12);
-    contentBg.strokeRoundedRect(0, 0, contentWidth, contentHeight, 12);
-    this.contentContainer.add(contentBg);
-
-    // Текст заголовка категории
-    const titleText = this.scene.add
-      .text(15, 15, this.currentTab.toUpperCase(), {
-        fontSize: '18px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0, 0);
-    this.contentContainer.add(titleText);
-
-    // Контент для каждой вкладки
-    const tab = this.debugComponentsApi.get(this.currentTab);
-    tab?.createContent(this.contentContainer);
-  }
-
-  // переключение кнопок
-  private toggleBtns(buttonName: ComponentsRegister): void {
-    this.tabButtons.forEach((component, name) => {
-      component.setActiveTab(name === buttonName);
-    });
+    currentTabBtn?.classList.add('active');
+    currentTabContent?.classList.add('active');
   }
 }

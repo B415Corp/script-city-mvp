@@ -5,9 +5,17 @@ import { CallSystemPayload } from '../event_bus/types';
 
 import { EntityFactory } from './entities';
 import { PopulationSystem, NeedsSystem, DailyRoutineSystem } from './systems/clusters';
+import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
+import {
+  WakeUpSystem,
+  WorkSystem,
+  FeedingSystem,
+  SleepSystem,
+  ShoppingDecisionSystem,
+} from './systems/clusters/schedule_activity_systems';
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
-import { Person, Citizen, Needs } from './components';
+import { Person, Citizen, Needs, Schedule, Shop, Factory } from './components';
 import { TestSystem } from './systems/clusters/test_system';
 
 /**
@@ -15,11 +23,14 @@ import { TestSystem } from './systems/clusters/test_system';
  */
 const COMPONENT_REGISTRY: Record<
   string,
-  Record<string, (number | string | EntityId | undefined)[]>
+  Record<string, unknown[]> | Record<string, Record<string, unknown>[]> // Компоненты bitECS
 > = {
   Person,
   Citizen,
   Needs,
+  Schedule,
+  Shop,
+  Factory,
 };
 
 const systemRegistry: Record<string, System> = {
@@ -27,6 +38,12 @@ const systemRegistry: Record<string, System> = {
   Needs: NeedsSystem,
   DailyRoutine: DailyRoutineSystem,
   Test: TestSystem,
+  // Системы расписания
+  WakeUp: WakeUpSystem,
+  Work: WorkSystem,
+  Feeding: FeedingSystem,
+  Sleep: SleepSystem,
+  ShoppingDecision: ShoppingDecisionSystem,
 } as const;
 
 export type SystemName = keyof typeof systemRegistry;
@@ -49,7 +66,7 @@ export class ECSManager {
       interval: 120.0,
     },
     infrastructure: {
-      systemNames: ['Test'], // Можно добавить инфраструктурные системы
+      systemNames: ['Test', 'DayNightCycle'], // Можно добавить инфраструктурные системы
       enabled: true,
       interval: 240.0,
     },
@@ -61,6 +78,10 @@ export class ECSManager {
     console.log('🚀 ECSManager initialized');
     this.world = createWorld();
     this.entityFactory = new EntityFactory(this.world);
+
+    // Создаем систему цикла дня и ночи
+    const dayNightSystem = createDayNightCycleSystem(eventBus);
+    this.registerSystem('DayNightCycle', dayNightSystem);
 
     // Инициализируем query объекты для часто используемых комбинаций компонентов
     this.initializeQueries();
@@ -336,7 +357,7 @@ export class ECSManager {
   /**
    * Получить статистику симуляции
    */
-  private getStats(): {
+  getStats(): {
     totalSystemsCount: number;
     clustersCount: number;
     clusters: Record<

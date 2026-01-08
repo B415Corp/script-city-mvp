@@ -8,6 +8,62 @@
   </head>
   <body>
     <div id="game-root"></div>
+    <div id="debug-panel" class="debug-panel">
+      <div class="debug-panel-header">
+        <button class="debug-toggle-btn" id="debug-toggle">🐛</button>
+      </div>
+      <div class="debug-panel-content">
+        <div class="debug-tabs">
+          <button class="debug-tab active" data-tab="events">Events</button>
+          <button class="debug-tab" data-tab="tick">Tick</button>
+          <button class="debug-tab" data-tab="ecs">ECS</button>
+        </div>
+        <div class="debug-content">
+          <div class="debug-tab-content active" data-tab="events">
+            <div class="debug-events-header">
+              <h3>EVENTS</h3>
+              <button class="debug-clear-btn" id="clear-events">Clear</button>
+            </div>
+            <div class="debug-events-list" id="events-list">
+              <div class="debug-no-events">• No events yet</div>
+            </div>
+          </div>
+          <div class="debug-tab-content" data-tab="tick">
+            <h3>TICK</h3>
+            <div class="debug-tick-list">
+              <div class="debug-tick-info">
+                <div class="debug-tick-item" id="current-tick">• Current tick: 0</div>
+                <div class="debug-tick-item" id="delta-time">• Delta time: 16ms</div>
+                <div class="debug-tick-item" id="fps">• FPS: 0</div>
+              </div>
+            </div>
+          </div>
+          <div class="debug-tab-content" data-tab="ecs">
+            <h3>ECS</h3>
+            <div class="debug-ecs-content">
+              <div class="debug-ecs-section">
+                <h4>Systems Status</h4>
+                <div class="debug-ecs-list" id="systems-list">
+                  <div class="debug-no-data">• Loading systems...</div>
+                </div>
+              </div>
+              <div class="debug-ecs-section">
+                <h4>Components</h4>
+                <div class="debug-ecs-list" id="components-list">
+                  <div class="debug-no-data">• Loading components...</div>
+                </div>
+              </div>
+              <div class="debug-ecs-section">
+                <h4>Entities</h4>
+                <div class="debug-ecs-list" id="entities-list">
+                  <div class="debug-no-data">• Loading entities...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

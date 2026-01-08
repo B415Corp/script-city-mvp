@@ -1,7 +1,7 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 
 export abstract class DebugComponent {
-  protected contentContainer!: Phaser.GameObjects.Container;
+  protected contentContainer!: HTMLElement;
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
 
@@ -28,5 +28,5 @@ export abstract class DebugComponent {
   public onDeactivate(): void {}
 
   // создание контента
-  public createContent(contentContainer: Phaser.GameObjects.Container): void {}
+  public createContent(contentContainer: HTMLElement): void {}
 }

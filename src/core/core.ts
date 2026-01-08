@@ -42,6 +42,7 @@ export class Core {
         scene.init(this.eventBus, this.tickManager);
         this.moduleManager = new ModuleManager(scene, this.eventBus);
         this.moduleManager.init();
+        scene.setModuleManager(this.moduleManager);
         res();
       });
     });

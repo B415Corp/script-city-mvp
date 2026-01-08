@@ -6,6 +6,7 @@ import { Tiles } from './tiles';
 export class MainScene extends Phaser.Scene {
   private eventBus!: EventBus;
   private tickManager!: TickManager;
+  private moduleManager!: any; // Для доступа к DebugModule
 
   constructor() {
     super({ key: 'main_scene' });
@@ -20,6 +21,10 @@ export class MainScene extends Phaser.Scene {
     this.tickManager = tickManager;
   }
 
+  setModuleManager(moduleManager: any): void {
+    this.moduleManager = moduleManager;
+  }
+
   create(): void {
     console.log('MainScene create');
 
@@ -28,6 +33,12 @@ export class MainScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     this.tickManager.update(time, delta);
+
+    // Обновляем DebugModule
+    if (this.moduleManager) {
+      const debugModule = this.moduleManager.getBaseModuleApi('DebugModule');
+      debugModule?.update();
+    }
   }
 
   private loadTilesTextures(): void {

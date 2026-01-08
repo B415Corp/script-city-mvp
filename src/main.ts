@@ -3,12 +3,14 @@ import { EventBus } from './core/event_bus/event_bus';
 import { Events } from './core/event_bus/events';
 import { MainScene } from './core/scenes';
 import { GameTimeUpdateData } from './core/ecs/types';
+import { ECSStats } from './core/modules/base_modules/debug_module/components/ecs_debug';
 
 // Глобальный интерфейс для отладки
 interface SimDebugMethods {
   stats: () => void;
   time: () => void;
   listenTime: () => () => void;
+  getECSStats: () => ECSStats;
 }
 
 declare global {
@@ -55,6 +57,7 @@ async function startGame(): Promise<void> {
         console.log('Listening to time updates... (check console)');
         return () => core.eventBus.off(Events.GameTimeUpdated, handler);
       },
+      getECSStats: () => core.ecsManager.getStats(),
     };
     console.log('🎮 Simulation debug available in console:');
     console.log('  sim.stats() - show simulation stats');
