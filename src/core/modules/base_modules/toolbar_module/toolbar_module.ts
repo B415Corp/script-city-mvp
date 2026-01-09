@@ -4,6 +4,7 @@ import { ButtonUI } from '@/ui/button.ui';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
 import { BadgeUI } from '@/ui/badge.ui';
+import { Logger } from '@/core/utils/logger';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -13,8 +14,9 @@ export class ToolbarModule extends BaseModule {
   private container!: Phaser.GameObjects.Container;
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('ToolbarModule init');
     super(scene, eventBus);
+    this.logger = Logger.create('ToolbarModule');
+    this.logger.info('ToolbarModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
     this.container = scene.add.container();

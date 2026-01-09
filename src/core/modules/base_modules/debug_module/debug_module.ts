@@ -6,6 +6,7 @@ import { EventsDebug } from './components/events_debug';
 import { TickDebug } from './components/tick_debug';
 import { ECSDebug } from './components/ecs_debug';
 import { SimulationDebug } from './components/simulation_debug';
+import { Logger } from '@/core/utils/logger';
 
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
@@ -34,6 +35,7 @@ export class DebugModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
   protected ecsManager!: ECSManager;
+  private logger: Logger;
 
   private isOpen: boolean = false;
   private currentTab: ComponentsRegister = 'events';
@@ -49,8 +51,9 @@ export class DebugModule extends BaseModule {
   private tabContents: Map<string, HTMLElement> = new Map();
 
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
-    console.log('DebugModule: init');
     super(scene, eventBus);
+    this.logger = Logger.create('DebugModule');
+    this.logger.info('DebugModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
     this.ecsManager = ecsManager;
@@ -152,7 +155,7 @@ export class DebugModule extends BaseModule {
 
     this.currentTab = tabName;
     this.updateActiveTab();
-    console.log('Current tab:', this.currentTab);
+    this.logger.debug('Current tab:', this.currentTab);
 
     // Активируем новый компонент
     const newComponent = this.debugComponentsApi.get(this.currentTab);

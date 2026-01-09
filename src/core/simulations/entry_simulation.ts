@@ -6,23 +6,27 @@ import { LogicTickData } from '../tick/types';
 import { Events } from '../event_bus/events';
 import { Gender, EducationLevel, HousingType } from '../ecs/components/population';
 import { Citizen, Workplace, Person } from '../ecs/components';
+import { Logger } from '../utils/logger';
 
 export class EntrySimulation {
   private entityFactory: EntityFactory;
   private simulationStartTime: number = 0;
   private isSimulationRunning: boolean = false;
+  private rafId: number | null = null;
+  private logger: Logger;
 
   constructor(
     private ecsManager: ECSManager,
     private eventBus: EventBus,
     private tickManager: TickManager,
   ) {
+    this.logger = Logger.create('EntrySimulation');
     this.entityFactory = new EntityFactory(this.ecsManager.getWorld());
-    console.log('EntrySimulation initialized with dependencies');
+    this.logger.info('EntrySimulation initialized with dependencies');
   }
 
   public start(): void {
-    console.log('EntrySimulation started');
+    this.logger.info('EntrySimulation started');
 
     // Создаем начальные сущности
     this.createInitialEntities();
@@ -34,20 +38,32 @@ export class EntrySimulation {
     this.startTickLoop();
 
     this.isSimulationRunning = true;
-    console.log('Simulation systems activated and running');
+    this.logger.info('Simulation systems activated and running');
   }
 
   private startECSSystems(): void {
     // ECS системы запускаются автоматически через кластеры
     // Основная логика теперь в ScheduleManager, который управляет расписанием
-    console.log('ECS systems are active via ScheduleManager');
+    this.logger.info('ECS systems are active via ScheduleManager');
   }
 
   private startTickLoop(): void {
     // TickManager уже инициализирован и подписан на события
     // Запускаем обновление времени в браузере
     this.startTimeUpdates();
-    console.log('Tick loop started');
+    this.logger.info('Tick loop started');
+  }
+
+  // ← ДОБАВИТЬ метод stop
+  public stop(): void {
+    this.isSimulationRunning = false;
+
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
+    this.logger.info('Simulation stopped');
   }
 
   private startTimeUpdates(): void {
@@ -60,17 +76,16 @@ export class EntrySimulation {
         // Обновляем TickManager
         this.tickManager.update(timestamp, delta);
 
-        // Продолжаем цикл
-        window.requestAnimationFrame(updateTime);
+        this.rafId = window.requestAnimationFrame(updateTime); // ← ИЗМЕНИТЬ
       }
     };
 
     this.simulationStartTime = window.performance.now();
-    window.requestAnimationFrame(updateTime);
+    this.rafId = window.requestAnimationFrame(updateTime); // ← ИЗМЕНИТЬ
   }
 
   private createInitialEntities(): void {
-    console.log('Creating initial entities for simplified simulation...');
+    this.logger.info('Creating initial entities for simplified simulation...');
 
     // Создаем жилые дома (10 штук)
     const houses: { x: number; y: number }[] = [];
@@ -129,7 +144,7 @@ export class EntrySimulation {
       }
     }
 
-    console.log('Initial entities created: 100 citizens, 10 houses, 100 workplaces');
+    this.logger.info('Initial entities created: 100 citizens, 10 houses, 100 workplaces');
   }
 
   /**

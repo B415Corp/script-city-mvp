@@ -1,5 +1,6 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { ECSManager } from '@/core/ecs/ecs_manager';
+import { Logger } from '@/core/utils/logger';
 
 export abstract class DebugComponent {
   protected contentContainer!: HTMLElement;
@@ -15,7 +16,7 @@ export abstract class DebugComponent {
 
   // инициализация компонента
   public onInit(): void {
-    console.log('DebugComponent: init', this);
+    Logger.create('DebugComponent').info('DebugComponent initialized');
   }
 
   // уничтожение компонента

@@ -10,6 +10,9 @@ import {
   DEFAULT_SCHEDULES,
   DayPhase,
 } from '../../components';
+import { Logger } from '../../../utils/logger';
+
+const logger = Logger.create('ScheduleSystems');
 
 /**
  * Система работы жителей
@@ -21,7 +24,7 @@ export const WorkSystem: System = {
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
     const timeService = extraData as import('../../../tick/time_service').TimeService | undefined;
     if (!timeService) {
-      console.log('WorkSystem: No TimeService');
+      logger.warn('WorkSystem: No TimeService');
       return;
     }
 
@@ -31,9 +34,6 @@ export const WorkSystem: System = {
 
     // Логируем время каждый час для отладки
     const hour = Math.floor(minutesOfDay / 60);
-    if (minutesOfDay % 60 === 0) {
-      console.log(`WorkSystem: Day ${currentDay}, Hour ${hour}`);
-    }
 
     // Начисляем зарплату всем работающим жителям один раз в день
     for (const eid of entities) {
@@ -47,10 +47,6 @@ export const WorkSystem: System = {
           const dailySalary = salary / 7; // 7 рабочих дней в неделю
           Citizen.money[eid] += dailySalary;
           Citizen.lastWorkDay[eid] = currentDay;
-
-          console.log(
-            `Entity ${eid} received daily salary! Money: ${Citizen.money[eid].toFixed(0)} (+${dailySalary.toFixed(0)}), Day: ${currentDay}`,
-          );
         }
       }
     }
@@ -73,10 +69,6 @@ export const ScheduleManagerSystem: System = {
     const minutesOfDay = timeService.getMinutesOfDay();
     const currentPhase = getCurrentDayPhase(minutesOfDay);
 
-    console.log(
-      `📅 ScheduleManager: Time ${Math.floor(minutesOfDay / 60)}:${String(minutesOfDay % 60).padStart(2, '0')}, Phase: ${currentPhase}`,
-    );
-
     // Для каждого жителя проверяем, изменилась ли фаза, и вызываем активность только при изменении
     for (const eid of entities) {
       const entityType = Schedule.entityType[eid] as 'citizen';
@@ -90,10 +82,6 @@ export const ScheduleManagerSystem: System = {
         Schedule.currentActivity[eid] = activity.activity;
         Schedule.activityExecuted[eid] = true;
         executeScheduledActivity(world, eid, activity, currentPhase);
-
-        console.log(
-          `🔄 Entity ${eid} changed phase: ${previousPhase} → ${currentPhase}, activity: ${activity.activity}`,
-        );
       }
       // Если фаза не изменилась, но активность еще не выполнялась (на случай перезапуска), выполняем
       else if (
@@ -106,10 +94,6 @@ export const ScheduleManagerSystem: System = {
         Schedule.currentActivity[eid] = activity.activity;
         Schedule.activityExecuted[eid] = true;
         executeScheduledActivity(world, eid, activity, currentPhase);
-
-        console.log(
-          `🔄 Entity ${eid} executing activity for current phase: ${currentPhase}, activity: ${activity.activity}`,
-        );
       }
     }
   },
@@ -139,8 +123,6 @@ function executeScheduledActivity(
 ): void {
   const systemName = activity.system;
 
-  console.log(`🏃 Entity ${eid} started ${activity.activity} (${phase})`);
-
   // Обновляем позицию жителя в зависимости от активности
   updateCitizenPosition(world, eid, activity.activity);
 
@@ -148,15 +130,13 @@ function executeScheduledActivity(
   // Фактические действия выполняются отдельными системами каждый тик
   switch (systemName) {
     case 'WorkSystem':
-      console.log(`💼 Entity ${eid} started working!`);
       break;
 
     case 'MovementSystem':
-      console.log(`🏠 Entity ${eid} moved home!`);
       break;
 
     default:
-      console.log(`❓ Entity ${eid} - activity: ${activity.activity}`);
+      break;
   }
 }
 
@@ -195,9 +175,6 @@ function updateCitizenPosition(world: World, eid: EntityId, activity: string): v
           if (workEntity !== undefined) {
             Position.x[eid] = Position.x[workEntity];
             Position.y[eid] = Position.y[workEntity];
-            console.log(
-              `💼 Citizen ${eid} moved to work at (${Position.x[eid]}, ${Position.y[eid]})`,
-            );
           }
         } catch (error) {
           console.warn(`Could not find workplace position for citizen ${eid}`);
@@ -215,7 +192,6 @@ function updateCitizenPosition(world: World, eid: EntityId, activity: string): v
           if (homeEntity !== undefined) {
             Position.x[eid] = Position.x[homeEntity];
             Position.y[eid] = Position.y[homeEntity];
-            console.log(`🏠 Citizen ${eid} moved home to (${Position.x[eid]}, ${Position.y[eid]})`);
           }
         } catch (error) {
           console.warn(`Could not find home position for citizen ${eid}`);

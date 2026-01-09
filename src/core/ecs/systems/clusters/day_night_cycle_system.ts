@@ -5,6 +5,9 @@ import { CallSystemPayload } from '../../../event_bus/types';
 import { System } from '../types';
 import { TimeService } from '../../../tick/time_service';
 import { Schedule, DayPhase, Activity, DEFAULT_SCHEDULES, EntityType } from '../../components';
+import { Logger } from '../../../utils/logger';
+
+const logger = Logger.create('DayNightCycleSystem');
 
 /**
  * Система управления циклом дня и ночи
@@ -32,9 +35,6 @@ export class DayNightCycleSystem implements System {
 
     // Проверяем, сменилась ли фаза
     if (newPhase !== this.currentPhase) {
-      console.log(
-        `🌅 Phase transition: ${this.currentPhase} → ${newPhase} at ${this.formatTime(timeOfDay)}`,
-      );
       this.onPhaseChange(entities, newPhase, timeOfDay);
       this.currentPhase = newPhase;
     }
@@ -69,8 +69,6 @@ export class DayNightCycleSystem implements System {
     newPhase: DayPhase,
     timeOfDay: number,
   ): void {
-    console.log(`🌅 Starting ${newPhase} phase for ${entities.length} entities`);
-
     // Уведомляем каждую сущность о смене фазы
     for (const eid of entities) {
       this.notifyEntityOfPhaseChange(eid, newPhase, timeOfDay);
@@ -175,21 +173,12 @@ export class DayNightCycleSystem implements System {
     const endTime = (timeOfDay + activity.duration) % (24 * 60);
     Schedule.nextActivityTime[eid] = endTime;
 
-    console.log(
-      `🚀 Entity ${eid} starting: ${activity.activity} (duration: ${activity.duration}min, ends at ${this.formatTime(endTime)})`,
-    );
-
     // Вызываем соответствующую систему через EventBus
     if (activity.system) {
       const payload: CallSystemPayload = {
         systemName: activity.system,
         entityId: eid,
-        extraData: {
-          activity: activity.activity,
-          phase,
-          duration: activity.duration,
-          params: activity.params,
-        },
+        extraData: this.timeService,
       };
 
       this.eventBus.emit(Events.CallSystem, payload);
@@ -220,8 +209,6 @@ export class DayNightCycleSystem implements System {
     // Определяем следующую фазу
     const currentPhase = this.getDayPhase(timeOfDay);
     const nextPhase = this.getNextPhase(currentPhase);
-
-    console.log(`🔄 Entity ${eid} advancing from ${currentPhase} to ${nextPhase} phase`);
 
     // Запускаем активность следующей фазы
     this.notifyEntityOfPhaseChange(eid, nextPhase, timeOfDay);
@@ -259,7 +246,7 @@ export class DayNightCycleSystem implements System {
       Schedule.currentActivity[eid] = '';
       Schedule.nextActivityTime[eid] = 0;
 
-      console.log(`📅 Initialized schedule for ${entityType} entity ${eid}`);
+      logger.info(`Initialized schedule for ${entityType} entity ${eid}`);
     } else {
       console.warn(`No default schedule found for entity type: ${entityType}`);
     }

@@ -4,6 +4,7 @@ import { Events } from '../event_bus/events';
 import { CallSystemPayload } from '../event_bus/types';
 import { TimeService } from '../tick/time_service';
 import { TickManager } from '../tick/tick_manager';
+import { Logger } from '../utils/logger';
 
 import { EntityFactory } from './entities';
 // Отключенные системы в упрощенной симуляции:
@@ -16,7 +17,7 @@ import {
 } from './systems/clusters/schedule_activity_systems';
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
-import { Person, Citizen, Needs, Schedule, Shop, Factory, ID } from './components';
+import { Person, Citizen, Needs, Schedule, Shop, Factory, ID, Position, Residential, Workplace } from './components';
 // import { TestSystem } from './systems/clusters/test_system'; // Отключена в упрощенной симуляции
 
 /**
@@ -32,6 +33,9 @@ const COMPONENT_REGISTRY: Record<
   Schedule,
   Shop,
   Factory,
+  Position,
+  Residential,
+  Workplace,
 };
 
 // Регистр систем
@@ -82,13 +86,15 @@ export class ECSManager {
   private systemsClusters: systemsClusters = clustersRegistry; // Регистр кластеров
   private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
   private timeService: TimeService;
+  private logger: Logger;
 
   constructor(
     private eventBus: EventBus,
     private tickManager: TickManager,
     private systemDependencies?: import('./systems/types').ISystemDependencies,
   ) {
-    console.log('🚀 ECSManager initialized');
+    this.logger = Logger.create('ECSManager');
+    this.logger.info('ECSManager initialized');
     this.world = createWorld();
     this.entityFactory = new EntityFactory(this.world);
 
@@ -150,7 +156,7 @@ export class ECSManager {
     // Query для фабрик
     this.queries.set('factories', query(this.world, [Factory]));
 
-    console.log(`📋 Query system initialized with ${this.queries.size} pre-built queries`);
+    this.logger.info(`Query system initialized with ${this.queries.size} pre-built queries`);
   }
 
   /**
@@ -164,7 +170,7 @@ export class ECSManager {
       this.registerSystem(systemName, system);
     }
 
-    console.log(`📋 Registered ${Object.keys(this.systems).length} base systems`);
+    this.logger.info(`Registered ${Object.keys(this.systems).length} base systems`);
   }
 
   /**
@@ -195,12 +201,12 @@ export class ECSManager {
 
       // Инициализируем таймер для кластера
       this.clusterTimers.set(clusterName, 0);
-      console.log(
-        `📋 Initialized cluster "${clusterName}" with ${cluster.systemNames.length} systems ` +
+      this.logger.info(
+        `Initialized cluster "${clusterName}" with ${cluster.systemNames.length} systems ` +
           `(interval: ${cluster.interval ?? 'every tick'})`,
       );
     }
-    console.log(`📋 Total clusters initialized: ${Object.keys(this.systemsClusters).length}`);
+    this.logger.info(`Total clusters initialized: ${Object.keys(this.systemsClusters).length}`);
   }
 
   /**
@@ -230,7 +236,7 @@ export class ECSManager {
 
     this.validateSystem(system);
     this.systems[name] = system;
-    console.log(`📋 Registered system: ${name}`);
+    this.logger.info(`Registered system: ${name}`);
   }
 
   /**
@@ -383,7 +389,7 @@ export class ECSManager {
     const cluster = this.systemsClusters[clusterName];
     if (cluster) {
       cluster.enabled = enabled;
-      console.log(`📋 Cluster "${clusterName}" ${enabled ? 'enabled' : 'disabled'}`);
+      this.logger.info(`Cluster "${clusterName}" ${enabled ? 'enabled' : 'disabled'}`);
     } else {
       console.warn(`⚠️ Cluster "${clusterName}" not found`);
     }

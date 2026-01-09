@@ -54,11 +54,11 @@ export type EntityType = 'citizen';
  */
 export const DEFAULT_SCHEDULES: Record<EntityType, Record<DayPhase, Activity>> = {
   citizen: {
-    dawn: { activity: 'idle', duration: 360, system: 'MovementSystem' },
-    morning: { activity: 'idle', duration: 60, system: 'MovementSystem' },
-    day: { activity: 'work', duration: 480, system: 'WorkSystem' },
-    evening: { activity: 'idle', duration: 60, system: 'MovementSystem' },
-    night: { activity: 'idle', duration: 480, system: 'MovementSystem' },
+    dawn: { activity: 'idle', duration: 360, system: 'Movement' },
+    morning: { activity: 'idle', duration: 60, system: 'Movement' },
+    day: { activity: 'work', duration: 480, system: 'Work' },
+    evening: { activity: 'idle', duration: 60, system: 'Movement' },
+    night: { activity: 'idle', duration: 480, system: 'Movement' },
   },
 };
 

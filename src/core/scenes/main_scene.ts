@@ -3,15 +3,18 @@ import { Events } from '../event_bus/events';
 import { TickManager } from '../tick/tick_manager';
 import { Tiles } from './tiles';
 import { ModuleManager } from '../modules/module_manager';
+import { Logger } from '../utils/logger';
 
 export class MainScene extends Phaser.Scene {
-  private eventBus!: EventBus;
-  private tickManager!: TickManager;
-  private moduleManager!: ModuleManager; // Для доступа к DebugModule
+  private eventBus: EventBus | null = null;
+  private tickManager: TickManager | null = null;
+  private moduleManager: ModuleManager | null = null;
   private sceneReadyEmitted = false;
+  private logger: Logger;
 
   constructor() {
     super({ key: 'main_scene' });
+    this.logger = Logger.create('MainScene');
   }
 
   preload(): void {
@@ -19,10 +22,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   init(eventBus: EventBus, tickManager: TickManager): void {
-    console.log('MainScene init called with eventBus:', eventBus, typeof eventBus);
+    this.logger.debug('MainScene init called with eventBus:', eventBus, typeof eventBus);
     this.eventBus = eventBus;
     this.tickManager = tickManager;
-    console.log('Scene initialized successfully');
+    this.logger.info('Scene initialized successfully');
   }
 
   setModuleManager(moduleManager: ModuleManager): void {
@@ -30,7 +33,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
-    console.log('MainScene create');
+    this.logger.info('MainScene create');
   }
 
   update(time: number, delta: number): void {
@@ -39,7 +42,7 @@ export class MainScene extends Phaser.Scene {
 
     // Emit SceneReady event on first update if not already emitted
     if (!this.sceneReadyEmitted && this.eventBus && typeof this.eventBus.emit === 'function') {
-      console.log('Emitting SceneReady event from update');
+      this.logger.debug('Emitting SceneReady event from update');
       this.eventBus.emit(Events.SceneReady);
       this.sceneReadyEmitted = true;
     }

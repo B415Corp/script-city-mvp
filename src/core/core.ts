@@ -7,29 +7,51 @@ import { TickManager } from './tick/tick_manager';
 import { EntrySimulation } from './simulations/entry_simulation';
 
 export class Core {
-  private phaserConfig!: Phaser.Types.Core.GameConfig;
-  private phaser!: Phaser.Game | null;
+  private phaserConfig: Phaser.Types.Core.GameConfig;
+  private phaser: Phaser.Game | null = null; // ← ДОБАВИТЬ = null
+  private resizeHandler?: () => void;
 
-  public moduleManager!: ModuleManager | null;
-  public ecsManager!: ECSManager;
-  public eventBus!: EventBus;
-  public tickManager!: TickManager;
+  public moduleManager: ModuleManager | null = null; // ← ДОБАВИТЬ = null
+  public ecsManager: ECSManager | null = null; // ← ДОБАВИТЬ = null
+  public eventBus: EventBus | null = null; // ← ДОБАВИТЬ = null
+  public tickManager: TickManager | null = null; // ← ДОБАВИТЬ = null
 
   constructor(phaserConfig: Phaser.Types.Core.GameConfig) {
     this.phaserConfig = phaserConfig;
+    this.setupResizeHandler(); // ← ИЗМЕНИТЬ
+  }
 
-    window.addEventListener('resize', () => {
+  // ← ДОБАВИТЬ новый метод
+  private setupResizeHandler(): void {
+    this.resizeHandler = (): void => {
       this.phaser?.scale.resize(window.innerWidth, window.innerHeight);
-    });
+    };
+    window.addEventListener('resize', this.resizeHandler);
+  }
+
+  // ← ДОБАВИТЬ метод cleanup
+  public destroy(): void {
+    // Удаляем resize listener
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = undefined;
+    }
+
+    // Очищаем moduleManager
+    this.moduleManager = null;
+
+    // Уничтожаем Phaser
+    this.phaser?.destroy(true);
+    this.phaser = null;
   }
 
   public async init(): Promise<void> {
     await this.initPhaser();
     await this.initEventBus();
-    await this.initTickManager();
-    await this.initECSManager();
+    this.initTickManager();
+    this.initECSManager();
     await this.initModules();
-    await this.startSimulation();
+    this.startSimulation();
   }
 
   private async initEventBus(): Promise<void> {
@@ -37,15 +59,45 @@ export class Core {
   }
 
   private async initModules(): Promise<void> {
-    return new Promise((res) => {
-      this.phaser?.events.once('ready', () => {
-        console.log('Phaser ready, initializing scene with eventBus:', this.eventBus);
-        const scene = this.phaser!.scene.getScene('main_scene') as MainScene;
-        scene.init(this.eventBus, this.tickManager);
-        this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager);
-        this.moduleManager.init();
-        scene.setModuleManager(this.moduleManager);
-        res();
+    return new Promise((resolve, reject) => {
+      if (!this.phaser) {
+        return reject(new Error('Phaser not initialized'));
+      }
+
+      this.phaser.events.once('ready', () => {
+        try {
+          // ← УБРАТЬ ! и добавить проверки
+          if (!this.phaser) {
+            throw new Error('Phaser is null');
+          }
+
+          const scene = this.phaser.scene.getScene('main_scene') as MainScene;
+
+          if (!scene) {
+            throw new Error('MainScene not found');
+          }
+
+          if (!this.eventBus) {
+            throw new Error('EventBus not initialized');
+          }
+
+          if (!this.tickManager) {
+            throw new Error('TickManager not initialized');
+          }
+
+          if (!this.ecsManager) {
+            throw new Error('ECSManager not initialized');
+          }
+
+          scene.init(this.eventBus, this.tickManager);
+          this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager);
+          this.moduleManager.init();
+          scene.setModuleManager(this.moduleManager);
+
+          resolve();
+        } catch (error) {
+          reject(error); // ← ДОБАВИТЬ обработку ошибок
+        }
       });
     });
   }
@@ -55,16 +107,25 @@ export class Core {
   }
 
   private async initECSManager(): Promise<void> {
+    if (!this.eventBus || !this.tickManager) {
+      throw new Error('EventBus and TickManager must be initialized before ECSManager');
+    }
     this.ecsManager = new ECSManager(this.eventBus, this.tickManager);
   }
 
   private async initTickManager(): Promise<void> {
+    if (!this.eventBus) {
+      throw new Error('EventBus must be initialized before TickManager');
+    }
     this.tickManager = new TickManager(this.eventBus, 10);
     // Устанавливаем начальное время на 2:00 ночи (жители спят)
     this.tickManager.getTimeController().setTime(2 * 60); // 2:00 AM
   }
 
   private async startSimulation(): Promise<void> {
+    if (!this.ecsManager || !this.eventBus || !this.tickManager) {
+      throw new Error('All managers must be initialized before starting simulation');
+    }
     const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
     entrySimulation.start();
   }
