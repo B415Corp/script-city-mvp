@@ -14,24 +14,24 @@ describe('TickManager', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with default tick rate', () => {
+    it('должен инициализировать with default tick rate', () => {
       const defaultManager = new TickManager(eventBus);
       expect(defaultManager.getTickRate()).toBe(10);
       expect(defaultManager.getFixedStepMs()).toBe(100);
     });
 
-    it('should initialize with custom tick rate', () => {
+    it('должен инициализировать with custom tick rate', () => {
       expect(tickManager.getTickRate()).toBe(10);
       expect(tickManager.getFixedStepMs()).toBe(100);
     });
 
-    it('should start unpaused', () => {
+    it('должен запускаться без паузы', () => {
       expect(tickManager.isPaused()).toBe(false);
     });
   });
 
   describe('update', () => {
-    it('should emit TickStarted event on update', () => {
+    it('должен отправлять событие TickStarted при обновлении', () => {
       const mockHandler = vi.fn();
       eventBus.on(Events.TickStarted, mockHandler);
 
@@ -43,7 +43,7 @@ describe('TickManager', () => {
       });
     });
 
-    it('should emit LogicTick events for executed ticks', () => {
+    it('должен отправлять события LogicTick для выполненных тиков', () => {
       const mockHandler = vi.fn();
       eventBus.on(Events.LogicTick, mockHandler);
 
@@ -56,7 +56,7 @@ describe('TickManager', () => {
       expect(logicTickData.ticksExecuted).toBe(1);
     });
 
-    it('should emit multiple LogicTick events for multiple ticks', () => {
+    it('должен отправлять множественные события LogicTick для множественных тиков', () => {
       const mockHandler = vi.fn();
       eventBus.on(Events.LogicTick, mockHandler);
 
@@ -71,7 +71,7 @@ describe('TickManager', () => {
       });
     });
 
-    it('should emit GameTimeUpdated events for each tick', () => {
+    it('должен отправлять события GameTimeUpdated для каждого тика', () => {
       const mockHandler = vi.fn();
       eventBus.on(Events.GameTimeUpdated, mockHandler);
 
@@ -80,7 +80,7 @@ describe('TickManager', () => {
       expect(mockHandler).toHaveBeenCalledTimes(2);
     });
 
-    it('should not emit events when paused', () => {
+    it('не должен отправлять события при паузе', () => {
       const tickHandler = vi.fn();
       const logicHandler = vi.fn();
       const timeHandler = vi.fn();
@@ -99,7 +99,7 @@ describe('TickManager', () => {
   });
 
   describe('event handling', () => {
-    it('should handle GamePauseToggle events', () => {
+    it('должен обрабатывать GamePauseToggle events', () => {
       expect(tickManager.isPaused()).toBe(false);
 
       eventBus.emit(Events.GamePauseToggle);
@@ -109,15 +109,15 @@ describe('TickManager', () => {
       expect(tickManager.isPaused()).toBe(false);
     });
 
-    it('should handle SetGameSpeed events', () => {
-      eventBus.emit(Events.SetGameSpeed, { speed: 20 });
-      expect(tickManager.getTickRate()).toBe(20);
-      expect(tickManager.getFixedStepMs()).toBe(50);
+    it('должен обрабатывать SetGameSpeed events', () => {
+      eventBus.emit(Events.SetGameSpeed, { speed: 60 });
+      expect(tickManager.getTickRate()).toBe(60);
+      expect(tickManager.getFixedStepMs()).toBeCloseTo(16.67, 2);
     });
   });
 
   describe('pause control', () => {
-    it('should pause and resume', () => {
+    it('должен приостанавливаться и возобновляться', () => {
       expect(tickManager.isPaused()).toBe(false);
 
       tickManager.pause();
@@ -127,7 +127,7 @@ describe('TickManager', () => {
       expect(tickManager.isPaused()).toBe(false);
     });
 
-    it('should toggle pause', () => {
+    it('должен переключать паузу', () => {
       expect(tickManager.isPaused()).toBe(false);
 
       tickManager.togglePause();
@@ -139,7 +139,7 @@ describe('TickManager', () => {
   });
 
   describe('controller access', () => {
-    it('should provide access to tick controller', () => {
+    it('должен предоставлять доступ к контроллеру тиков', () => {
       const controller = tickManager.getTickController();
       expect(controller).toBeDefined();
       expect(typeof controller.getTickRate).toBe('function');
@@ -172,19 +172,19 @@ describe('TickManager', () => {
   });
 
   describe('complex scenarios', () => {
-    it('should handle speed changes during updates', () => {
+    it('должен обрабатывать speed changes during updates', () => {
       const logicHandler = vi.fn();
       eventBus.on(Events.LogicTick, logicHandler);
 
-      // Change speed to 20 ticks/second (fixed step = 50ms) first
-      eventBus.emit(Events.SetGameSpeed, { speed: 20 });
+      // Change speed to 60 ticks/second (fixed step ≈ 16.67ms) first
+      eventBus.emit(Events.SetGameSpeed, { speed: 60 });
 
-      // Update with 50ms - should trigger 1 tick
-      tickManager.update(0, 50);
+      // Update with 20ms - should trigger 1 tick (since fixed step ≈ 16.67ms)
+      tickManager.update(0, 20);
       expect(logicHandler).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle pause and resume during game', () => {
+    it('должен обрабатывать pause and resume during game', () => {
       const logicHandler = vi.fn();
       eventBus.on(Events.LogicTick, logicHandler);
 
@@ -223,7 +223,7 @@ describe('TickManager', () => {
   });
 
   describe('integration with controllers', () => {
-    it('should update time controller on each tick', () => {
+    it('должен обновлять time controller on each tick', () => {
       const timeController = tickManager.getTimeController();
       const initialTime = timeController.getGameTime();
 

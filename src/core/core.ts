@@ -55,7 +55,7 @@ export class Core {
   }
 
   private async initECSManager(): Promise<void> {
-    this.ecsManager = new ECSManager(this.eventBus, this.tickManager.getTimeController());
+    this.ecsManager = new ECSManager(this.eventBus, this.tickManager);
   }
 
   private async initTickManager(): Promise<void> {

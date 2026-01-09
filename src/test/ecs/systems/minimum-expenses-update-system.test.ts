@@ -16,7 +16,7 @@ describe('MinimumExpensesUpdateSystem', () => {
   });
 
   describe('basic functionality', () => {
-    it('should update minimum expenses for owned housing', () => {
+    it('должен обновлять minimum expenses for owned housing', () => {
       const eid = entities[0];
 
       // Устанавливаем цены
@@ -36,7 +36,7 @@ describe('MinimumExpensesUpdateSystem', () => {
       expect(Citizen.minimumExpenses[eid]).toBe(250);
     });
 
-    it('should update minimum expenses for rented housing', () => {
+    it('должен обновлять minimum expenses for rented housing', () => {
       const eid = entities[0];
 
       // Устанавливаем цены
@@ -56,7 +56,7 @@ describe('MinimumExpensesUpdateSystem', () => {
       expect(Citizen.minimumExpenses[eid]).toBe(550); // 300 + 250
     });
 
-    it('should handle undefined housing type as owned', () => {
+    it('должен обрабатывать undefined housing type as owned', () => {
       const eid = entities[0];
 
       // Устанавливаем цены
@@ -105,7 +105,7 @@ describe('MinimumExpensesUpdateSystem', () => {
       expect(Citizen.minimumExpenses[eid]).toBe(700); // 400 + 300
     });
 
-    it('should handle zero prices', () => {
+    it('должен обрабатывать zero prices', () => {
       const eid = entities[0];
 
       BitECSTestHelper.setPricesData(PRICES_ENTITY, {
@@ -122,7 +122,7 @@ describe('MinimumExpensesUpdateSystem', () => {
       expect(Citizen.minimumExpenses[eid]).toBe(0);
     });
 
-    it('should handle high prices', () => {
+    it('должен обрабатывать high prices', () => {
       const eid = entities[0];
 
       BitECSTestHelper.setPricesData(PRICES_ENTITY, {
@@ -141,7 +141,7 @@ describe('MinimumExpensesUpdateSystem', () => {
   });
 
   describe('multiple citizens', () => {
-    it('should handle multiple citizens with different housing types', () => {
+    it('должен обрабатывать multiple citizens with different housing types', () => {
       const eid1 = entities[0];
       const eid2 = entities[1];
       const eid3 = entities[2];
@@ -164,7 +164,7 @@ describe('MinimumExpensesUpdateSystem', () => {
       expect(Citizen.minimumExpenses[eid3]).toBe(250);  // только еда
     });
 
-    it('should update all citizens when prices change', () => {
+    it('должен обновлять all citizens when prices change', () => {
       const eid1 = entities[0];
       const eid2 = entities[1];
 
@@ -201,13 +201,13 @@ describe('MinimumExpensesUpdateSystem', () => {
       expect(Citizen.minimumExpenses[eid]).toBe(1000);
     });
 
-    it('should handle empty entity list', () => {
+    it('должен обрабатывать empty entity list', () => {
       expect(() => {
         MinimumExpensesUpdateSystem.update(world, [], 1);
       }).not.toThrow();
     });
 
-    it('should handle entities without Citizen component', () => {
+    it('должен обрабатывать entities without Citizen component', () => {
       const basicEntity = BitECSTestHelper.createBasicEntity(world); // без Citizen
 
       expect(() => {
@@ -215,7 +215,7 @@ describe('MinimumExpensesUpdateSystem', () => {
       }).not.toThrow();
     });
 
-    it('should handle delta parameter (system ignores it)', () => {
+    it('должен обрабатывать delta parameter (system ignores it)', () => {
       const eid = entities[0];
 
       BitECSTestHelper.setPricesData(PRICES_ENTITY, {

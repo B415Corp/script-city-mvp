@@ -10,7 +10,7 @@ describe('TestSystem', () => {
     ({ world, entities } = BitECSTestHelper.createTestSetup(2));
   });
 
-  it('should be defined', () => {
+  it('должен быть определен', () => {
     expect(TestSystem).toBeDefined();
     expect(TestSystem.name).toBe('Test');
     expect(TestSystem.components).toEqual(['Person']);
@@ -23,7 +23,7 @@ describe('TestSystem', () => {
     expect(TestSystem.update).toBeInstanceOf(Function);
   });
 
-  it('should handle empty entity list', () => {
+  it('должен обрабатывать empty entity list', () => {
     // Spy on console.log to verify it's not called
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -37,7 +37,7 @@ describe('TestSystem', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should handle entities without required components', () => {
+  it('должен обрабатывать entities without required components', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     // Create entities without Person component
@@ -68,7 +68,7 @@ describe('TestSystem', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should handle multiple entities', () => {
+  it('должен обрабатывать multiple entities', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const eid1 = entities[0];

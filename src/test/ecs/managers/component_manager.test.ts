@@ -16,7 +16,7 @@ describe('ComponentManager', () => {
   });
 
   describe('Person component', () => {
-    it('should get default person data for empty entity', () => {
+    it('должен получать данные человека по умолчанию для пустой сущности', () => {
       const person = componentManager.getPerson(eid);
       expect(person).toEqual({
         age: 0,
@@ -26,7 +26,7 @@ describe('ComponentManager', () => {
       });
     });
 
-    it('should set and get person data', () => {
+    it('должен устанавливать и получать данные человека', () => {
       const personData = {
         age: 25,
         gender: Gender.MALE,
@@ -40,7 +40,7 @@ describe('ComponentManager', () => {
       expect(retrieved).toEqual(personData);
     });
 
-    it('should partially update person data', () => {
+    it('должен частично обновлять данные человека', () => {
       componentManager.setPerson(eid, { age: 30, name: 'Тест' });
       componentManager.setPerson(eid, { age: 35 }); // Обновляем только возраст
 
@@ -52,7 +52,7 @@ describe('ComponentManager', () => {
   });
 
   describe('Citizen component', () => {
-    it('should get default citizen data for empty entity', () => {
+    it('должен получать данные жителя по умолчанию для пустой сущности', () => {
       const citizen = componentManager.getCitizen(eid);
       expect(citizen).toEqual({
         happiness: 0,
@@ -70,7 +70,7 @@ describe('ComponentManager', () => {
       });
     });
 
-    it('should set and get citizen data', () => {
+    it('должен устанавливать и получать данные жителя', () => {
       const citizenData = {
         happiness: 80,
         home: 42,
@@ -104,7 +104,7 @@ describe('ComponentManager', () => {
   });
 
   describe('Needs component', () => {
-    it('should get default needs data for empty entity', () => {
+    it('должен получать данные потребностей по умолчанию для пустой сущности', () => {
       const needs = componentManager.getNeeds(eid);
       expect(needs).toEqual({
         food: 0,
@@ -114,7 +114,7 @@ describe('ComponentManager', () => {
       });
     });
 
-    it('should set and get needs data', () => {
+    it('должен устанавливать и получать данные потребностей', () => {
       const needsData = {
         food: 75,
         shopping: 45,
@@ -140,7 +140,7 @@ describe('ComponentManager', () => {
   });
 
   describe('Position component', () => {
-    it('should get default position data for empty entity', () => {
+    it('должен получать данные позиции по умолчанию для пустой сущности', () => {
       const position = componentManager.getPosition(eid);
       expect(position).toEqual({
         x: 0,
@@ -148,7 +148,7 @@ describe('ComponentManager', () => {
       });
     });
 
-    it('should set and get position data', () => {
+    it('должен устанавливать и получать данные позиции', () => {
       const positionData = {
         x: 10.5,
         y: 20.3,

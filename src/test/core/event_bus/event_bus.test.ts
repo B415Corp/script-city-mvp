@@ -3,7 +3,7 @@ import { EventBus } from '../../../core/event_bus/event_bus';
 import { Events } from '../../../core/event_bus/events';
 import { CallSystemPayload, Subscription } from '../../../core/event_bus/types';
 
-describe('EventBus', () => {
+describe('Шина событий (EventBus)', () => {
   let eventBus: EventBus;
 
   beforeEach(() => {
@@ -11,7 +11,7 @@ describe('EventBus', () => {
   });
 
   describe('emit', () => {
-    it('should emit event without payload', () => {
+    it('должен отправлять событие без полезной нагрузки', () => {
       const handler = vi.fn();
       eventBus.on(Events.GameStarted, handler);
 
@@ -21,7 +21,7 @@ describe('EventBus', () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
-    it('should emit event with payload', () => {
+    it('должен отправлять событие с полезной нагрузкой', () => {
       const handler = vi.fn();
       const payload: CallSystemPayload = {
         systemName: 'TestSystem',
@@ -35,13 +35,13 @@ describe('EventBus', () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
-    it('should not throw error when no handlers are registered', () => {
+    it('не должен выбрасывать ошибку, когда обработчики не зарегистрированы', () => {
       expect(() => {
         eventBus.emit(Events.GameStarted);
       }).not.toThrow();
     });
 
-    it('should handle handler errors gracefully', () => {
+    it('должен обрабатывать handler errors gracefully', () => {
       const errorHandler = vi.fn(() => {
         throw new Error('Handler error');
       });
@@ -67,7 +67,7 @@ describe('EventBus', () => {
   });
 
   describe('on', () => {
-    it('should register event handler and return subscription', () => {
+    it('должен регистрировать event handler and return subscription', () => {
       const handler = vi.fn();
       const subscription = eventBus.on(Events.GameStarted, handler);
 
@@ -99,7 +99,7 @@ describe('EventBus', () => {
       eventBus.on(Events.LogicTick, tickHandler);
 
       eventBus.emit(Events.GameStarted);
-      eventBus.emit(Events.LogicTick, { delta: 1.0, totalTime: 100 });
+      eventBus.emit(Events.LogicTick, { delta: 1.0, ticksExecuted: 1 });
 
       expect(gameHandler).toHaveBeenCalledTimes(1);
       expect(tickHandler).toHaveBeenCalledTimes(1);
@@ -107,7 +107,7 @@ describe('EventBus', () => {
   });
 
   describe('once', () => {
-    it('should register handler that executes only once', () => {
+    it('должен регистрировать handler that executes only once', () => {
       const handler = vi.fn();
       eventBus.once(Events.GameStarted, handler);
 
@@ -117,7 +117,7 @@ describe('EventBus', () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
-    it('should return subscription that can unsubscribe before execution', () => {
+    it('должен возвращать subscription that can unsubscribe before execution', () => {
       const handler = vi.fn();
       const subscription = eventBus.once(Events.GameStarted, handler);
 
@@ -143,14 +143,14 @@ describe('EventBus', () => {
       expect(handler2).toHaveBeenCalledTimes(1);
     });
 
-    it('should not throw error when removing non-existent handler', () => {
+    it('не должен выбрасывать error when removing non-existent handler', () => {
       const handler = vi.fn();
       expect(() => {
         eventBus.off(Events.GameStarted, handler);
       }).not.toThrow();
     });
 
-    it('should not throw error when removing from non-existent event', () => {
+    it('не должен выбрасывать error when removing from non-existent event', () => {
       const handler = vi.fn();
       expect(() => {
         eventBus.off(Events.GameStarted, handler);
@@ -169,7 +169,7 @@ describe('EventBus', () => {
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('should handle multiple unsubscriptions gracefully', () => {
+    it('должен обрабатывать multiple unsubscriptions gracefully', () => {
       const handler = vi.fn();
       const subscription = eventBus.on(Events.GameStarted, handler);
 
@@ -192,7 +192,7 @@ describe('EventBus', () => {
 
       eventBus.clearEvents(Events.GameStarted);
       eventBus.emit(Events.GameStarted);
-      eventBus.emit(Events.LogicTick, { delta: 1.0, totalTime: 100 });
+      eventBus.emit(Events.LogicTick, { delta: 1.0, ticksExecuted: 1 });
 
       expect(handler1).not.toHaveBeenCalled();
       expect(handler2).not.toHaveBeenCalled();
@@ -208,7 +208,7 @@ describe('EventBus', () => {
       eventBus.clearEvents();
 
       eventBus.emit(Events.GameStarted);
-      eventBus.emit(Events.LogicTick, { delta: 1.0, totalTime: 100 });
+      eventBus.emit(Events.LogicTick, { delta: 1.0, ticksExecuted: 1 });
 
       expect(gameHandler).not.toHaveBeenCalled();
       expect(tickHandler).not.toHaveBeenCalled();
@@ -216,7 +216,7 @@ describe('EventBus', () => {
   });
 
   describe('complex scenarios', () => {
-    it('should handle mixed once and on handlers', () => {
+    it('должен обрабатывать mixed once and on handlers', () => {
       const onceHandler = vi.fn();
       const onHandler = vi.fn();
 

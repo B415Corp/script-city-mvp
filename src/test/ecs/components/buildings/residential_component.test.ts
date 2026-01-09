@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Residential, type ResidentialData } from '../../../../core/ecs/components/buildings/residential_component';
 
 describe('Residential Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Residential.capacity)).toBe(true);
     expect(Array.isArray(Residential.occupants)).toBe(true);
     expect(Array.isArray(Residential.quality)).toBe(true);
@@ -12,7 +12,7 @@ describe('Residential Component', () => {
     expect(Residential.quality.length).toBe(0);
   });
 
-  it('should be able to store and retrieve residential data', () => {
+  it('должен уметь хранить и извлекать residential data', () => {
     const eid = 0;
     const testData = {
       capacity: 4,
@@ -29,7 +29,7 @@ describe('Residential Component', () => {
     expect(Residential.quality[eid]).toBe(testData.quality);
   });
 
-  it('should handle multiple residential buildings', () => {
+  it('должен обрабатывать multiple residential buildings', () => {
     const eid1 = 1;
     const eid2 = 2;
 
@@ -54,7 +54,7 @@ describe('Residential Component', () => {
     expect(Residential.quality[eid2]).toBe(95);
   });
 
-  it('should support different capacity sizes', () => {
+  it('должен поддерживать различные capacity sizes', () => {
     const testCases = [
       { eid: 3, capacity: 1, description: 'Studio apartment' },
       { eid: 4, capacity: 3, description: 'Small apartment' },
@@ -74,7 +74,7 @@ describe('Residential Component', () => {
     });
   });
 
-  it('should handle occupant management', () => {
+  it('должен обрабатывать occupant management', () => {
     const eid = 8;
 
     // Empty building
@@ -101,7 +101,7 @@ describe('Residential Component', () => {
     expect(Residential.occupants[eid]).toEqual([]);
   });
 
-  it('should support different quality levels', () => {
+  it('должен поддерживать различные quality levels', () => {
     const eid = 9;
 
     // Poor quality
@@ -121,7 +121,7 @@ describe('Residential Component', () => {
     expect(Residential.quality[eid]).toBe(100);
   });
 
-  it('should handle over-capacity scenarios', () => {
+  it('должен обрабатывать over-capacity scenarios', () => {
     const eid = 10;
 
     Residential.capacity[eid] = 2;
@@ -132,7 +132,7 @@ describe('Residential Component', () => {
     expect(Residential.occupants[eid]).toEqual([1, 2, 3, 4]); // Component allows over-capacity
   });
 
-  it('should support empty buildings', () => {
+  it('должен поддерживать empty buildings', () => {
     const eid = 11;
 
     Residential.capacity[eid] = 3;
@@ -144,7 +144,7 @@ describe('Residential Component', () => {
     expect(Residential.quality[eid]).toBe(90);
   });
 
-  it('should support full buildings', () => {
+  it('должен поддерживать full buildings', () => {
     const eid = 12;
 
     Residential.capacity[eid] = 2;
@@ -156,14 +156,14 @@ describe('Residential Component', () => {
     expect(Residential.quality[eid]).toBe(75);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Residential.capacity[eid]).toBeUndefined();
     expect(Residential.occupants[eid]).toBeUndefined();
     expect(Residential.quality[eid]).toBeUndefined();
   });
 
-  it('should handle large occupant arrays', () => {
+  it('должен обрабатывать large occupant arrays', () => {
     const eid = 13;
     const largeOccupantList = Array.from({ length: 20 }, (_, i) => 1000 + i);
 
@@ -178,7 +178,7 @@ describe('Residential Component', () => {
 });
 
 describe('ResidentialData type', () => {
-  it('should accept valid ResidentialData object', () => {
+  it('должен принимать допустимый ResidentialData object', () => {
     const data: ResidentialData = {
       capacity: 4,
       occupants: [1, 2, 3],
@@ -190,7 +190,7 @@ describe('ResidentialData type', () => {
     expect(data.quality).toBe(85);
   });
 
-  it('should support different residential configurations', () => {
+  it('должен поддерживать различные residential configurations', () => {
     const testData: ResidentialData[] = [
       {
         capacity: 1,
@@ -221,7 +221,7 @@ describe('ResidentialData type', () => {
     });
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       capacity: 5,
@@ -234,7 +234,7 @@ describe('ResidentialData type', () => {
     expect(data.quality).toBe(75);
   });
 
-  it('should support empty occupants array', () => {
+  it('должен поддерживать empty occupants array', () => {
     const data: ResidentialData = {
       capacity: 3,
       occupants: [],

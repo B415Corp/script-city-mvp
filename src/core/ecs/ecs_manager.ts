@@ -2,6 +2,8 @@ import { createWorld, addEntity, removeEntity, World, EntityId, query } from 'bi
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { CallSystemPayload } from '../event_bus/types';
+import { TimeService } from '../tick/time_service';
+import { TickManager } from '../tick/tick_manager';
 
 import { EntityFactory } from './entities';
 import {
@@ -13,8 +15,8 @@ import {
   createPriceFluctuationSystem,
   PriceFluctuationSystem,
   MinimumExpensesUpdateSystem,
-  createMonthlyExpensesSystem,
-  MonthlyExpensesSystem,
+  createWeeklyExpensesSystem,
+  WeeklyExpensesSystem,
 } from './systems/clusters';
 import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
 import {
@@ -53,7 +55,7 @@ const systemRegistry: Record<string, System> = {
   DailyRoutine: DailyRoutineSystem,
   PriceFluctuation: PriceFluctuationSystem,
   MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
-  MonthlyExpenses: MonthlyExpensesSystem,
+  WeeklyExpenses: WeeklyExpensesSystem,
   JobSearch: JobSearchSystem,
   Firing: FiringSystem,
   Test: TestSystem,
@@ -85,7 +87,7 @@ const clustersRegistry: Record<string, SystemCluster> = {
     interval: undefined, // Каждый тик
   },
   economy: {
-    systemNames: ['PriceFluctuation', 'MinimumExpensesUpdate', 'MonthlyExpenses'], // Экономические системы
+    systemNames: ['PriceFluctuation', 'MinimumExpensesUpdate', 'WeeklyExpenses'], // Экономические системы
     enabled: true,
     interval: undefined, // Каждый тик для тестирования
   },
@@ -106,19 +108,23 @@ export class ECSManager {
   private queries: Map<string, ReturnType<typeof query>> = new Map(); // Кэш query объектов
   private systemsClusters: systemsClusters = clustersRegistry; // Регистр кластеров
   private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
-  private currentGameTimeOfDay: number = 0; // Текущее время дня в минутах
+  private timeService: TimeService;
 
   constructor(
     private eventBus: EventBus,
-    private timeController?: unknown,
+    private tickManager: TickManager,
     private systemDependencies?: import('./systems/types').ISystemDependencies,
   ) {
     console.log('🚀 ECSManager initialized');
     this.world = createWorld();
     this.entityFactory = new EntityFactory(this.world);
 
+    // Инициализируем TimeService для работы с eventBus
+    this.timeService = tickManager.getEventBusTimeService();
+
     // Создаем систему цикла дня и ночи
-    const dayNightSystem = createDayNightCycleSystem(eventBus);
+    // Используем eventBus версию TimeService для синхронизации с событиями
+    const dayNightSystem = createDayNightCycleSystem(eventBus, this.timeService);
     this.registerSystem('DayNightCycle', dayNightSystem);
 
     // Инициализируем query объекты для часто используемых комбинаций компонентов
@@ -136,12 +142,7 @@ export class ECSManager {
       this.updateSystems(tickData);
     });
 
-    // Подписываемся на GameTimeUpdated для получения актуального времени
-    this.eventBus.on(Events.GameTimeUpdated, (payload) => {
-      if (!payload) return;
-      const timeData = payload;
-      this.currentGameTimeOfDay = timeData.minutesOfDay;
-    });
+    // TimeService предоставляет актуальные данные времени
 
     // Подписываемся на CallSystem для вызова систем по событиям
     this.eventBus.on(Events.CallSystem, (payload) => {
@@ -203,7 +204,7 @@ export class ECSManager {
       DailyRoutine: DailyRoutineSystem,
       PriceFluctuation: createPriceFluctuationSystem(this.systemDependencies),
       MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
-      MonthlyExpenses: createMonthlyExpensesSystem(this.systemDependencies),
+      WeeklyExpenses: createWeeklyExpensesSystem(this.systemDependencies),
       JobSearch: JobSearchSystem,
       Firing: FiringSystem,
       Test: TestSystem,
@@ -335,8 +336,9 @@ export class ECSManager {
 
       if (shouldUpdate) {
         // Обновляем все системы в кластере
+        // Используем TimeService для синхронизации с событиями времени
         for (const systemName of cluster.systemNames) {
-          this.callSystem(systemName, undefined, this.currentGameTimeOfDay);
+          this.callSystem(systemName, undefined, this.timeService);
         }
 
         // Сбрасываем таймер
@@ -500,7 +502,11 @@ export class ECSManager {
    * Получить текущее игровое время в минутах
    */
   getGameTime(): number {
-    return (this.timeController as { getGameTime?: () => number })?.getGameTime?.() || 0;
+    return this.timeService.getTimeData().totalMinutes;
+  }
+
+  getTimeService(): TimeService {
+    return this.timeService;
   }
 
   /**

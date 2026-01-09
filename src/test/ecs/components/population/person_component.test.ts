@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Person, Gender, EducationLevel, type PersonData } from '../../../../core/ecs/components/population/person_component';
 
 describe('Person Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Person.age)).toBe(true);
     expect(Array.isArray(Person.gender)).toBe(true);
     expect(Array.isArray(Person.name)).toBe(true);
@@ -14,7 +14,7 @@ describe('Person Component', () => {
     expect(Person.education.length).toBe(0);
   });
 
-  it('should be able to store and retrieve person data', () => {
+  it('должен уметь хранить и извлекать person data', () => {
     const eid = 0;
     const age = 25;
     const gender = Gender.MALE;
@@ -32,7 +32,7 @@ describe('Person Component', () => {
     expect(Person.education[eid]).toBe(education);
   });
 
-  it('should handle multiple entities', () => {
+  it('должен обрабатывать multiple entities', () => {
     const eid1 = 1;
     const eid2 = 2;
 
@@ -59,7 +59,7 @@ describe('Person Component', () => {
     expect(Person.education[eid2]).toBe(EducationLevel.UNIVERSITY);
   });
 
-  it('should support different age ranges', () => {
+  it('должен поддерживать различные age ranges', () => {
     const testCases = [
       { eid: 3, age: 1, gender: Gender.MALE, name: 'Младенец', education: EducationLevel.NONE },
       { eid: 4, age: 18, gender: Gender.FEMALE, name: 'Подросток', education: EducationLevel.PRIMARY },
@@ -80,7 +80,7 @@ describe('Person Component', () => {
     });
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Person.age[eid]).toBeUndefined();
     expect(Person.gender[eid]).toBeUndefined();
@@ -88,7 +88,7 @@ describe('Person Component', () => {
     expect(Person.education[eid]).toBeUndefined();
   });
 
-  it('should support empty and whitespace names', () => {
+  it('должен поддерживать empty and whitespace names', () => {
     const eid1 = 7;
     const eid2 = 8;
 
@@ -99,7 +99,7 @@ describe('Person Component', () => {
     expect(Person.name[eid2]).toBe('   ');
   });
 
-  it('should support unicode names', () => {
+  it('должен поддерживать unicode names', () => {
     const eid = 9;
     const unicodeName = 'José María González';
 
@@ -155,7 +155,7 @@ describe('EducationLevel enum', () => {
     }
   });
 
-  it('should support all education levels', () => {
+  it('должен поддерживать all education levels', () => {
     const testLevels = [
       EducationLevel.NONE,
       EducationLevel.PRIMARY,
@@ -173,7 +173,7 @@ describe('EducationLevel enum', () => {
 });
 
 describe('PersonData type', () => {
-  it('should accept valid PersonData object', () => {
+  it('должен принимать допустимый PersonData object', () => {
     const data: PersonData = {
       age: 28,
       gender: Gender.FEMALE,
@@ -187,7 +187,7 @@ describe('PersonData type', () => {
     expect(data.education).toBe(EducationLevel.UNIVERSITY);
   });
 
-  it('should support different combinations', () => {
+  it('должен поддерживать различные combinations', () => {
     const testData: PersonData[] = [
       {
         age: 16,
@@ -223,7 +223,7 @@ describe('PersonData type', () => {
     });
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       age: 30,

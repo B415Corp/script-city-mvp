@@ -7,7 +7,7 @@ describe('ID Component', () => {
     expect(ID.value.length).toBe(0);
   });
 
-  it('should be able to store and retrieve ID values', () => {
+  it('должен уметь хранить и извлекать ID values', () => {
     const eid = 0;
     const testValue = 42;
 
@@ -15,7 +15,7 @@ describe('ID Component', () => {
     expect(ID.value[eid]).toBe(testValue);
   });
 
-  it('should handle multiple entities', () => {
+  it('должен обрабатывать multiple entities', () => {
     const eid1 = 1;
     const eid2 = 5;
     const value1 = 100;
@@ -28,14 +28,14 @@ describe('ID Component', () => {
     expect(ID.value[eid2]).toBe(value2);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(ID.value[eid]).toBeUndefined();
   });
 });
 
 describe('IdData type', () => {
-  it('should accept valid IdData object', () => {
+  it('должен принимать допустимый IdData object', () => {
     const data: IdData = {
       value: 123,
     };

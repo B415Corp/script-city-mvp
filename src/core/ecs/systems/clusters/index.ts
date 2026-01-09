@@ -5,7 +5,7 @@ export {
   createPriceFluctuationSystem,
   PriceFluctuationSystem,
   MinimumExpensesUpdateSystem,
-  createMonthlyExpensesSystem,
-  MonthlyExpensesSystem,
+  createWeeklyExpensesSystem,
+  WeeklyExpensesSystem,
 } from './population_system';
 export { JobSearchSystem, FiringSystem } from './schedule_activity_systems';

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Citizen, HousingType, type CitizenData } from '../../../../core/ecs/components/population/citizen_component';
 
 describe('Citizen Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Citizen.happiness)).toBe(true);
     expect(Array.isArray(Citizen.home)).toBe(true);
     expect(Array.isArray(Citizen.workplace)).toBe(true);
@@ -22,7 +22,7 @@ describe('Citizen Component', () => {
     expect(Citizen.workplace.length).toBe(0);
   });
 
-  it('should be able to store and retrieve citizen data', () => {
+  it('должен уметь хранить и извлекать citizen data', () => {
     const eid = 0;
     const testData = {
       happiness: 85,
@@ -66,7 +66,7 @@ describe('Citizen Component', () => {
     expect(Citizen.lastExpenseDay[eid]).toBe(testData.lastExpenseDay);
   });
 
-  it('should handle multiple citizens with different states', () => {
+  it('должен обрабатывать multiple citizens with different states', () => {
     const eid1 = 1;
     const eid2 = 2;
 
@@ -111,7 +111,7 @@ describe('Citizen Component', () => {
     expect(Citizen.housingType[eid2]).toBe(HousingType.RENTED);
   });
 
-  it('should handle workplace as undefined', () => {
+  it('должен обрабатывать workplace as undefined', () => {
     const eid = 3;
 
     // Initially has workplace
@@ -123,7 +123,7 @@ describe('Citizen Component', () => {
     expect(Citizen.workplace[eid]).toBeUndefined();
   });
 
-  it('should support different happiness ranges', () => {
+  it('должен поддерживать различные happiness ranges', () => {
     const testCases = [
       { eid: 4, happiness: 0, description: 'Completely unhappy' },
       { eid: 5, happiness: 50, description: 'Neutral' },
@@ -136,7 +136,7 @@ describe('Citizen Component', () => {
     });
   });
 
-  it('should support different energy levels', () => {
+  it('должен поддерживать различные energy levels', () => {
     const testCases = [
       { eid: 7, energy: 0, description: 'Exhausted' },
       { eid: 8, energy: 50, description: 'Tired' },
@@ -149,7 +149,7 @@ describe('Citizen Component', () => {
     });
   });
 
-  it('should support different money amounts', () => {
+  it('должен поддерживать различные money amounts', () => {
     const testCases = [
       { eid: 10, money: 0, description: 'Bankrupt' },
       { eid: 11, money: 1000, description: 'Basic savings' },
@@ -162,7 +162,7 @@ describe('Citizen Component', () => {
     });
   });
 
-  it('should handle job search states', () => {
+  it('должен обрабатывать job search states', () => {
     const eid = 13;
 
     // Actively looking for job
@@ -184,7 +184,7 @@ describe('Citizen Component', () => {
     expect(Citizen.lastJobSearchDay[eid]).toBe(20);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Citizen.happiness[eid]).toBeUndefined();
     expect(Citizen.home[eid]).toBeUndefined();
@@ -223,7 +223,7 @@ describe('HousingType enum', () => {
 });
 
 describe('CitizenData type', () => {
-  it('should accept valid CitizenData object', () => {
+  it('должен принимать допустимый CitizenData object', () => {
     const data: CitizenData = {
       happiness: 80,
       home: 42,
@@ -253,7 +253,7 @@ describe('CitizenData type', () => {
     expect(data.lastExpenseDay).toBe(15);
   });
 
-  it('should support optional workplace', () => {
+  it('должен поддерживать optional workplace', () => {
     const employedData: CitizenData = {
       happiness: 85,
       home: 100,
@@ -287,7 +287,7 @@ describe('CitizenData type', () => {
     expect(unemployedData.workplace).toBeUndefined();
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       happiness: 75,

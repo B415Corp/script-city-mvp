@@ -2,6 +2,7 @@ import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { TickController } from './controllers/tick_controller';
 import { TimeController } from './controllers/time_controller';
+import { TimeService } from './time_service';
 import { LogicTickData, SetSpeedPayload } from './types';
 
 /**
@@ -11,6 +12,8 @@ import { LogicTickData, SetSpeedPayload } from './types';
 export class TickManager {
   private tickController: TickController;
   private timeController: TimeController;
+  private timeService: TimeService;
+  private eventBusTimeService: TimeService;
 
   constructor(
     private readonly eventBus: EventBus,
@@ -18,6 +21,8 @@ export class TickManager {
   ) {
     this.tickController = new TickController(initialTickRate);
     this.timeController = new TimeController(eventBus);
+    this.timeService = TimeService.fromTimeController(this.timeController);
+    this.eventBusTimeService = TimeService.createFromEventBus(eventBus);
 
     // Подписываемся на события управления
     this.eventBus.on(Events.GamePauseToggle, () => this.tickController.togglePause());
@@ -75,13 +80,25 @@ export class TickManager {
     this.tickController.togglePause();
   }
 
-  // Доступ к контроллерам
+  // Доступ к контроллерам и сервисам
   public getTickController(): TickController {
     return this.tickController;
   }
 
   public getTimeController(): TimeController {
     return this.timeController;
+  }
+
+  public getTimeService(): TimeService {
+    return this.timeService;
+  }
+
+  /**
+   * Получить TimeService, который работает с eventBus
+   * Используйте этот метод для компонентов, которые хотят получать время через события
+   */
+  public getEventBusTimeService(): TimeService {
+    return this.eventBusTimeService;
   }
 
   // Геттеры для обратной совместимости

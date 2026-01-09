@@ -5,8 +5,8 @@ import {
   type GoodsData,
 } from '../../../../core/ecs/components/economy/goods_component';
 
-describe('Goods Component', () => {
-  it('should have all required arrays', () => {
+describe('Компонент товаров (Goods Component)', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Goods.type)).toBe(true);
     expect(Array.isArray(Goods.quantity)).toBe(true);
     expect(Array.isArray(Goods.price)).toBe(true);
@@ -18,7 +18,7 @@ describe('Goods Component', () => {
     expect(Goods.producer.length).toBe(0);
   });
 
-  it('should be able to store and retrieve goods data', () => {
+  it('должен уметь хранить и извлекать данные о товарах', () => {
     const eid = 0;
     const testData = {
       type: GoodsType.FOOD,
@@ -38,7 +38,7 @@ describe('Goods Component', () => {
     expect(Goods.producer[eid]).toBe(testData.producer);
   });
 
-  it('should handle different goods types', () => {
+  it('должен обрабатывать различные типы товаров', () => {
     const eid1 = 1;
     const eid2 = 2;
     const eid3 = 3;
@@ -93,7 +93,7 @@ describe('Goods Component', () => {
     expect(Goods.producer[eid4]).toBe(103);
   });
 
-  it('should support different quantity ranges', () => {
+  it('должен поддерживать различные диапазоны количества', () => {
     const testCases = [
       { eid: 5, type: GoodsType.FOOD, quantity: 1, price: 10, producer: 1 },
       { eid: 6, type: GoodsType.CLOTHES, quantity: 1000, price: 50, producer: 2 },
@@ -114,7 +114,7 @@ describe('Goods Component', () => {
     });
   });
 
-  it('should handle quantity changes (stock management)', () => {
+  it('должен обрабатывать изменения количества (управление запасами)', () => {
     const eid = 9;
 
     // Initial stock
@@ -138,7 +138,7 @@ describe('Goods Component', () => {
     expect(Goods.quantity[eid]).toBe(0);
   });
 
-  it('should handle price changes', () => {
+  it('должен обрабатывать изменения цен', () => {
     const eid = 10;
 
     Goods.type[eid] = GoodsType.ELECTRONICS;
@@ -161,7 +161,7 @@ describe('Goods Component', () => {
     expect(Goods.price[eid]).toBe(50);
   });
 
-  it('should support producer changes', () => {
+  it('должен поддерживать изменения производителей', () => {
     const eid = 11;
 
     Goods.type[eid] = GoodsType.CLOTHES;
@@ -180,7 +180,7 @@ describe('Goods Component', () => {
     expect(Goods.producer[eid]).toBe(1);
   });
 
-  it('should support custom goods types', () => {
+  it('должен поддерживать пользовательские типы товаров', () => {
     const eid = 12;
 
     const customTypes = ['books', 'toys', 'furniture', 'automotive', 'pharmaceuticals'];
@@ -199,7 +199,7 @@ describe('Goods Component', () => {
     });
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Goods.type[eid]).toBeUndefined();
     expect(Goods.quantity[eid]).toBeUndefined();
@@ -207,7 +207,7 @@ describe('Goods Component', () => {
     expect(Goods.producer[eid]).toBeUndefined();
   });
 
-  it('should handle large quantities and prices', () => {
+  it('должен обрабатывать большие количества и цены', () => {
     const eid = 13;
 
     Goods.type[eid] = GoodsType.ELECTRONICS;
@@ -221,15 +221,15 @@ describe('Goods Component', () => {
   });
 });
 
-describe('GoodsType enum', () => {
-  it('should have correct goods type values', () => {
+describe('Перечисление типов товаров (GoodsType enum)', () => {
+  it('должен содержать правильные значения типов товаров', () => {
     expect(GoodsType.FOOD).toBe('food');
     expect(GoodsType.CLOTHES).toBe('clothes');
     expect(GoodsType.ELECTRONICS).toBe('electronics');
     expect(GoodsType.HOUSEHOLD).toBe('household');
   });
 
-  it('should be used correctly in goods component', () => {
+  it('должен правильно использоваться в компоненте товаров', () => {
     const eid = 14;
     Goods.type[eid] = GoodsType.FOOD;
     expect(Goods.type[eid]).toBe(GoodsType.FOOD);
@@ -238,14 +238,14 @@ describe('GoodsType enum', () => {
     expect(Goods.type[eid]).toBe(GoodsType.ELECTRONICS);
   });
 
-  it('should have valid goods type values', () => {
+  it('должен содержать допустимые значения типов товаров', () => {
     const stringValues = Object.values(GoodsType);
     expect(stringValues.sort()).toEqual(['clothes', 'electronics', 'food', 'household']);
   });
 });
 
-describe('GoodsData type', () => {
-  it('should accept valid GoodsData object', () => {
+describe('Тип данных товаров (GoodsData type)', () => {
+  it('должен принимать допустимый объект GoodsData', () => {
     const data: GoodsData = {
       type: GoodsType.FOOD,
       quantity: 100,
@@ -259,7 +259,7 @@ describe('GoodsData type', () => {
     expect(data.producer).toBe(50);
   });
 
-  it('should support different goods configurations', () => {
+  it('должен поддерживать различные конфигурации товаров', () => {
     const testData: GoodsData[] = [
       {
         type: GoodsType.FOOD,
@@ -301,7 +301,7 @@ describe('GoodsData type', () => {
     });
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       type: GoodsType.CLOTHES,

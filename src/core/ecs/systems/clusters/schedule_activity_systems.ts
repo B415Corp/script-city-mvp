@@ -23,13 +23,11 @@ export const FiringSystem: System = {
   components: ['Person', 'Citizen'],
 
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
-    const gameTime = extraData as number | undefined;
-    if (!gameTime) return;
+    const timeService = extraData as import('../../../tick/time_service').TimeService | undefined;
+    if (!timeService) return;
 
     // Проверяем увольнение только в вечерние часы (между 18:00 и 20:00)
-    const minutesOfDay = gameTime % (24 * 60);
-    const hourOfDay = minutesOfDay / 60;
-    if (hourOfDay < 18 || hourOfDay > 20) return;
+    if (!timeService.isFiringTime()) return;
 
     for (const citizenId of entities) {
       const workplaceId = Citizen.workplace[citizenId];
@@ -233,9 +231,9 @@ export const WorkSystem: System = {
         // Логика работы - тратим энергию, получаем зарплату
         Citizen.energy[eid] = Math.max(0, Citizen.energy[eid] - 8 * deltaTime);
 
-        // Получаем зарплату за работу
+        // Получаем зарплату за работу (ежедневно)
         const salary = Citizen.salary[eid] || 0;
-        const dailySalary = salary / 30; // Предполагаем 30 рабочих дней в месяце
+        const dailySalary = salary / 7; // Предполагаем 7 рабочих дней в неделю
         Citizen.money[eid] += dailySalary * deltaTime;
 
         // Во время работы немного хочется есть
@@ -273,12 +271,17 @@ export const FeedingSystem: System = {
 
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
     const deltaTime = delta || 1;
+    const pricesEntity = 99999;
+
+    // Получаем текущую стоимость еды (ежедневная)
+    const foodPrice = Prices.foodPrice[pricesEntity] || 250;
+    const dailyFoodCost = foodPrice / 30; // Стоимость еды на день
 
     for (const eid of entities) {
       // Выполняем только если текущая активность - feeding (еда)
       if (Schedule.currentActivity[eid] === 'feeding') {
-        // Проверяем, есть ли деньги на еду (30 монет за прием пищи)
-        const foodCost = 30;
+        // Проверяем, есть ли деньги на еду
+        const foodCost = dailyFoodCost; // Ежедневная стоимость еды
         if (Citizen.money[eid] >= foodCost) {
           // Покупаем еду и едим
           Citizen.money[eid] -= foodCost * deltaTime;
@@ -288,13 +291,13 @@ export const FeedingSystem: System = {
           Citizen.energy[eid] = Math.min(100, Citizen.energy[eid] + 10 * deltaTime);
 
           console.log(
-            `Entity ${eid} eating! Money: ${Citizen.money[eid]}, Hunger: ${Needs.food[eid]}, Energy: ${Citizen.energy[eid]}`,
+            `Entity ${eid} eating! Money: ${Citizen.money[eid].toFixed(2)}, Hunger: ${Needs.food[eid]}, Energy: ${Citizen.energy[eid]}, Cost: ${foodCost.toFixed(2)}`,
           );
         } else {
           // Не хватает денег - только частичное утоление голода
           Needs.food[eid] = Math.max(0, Needs.food[eid] - 20 * deltaTime);
           console.log(
-            `Entity ${eid} eating little (no money)! Money: ${Citizen.money[eid]}, Hunger: ${Needs.food[eid]}`,
+            `Entity ${eid} eating little (no money)! Money: ${Citizen.money[eid].toFixed(2)}, Hunger: ${Needs.food[eid]}`,
           );
         }
       }
@@ -400,11 +403,11 @@ export const ScheduleManagerSystem: System = {
   components: ['Person', 'Citizen', 'Schedule'],
 
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
-    const gameTime = extraData as number | undefined;
-    if (!gameTime) return;
+    const timeService = extraData as import('../../../tick/time_service').TimeService | undefined;
+    if (!timeService) return;
 
     // Определяем время суток (в минутах от начала дня)
-    const minutesOfDay = gameTime % (24 * 60);
+    const minutesOfDay = timeService.getMinutesOfDay();
     const currentPhase = getCurrentDayPhase(minutesOfDay);
 
     console.log(

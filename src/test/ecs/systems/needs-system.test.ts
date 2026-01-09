@@ -153,7 +153,7 @@ describe('NeedsSystem', () => {
   });
 
   describe('multiple citizens', () => {
-    it('should handle multiple citizens independently', () => {
+    it('должен обрабатывать multiple citizens independently', () => {
       const eid1 = entities[0];
       const eid2 = entities[1];
 
@@ -192,13 +192,13 @@ describe('NeedsSystem', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty entity list', () => {
+    it('должен обрабатывать empty entity list', () => {
       expect(() => {
         NeedsSystem.update(world, [], 10);
       }).not.toThrow();
     });
 
-    it('should handle zero delta time', () => {
+    it('должен обрабатывать zero delta time', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setNeedsData(eid, { food: 50 });
@@ -211,7 +211,7 @@ describe('NeedsSystem', () => {
       expect(Needs.food[eid]).toBe(initialFood);
     });
 
-    it('should handle negative delta time', () => {
+    it('должен обрабатывать negative delta time', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setNeedsData(eid, { food: 50 });

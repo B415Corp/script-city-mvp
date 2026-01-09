@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Events } from '../../../core/event_bus/events';
 
-describe('Events enum', () => {
-  it('should have all required event types', () => {
+describe('Перечисление событий (Events enum)', () => {
+  it('должен содержать все необходимые типы событий', () => {
     // Game state events
     expect(Events.GameStarted).toBe('GameStarted');
     expect(Events.GamePaused).toBe('GamePaused');
@@ -40,19 +40,19 @@ describe('Events enum', () => {
     expect(Events.CallSystem).toBe('CallSystem');
   });
 
-  it('should have unique values', () => {
+  it('должен иметь уникальные значения', () => {
     const values = Object.values(Events);
     const uniqueValues = new Set(values);
     expect(values.length).toBe(uniqueValues.size);
   });
 
-  it('should be usable as string literals', () => {
+  it('должен быть пригоден для использования в качестве строковых литералов', () => {
     const eventName: string = Events.GameStarted;
     expect(eventName).toBe('GameStarted');
     expect(typeof eventName).toBe('string');
   });
 
-  it('should be usable in arrays and sets', () => {
+  it('должен быть пригоден для использования в массивах и множествах', () => {
     const eventArray = [Events.GameStarted, Events.LogicTick, Events.CallSystem];
     expect(eventArray).toContain(Events.GameStarted);
     expect(eventArray).toContain(Events.LogicTick);
@@ -64,7 +64,7 @@ describe('Events enum', () => {
     expect(eventSet.has(Events.GamePaused)).toBe(false);
   });
 
-  it('should work with object keys', () => {
+  it('должен работать с ключами объектов', () => {
     const eventHandlers = {
       [Events.GameStarted]: () => 'game started',
       [Events.LogicTick]: () => 'logic tick',
@@ -76,7 +76,7 @@ describe('Events enum', () => {
     expect(eventHandlers[Events.CallSystem]()).toBe('call system');
   });
 
-  it('should be iterable', () => {
+  it('должен быть итерируемым', () => {
     const eventKeys = Object.keys(Events);
     const eventValues = Object.values(Events);
 
@@ -90,8 +90,8 @@ describe('Events enum', () => {
     });
   });
 
-  describe('event categories', () => {
-    it('should have game state events', () => {
+  describe('категории событий', () => {
+    it('должен содержать события состояния игры', () => {
       const gameStateEvents = [Events.GameStarted, Events.GamePaused, Events.GameStopped];
 
       gameStateEvents.forEach((event) => {
@@ -100,7 +100,7 @@ describe('Events enum', () => {
       });
     });
 
-    it('should have tick-related events', () => {
+    it('должен содержать события связанные с тиками', () => {
       const tickEvents = [
         Events.TickStarted,
         Events.TickEnded,
@@ -113,7 +113,7 @@ describe('Events enum', () => {
       });
     });
 
-    it('should have map-related events', () => {
+    it('должен содержать события связанные с картой', () => {
       const mapEvents = [
         Events.TileUnhovered,
         Events.TileHovered,
@@ -128,7 +128,7 @@ describe('Events enum', () => {
       });
     });
 
-    it('should have tool-related events', () => {
+    it('должен содержать события связанные с инструментами', () => {
       const toolEvents = [Events.SelectTool, Events.ToolActivated, Events.ResetToolToDefault];
 
       toolEvents.forEach((event) => {
@@ -136,7 +136,7 @@ describe('Events enum', () => {
       });
     });
 
-    it('should have module-related events', () => {
+    it('должен содержать события связанные с модулями', () => {
       const moduleEvents = [Events.ModuleEnabled, Events.ModuleDisabled, Events.ModuleError];
 
       moduleEvents.forEach((event) => {
@@ -144,7 +144,7 @@ describe('Events enum', () => {
       });
     });
 
-    it('should have ECS-related events', () => {
+    it('должен содержать события связанные с ECS', () => {
       const ecsEvents = [Events.CallSystem];
 
       ecsEvents.forEach((event) => {

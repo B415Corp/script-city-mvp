@@ -4,25 +4,29 @@ import { EventBus } from '../../../core/event_bus/event_bus';
 import { Events } from '../../../core/event_bus/events';
 import { BitECSTestHelper } from '../../helpers/bitECS-test-helper';
 import { LogicTickData } from '../../../core/tick/types';
+import { TickManager } from '../../../core/tick/tick_manager';
+import { World, EntityId } from 'bitecs';
 
 describe('ECSManager', () => {
   let eventBus: EventBus;
+  let tickManager: TickManager;
   let ecsManager: ECSManager;
-  let testWorld: any;
+  let testWorld: World;
 
   beforeEach(() => {
     eventBus = new EventBus();
-    ecsManager = new ECSManager(eventBus);
+    tickManager = new TickManager(eventBus, 10);
+    ecsManager = new ECSManager(eventBus, tickManager);
     testWorld = BitECSTestHelper.createTestSetup().world;
   });
 
   describe('initialization', () => {
-    it('should initialize with event bus', () => {
+    it('должен инициализировать with event bus', () => {
       expect(ecsManager).toBeDefined();
       expect(ecsManager.getWorld()).toBeDefined();
     });
 
-    it('should register base systems on initialization', () => {
+    it('должен регистрировать base systems on initialization', () => {
       const registeredSystems = ecsManager.getRegisteredSystems();
       expect(registeredSystems.length).toBeGreaterThan(0);
 
@@ -33,7 +37,7 @@ describe('ECSManager', () => {
       expect(registeredSystems).toContain('DayNightCycle');
     });
 
-    it('should initialize queries for common component combinations', () => {
+    it('должен инициализировать queries for common component combinations', () => {
       // Тестируем, что запросы работают (это косвенно проверяет инициализацию)
       const world = ecsManager.getWorld();
 
@@ -48,7 +52,7 @@ describe('ECSManager', () => {
   });
 
   describe('system management', () => {
-    it('should register new system', () => {
+    it('должен регистрировать new system', () => {
       const mockSystem = {
         name: 'TestSystem',
         components: ['Person'] as const,
@@ -61,13 +65,13 @@ describe('ECSManager', () => {
       expect(ecsManager.getRegisteredSystems()).toContain('TestSystem');
     });
 
-    it('should throw error when calling unregistered system', () => {
+    it('должен выбрасывать error when calling unregistered system', () => {
       expect(() => {
         ecsManager.callSystem('NonExistentSystem');
       }).toThrow('System "NonExistentSystem" not found');
     });
 
-    it('should validate system structure', () => {
+    it('должен валидировать system structure', () => {
       // Система без имени
       expect(() => {
         ecsManager.registerSystem('InvalidSystem1', {
@@ -94,7 +98,7 @@ describe('ECSManager', () => {
       }).toThrow('System "InvalidSystem3" must have an update function');
     });
 
-    it('should call system for specific entities', () => {
+    it('должен вызывать system for specific entities', () => {
       const mockSystem = {
         name: 'MockSystem',
         components: ['Person'] as const,
@@ -116,7 +120,7 @@ describe('ECSManager', () => {
       );
     });
 
-    it('should call system for single entity', () => {
+    it('должен вызывать system for single entity', () => {
       const mockSystem = {
         name: 'MockSystem',
         components: ['Person'] as const,
@@ -139,7 +143,7 @@ describe('ECSManager', () => {
   });
 
   describe('entity management', () => {
-    it('should create and destroy entities', () => {
+    it('должен создавать and destroy entities', () => {
       const eid = ecsManager.createEntity();
       expect(eid).toBeDefined();
       expect(typeof eid).toBe('number');
@@ -170,13 +174,13 @@ describe('ECSManager', () => {
       expect(ecsManager.isClusterEnabled('infrastructure')).toBe(true);
     });
 
-    it('should return false for non-existent cluster', () => {
+    it('должен возвращать false for non-existent cluster', () => {
       expect(ecsManager.isClusterEnabled('nonexistent')).toBe(false);
     });
   });
 
   describe('event handling', () => {
-    it('should handle LogicTick events', () => {
+    it('должен обрабатывать LogicTick events', () => {
       const tickData: LogicTickData = {
         delta: 1.0,
         totalTime: 100,
@@ -202,24 +206,20 @@ describe('ECSManager', () => {
         },
       };
 
-      eventBus.emit(Events.LogicTick, tickData);
+      eventBus.emit(Events.LogicTick, { delta: tickData.delta, ticksExecuted: 1 });
 
       // Восстанавливаем оригинальные кластеры
       (ecsManager as any).systemsClusters = originalClusters;
     });
 
-    it('should handle GameTimeUpdated events', () => {
-      const timeData = {
-        minutesOfDay: 480, // 8:00
-      };
-
-      eventBus.emit(Events.GameTimeUpdated, timeData);
-
-      // Проверяем что время обновилось (доступ к приватному полю через type assertion)
-      expect((ecsManager as any).currentGameTimeOfDay).toBe(480);
+    it('должен предоставлять доступ к TimeService', () => {
+      expect(tickManager).toBeDefined();
+      const timeService = ecsManager.getTimeService();
+      expect(timeService).toBeDefined();
+      expect(typeof timeService.getTimeData).toBe('function');
     });
 
-    it('should handle CallSystem events', () => {
+    it('должен обрабатывать CallSystem events', () => {
       const mockSystem = {
         name: 'CallSystemTest',
         components: ['Person'] as const,

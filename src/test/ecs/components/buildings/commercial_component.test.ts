@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Commercial, CommercialType, type CommercialData } from '../../../../core/ecs/components/buildings/commercial_component';
 
 describe('Commercial Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Commercial.type)).toBe(true);
     expect(Array.isArray(Commercial.inventory)).toBe(true);
     expect(Array.isArray(Commercial.employees)).toBe(true);
@@ -14,7 +14,7 @@ describe('Commercial Component', () => {
     expect(Commercial.customers.length).toBe(0);
   });
 
-  it('should be able to store and retrieve commercial data', () => {
+  it('должен уметь хранить и извлекать commercial data', () => {
     const eid = 0;
     const testData = {
       type: CommercialType.SHOP,
@@ -38,7 +38,7 @@ describe('Commercial Component', () => {
     expect(Commercial.customers[eid]).toEqual(testData.customers);
   });
 
-  it('should handle different commercial building types', () => {
+  it('должен обрабатывать различные commercial building types', () => {
     const eid1 = 1;
     const eid2 = 2;
     const eid3 = 3;
@@ -80,7 +80,7 @@ describe('Commercial Component', () => {
     expect(Commercial.customers[eid3]).toEqual([202]);
   });
 
-  it('should handle inventory management', () => {
+  it('должен обрабатывать inventory management', () => {
     const eid = 4;
 
     // Initial inventory
@@ -116,7 +116,7 @@ describe('Commercial Component', () => {
     expect(Commercial.inventory[eid]).toEqual({});
   });
 
-  it('should handle employee management', () => {
+  it('должен обрабатывать employee management', () => {
     const eid = 5;
 
     // No employees initially
@@ -136,7 +136,7 @@ describe('Commercial Component', () => {
     expect(Commercial.employees[eid]).toEqual([300, 302, 303]);
   });
 
-  it('should handle customer flow', () => {
+  it('должен обрабатывать customer flow', () => {
     const eid = 6;
 
     // No customers initially
@@ -160,7 +160,7 @@ describe('Commercial Component', () => {
     expect(Commercial.customers[eid]).toEqual([]);
   });
 
-  it('should support complex inventory scenarios', () => {
+  it('должен поддерживать complex inventory scenarios', () => {
     const eid = 7;
 
     // Large supermarket inventory
@@ -191,7 +191,7 @@ describe('Commercial Component', () => {
     expect(Commercial.inventory[eid]).toEqual(factoryInventory);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Commercial.type[eid]).toBeUndefined();
     expect(Commercial.inventory[eid]).toBeUndefined();
@@ -199,7 +199,7 @@ describe('Commercial Component', () => {
     expect(Commercial.customers[eid]).toBeUndefined();
   });
 
-  it('should handle large employee/customer arrays', () => {
+  it('должен обрабатывать large employee/customer arrays', () => {
     const eid = 8;
 
     const largeEmployeeList = Array.from({ length: 50 }, (_, i) => 1000 + i);
@@ -236,7 +236,7 @@ describe('CommercialType enum', () => {
 });
 
 describe('CommercialData type', () => {
-  it('should accept valid CommercialData object', () => {
+  it('должен принимать допустимый CommercialData object', () => {
     const data: CommercialData = {
       type: CommercialType.SHOP,
       inventory: {
@@ -253,7 +253,7 @@ describe('CommercialData type', () => {
     expect(data.customers).toEqual([20, 21]);
   });
 
-  it('should support different commercial configurations', () => {
+  it('должен поддерживать различные commercial configurations', () => {
     const testData: CommercialData[] = [
       {
         type: CommercialType.SHOP,
@@ -289,7 +289,7 @@ describe('CommercialData type', () => {
     });
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       type: CommercialType.OFFICE,

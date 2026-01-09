@@ -23,7 +23,7 @@ describe('BuildingFactory', () => {
   });
 
   describe('createHouse', () => {
-    it('should create a house with correct components and data', () => {
+    it('должен создавать a house with correct components and data', () => {
       const residentialData = {
         capacity: 20,
         occupants: [1, 2, 3],
@@ -51,7 +51,7 @@ describe('BuildingFactory', () => {
   });
 
   describe('createCommercial', () => {
-    it('should create a shop with correct components and data', () => {
+    it('должен создавать a shop with correct components and data', () => {
       const commercialData = {
         type: CommercialType.SHOP,
         inventory: {
@@ -83,7 +83,7 @@ describe('BuildingFactory', () => {
       expect(Render.color[eid]).toBe('#32CD32'); // Зеленый для магазинов
     });
 
-    it('should create an office with correct components and data', () => {
+    it('должен создавать an office with correct components and data', () => {
       const commercialData = {
         type: CommercialType.OFFICE,
         inventory: {
@@ -105,7 +105,7 @@ describe('BuildingFactory', () => {
   });
 
   describe('createWorkplace', () => {
-    it('should create a workplace with correct components and data', () => {
+    it('должен создавать a workplace with correct components and data', () => {
       const workplaceData = {
         jobType: 'Программист',
         salary: 5000,
@@ -134,7 +134,7 @@ describe('BuildingFactory', () => {
 
   describe('convenience methods', () => {
     describe('createSimpleHouse', () => {
-      it('should create a simple house with default values', () => {
+      it('должен создавать a simple house with default values', () => {
         const positionData = { x: 100, y: 200 };
 
         const eid = factory.createSimpleHouse(positionData);
@@ -149,7 +149,7 @@ describe('BuildingFactory', () => {
     });
 
     describe('createSimpleShop', () => {
-      it('should create a simple shop with default inventory', () => {
+      it('должен создавать a simple shop with default inventory', () => {
         const positionData = { x: 150, y: 250 };
 
         const eid = factory.createSimpleShop(positionData);
@@ -169,7 +169,7 @@ describe('BuildingFactory', () => {
     });
 
     describe('createSimpleOffice', () => {
-      it('should create a simple office with default values', () => {
+      it('должен создавать a simple office with default values', () => {
         const positionData = { x: 300, y: 400 };
 
         const eid = factory.createSimpleOffice(positionData, 600);
@@ -194,7 +194,7 @@ describe('BuildingFactory', () => {
     });
 
     describe('createShopCashier', () => {
-      it('should create a cashier position with correct requirements', () => {
+      it('должен создавать a cashier position with correct requirements', () => {
         const positionData = { x: 400, y: 500 };
 
         const eid = factory.createShopCashier(positionData, 350);
@@ -214,7 +214,7 @@ describe('BuildingFactory', () => {
     });
 
     describe('createShopManager', () => {
-      it('should create a manager position with correct requirements', () => {
+      it('должен создавать a manager position with correct requirements', () => {
         const positionData = { x: 500, y: 600 };
 
         const eid = factory.createShopManager(positionData, 550);

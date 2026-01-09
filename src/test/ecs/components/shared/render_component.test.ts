@@ -7,7 +7,7 @@ import {
 } from '../../../../core/ecs/components/shared/render_component';
 
 describe('Render Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Render.visible)).toBe(true);
     expect(Array.isArray(Render.layer)).toBe(true);
     expect(Array.isArray(Render.spriteType)).toBe(true);
@@ -19,7 +19,7 @@ describe('Render Component', () => {
     expect(Render.color.length).toBe(0);
   });
 
-  it('should be able to store and retrieve render data', () => {
+  it('должен уметь хранить и извлекать render data', () => {
     const eid = 0;
     const visible = 1;
     const layer = RenderLayer.BUILDINGS;
@@ -37,7 +37,7 @@ describe('Render Component', () => {
     expect(Render.color[eid]).toBe(color);
   });
 
-  it('should handle multiple entities', () => {
+  it('должен обрабатывать multiple entities', () => {
     const eid1 = 1;
     const eid2 = 2;
 
@@ -64,7 +64,7 @@ describe('Render Component', () => {
     expect(Render.color[eid2]).toBe('#0000FF');
   });
 
-  it('should support custom sprite types', () => {
+  it('должен поддерживать custom sprite types', () => {
     const eid = 3;
     const customSprite = 'custom_sprite_123';
 
@@ -72,7 +72,7 @@ describe('Render Component', () => {
     expect(Render.spriteType[eid]).toBe(customSprite);
   });
 
-  it('should support different color formats', () => {
+  it('должен поддерживать различные color formats', () => {
     const eid = 4;
     const colors = ['#FF0000', 'rgb(255, 0, 0)', 'red', '#123456'];
 
@@ -83,7 +83,7 @@ describe('Render Component', () => {
     });
   });
 
-  it('should handle visibility states correctly', () => {
+  it('должен обрабатывать visibility states correctly', () => {
     const eid = 5;
 
     // Visible
@@ -95,7 +95,7 @@ describe('Render Component', () => {
     expect(Render.visible[eid]).toBe(0);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Render.visible[eid]).toBeUndefined();
     expect(Render.layer[eid]).toBeUndefined();
@@ -138,7 +138,7 @@ describe('SpriteType enum', () => {
 });
 
 describe('RenderData type', () => {
-  it('should accept valid RenderData object', () => {
+  it('должен принимать допустимый RenderData object', () => {
     const data: RenderData = {
       visible: 1,
       layer: RenderLayer.BUILDINGS,
@@ -164,7 +164,7 @@ describe('RenderData type', () => {
     expect(data.color).toBe('orange');
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       visible: 1,

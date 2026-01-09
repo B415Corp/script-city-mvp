@@ -10,7 +10,7 @@ import {
 } from '../../../../core/ecs/components/shared/schedule_component';
 
 describe('Schedule Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Schedule.phaseSchedule)).toBe(true);
     expect(Array.isArray(Schedule.currentActivity)).toBe(true);
     expect(Array.isArray(Schedule.currentPhase)).toBe(true);
@@ -28,7 +28,7 @@ describe('Schedule Component', () => {
     expect(Schedule.entityType.length).toBe(0);
   });
 
-  it('should be able to store and retrieve schedule data', () => {
+  it('должен уметь хранить и извлекать schedule data', () => {
     const eid = 0;
     const testData = {
       phaseSchedule: DEFAULT_SCHEDULES.citizen,
@@ -55,7 +55,7 @@ describe('Schedule Component', () => {
     expect(Schedule.nextActivityTime[eid]).toBe(60);
   });
 
-  it('should handle different entity schedules', () => {
+  it('должен обрабатывать различные entity schedules', () => {
     const eid1 = 1;
     const eid2 = 2;
 
@@ -90,7 +90,7 @@ describe('Schedule Component', () => {
     expect(Schedule.nextActivityTime[eid2]).toBe(1080);
   });
 
-  it('should handle phase transitions', () => {
+  it('должен обрабатывать phase transitions', () => {
     const eid = 3;
 
     // Start with dawn
@@ -119,7 +119,7 @@ describe('Schedule Component', () => {
     expect(Schedule.activityExecuted[eid]).toBe(true);
   });
 
-  it('should support schedule modifiers', () => {
+  it('должен поддерживать schedule modifiers', () => {
     const eid = 4;
 
     const modifiers: ScheduleModifier[] = [
@@ -146,7 +146,7 @@ describe('Schedule Component', () => {
     expect(Schedule.modifiers[eid][1].type).toBe('speed_up');
   });
 
-  it('should handle activity execution tracking', () => {
+  it('должен обрабатывать activity execution tracking', () => {
     const eid = 5;
 
     // Start of day phase
@@ -163,7 +163,7 @@ describe('Schedule Component', () => {
     expect(Schedule.activityExecuted[eid]).toBe(true);
   });
 
-  it('should support custom schedules', () => {
+  it('должен поддерживать custom schedules', () => {
     const eid = 6;
 
     const customSchedule: Record<DayPhase, Activity> = {
@@ -183,7 +183,7 @@ describe('Schedule Component', () => {
     expect(Schedule.currentActivity[eid]).toBe('exercise');
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Schedule.phaseSchedule[eid]).toBeUndefined();
     expect(Schedule.currentActivity[eid]).toBeUndefined();
@@ -194,7 +194,7 @@ describe('Schedule Component', () => {
     expect(Schedule.entityType[eid]).toBeUndefined();
   });
 
-  it('should handle empty modifiers array', () => {
+  it('должен обрабатывать empty modifiers array', () => {
     const eid = 7;
 
     Schedule.modifiers[eid] = [];
@@ -206,7 +206,7 @@ describe('Schedule Component', () => {
 });
 
 describe('DayPhase type', () => {
-  it('should accept valid day phases', () => {
+  it('должен принимать допустимый day phases', () => {
     const phases: DayPhase[] = ['dawn', 'morning', 'day', 'evening', 'night'];
 
     phases.forEach(phase => {
@@ -216,7 +216,7 @@ describe('DayPhase type', () => {
     });
   });
 
-  it('should work with phase schedule access', () => {
+  it('должен работать с доступом к расписанию фаз', () => {
     const schedule = DEFAULT_SCHEDULES.citizen;
     const dawnActivity = schedule.dawn;
     const morningActivity = schedule.morning;
@@ -227,7 +227,7 @@ describe('DayPhase type', () => {
 });
 
 describe('Activity interface', () => {
-  it('should support activities with all properties', () => {
+  it('должен поддерживать activities with all properties', () => {
     const activity: Activity = {
       activity: 'work',
       duration: 480,
@@ -241,7 +241,7 @@ describe('Activity interface', () => {
     expect(activity.params).toEqual({ location: 'office', intensity: 'high' });
   });
 
-  it('should support activities with minimal properties', () => {
+  it('должен поддерживать activities with minimal properties', () => {
     const activity: Activity = {
       activity: 'rest',
       duration: 60,
@@ -253,7 +253,7 @@ describe('Activity interface', () => {
     expect(activity.params).toBeUndefined();
   });
 
-  it('should be used in default schedules', () => {
+  it('должен использоваться в расписаниях по умолчанию', () => {
     const citizenSchedule = DEFAULT_SCHEDULES.citizen;
 
     expect(citizenSchedule.dawn.activity).toBe('sleep');
@@ -267,7 +267,7 @@ describe('Activity interface', () => {
 });
 
 describe('ScheduleModifier interface', () => {
-  it('should support all modifier types', () => {
+  it('должен поддерживать all modifier types', () => {
     const modifiers: ScheduleModifier[] = [
       { type: 'delay', condition: 'tired', value: 30, priority: 1 },
       { type: 'speed_up', condition: 'urgent', value: 2.0, priority: 2 },
@@ -286,7 +286,7 @@ describe('ScheduleModifier interface', () => {
     });
   });
 
-  it('should support modifiers without priority', () => {
+  it('должен поддерживать modifiers without priority', () => {
     const modifier: ScheduleModifier = {
       type: 'delay',
       condition: 'weather_bad',
@@ -301,12 +301,12 @@ describe('ScheduleModifier interface', () => {
 });
 
 describe('DEFAULT_SCHEDULES', () => {
-  it('should contain citizen schedule', () => {
+  it('должен содержать расписание жителя', () => {
     expect(DEFAULT_SCHEDULES.citizen).toBeDefined();
     expect(typeof DEFAULT_SCHEDULES.citizen).toBe('object');
   });
 
-  it('should have all day phases for citizen', () => {
+  it('должен иметь все фазы дня для жителя', () => {
     const citizenSchedule = DEFAULT_SCHEDULES.citizen;
     const phases: DayPhase[] = ['dawn', 'morning', 'day', 'evening', 'night'];
 
@@ -318,7 +318,7 @@ describe('DEFAULT_SCHEDULES', () => {
     });
   });
 
-  it('should have correct citizen schedule activities', () => {
+  it('должен иметь правильные активности расписания жителя', () => {
     const schedule = DEFAULT_SCHEDULES.citizen;
 
     expect(schedule.dawn.activity).toBe('sleep');
@@ -328,7 +328,7 @@ describe('DEFAULT_SCHEDULES', () => {
     expect(schedule.night.activity).toBe('sleep');
   });
 
-  it('should have reasonable durations', () => {
+  it('должен иметь разумные длительности', () => {
     const schedule = DEFAULT_SCHEDULES.citizen;
 
     // Dawn: 6 hours (360 minutes)
@@ -343,7 +343,7 @@ describe('DEFAULT_SCHEDULES', () => {
     expect(schedule.night.duration).toBe(480);
   });
 
-  it('should have system assignments', () => {
+  it('должен иметь назначения систем', () => {
     const schedule = DEFAULT_SCHEDULES.citizen;
 
     expect(schedule.dawn.system).toBe('SleepSystem');
@@ -355,7 +355,7 @@ describe('DEFAULT_SCHEDULES', () => {
 });
 
 describe('ScheduleData type', () => {
-  it('should accept valid ScheduleData object', () => {
+  it('должен принимать допустимый ScheduleData object', () => {
     const data: ScheduleData = {
       phaseSchedule: DEFAULT_SCHEDULES.citizen,
       modifiers: [],
@@ -371,7 +371,7 @@ describe('ScheduleData type', () => {
     expect(data.activityExecuted).toBe(false);
   });
 
-  it('should support optional properties', () => {
+  it('должен поддерживать optional properties', () => {
     const data: ScheduleData = {
       phaseSchedule: DEFAULT_SCHEDULES.citizen,
       entityType: 'citizen',
@@ -384,7 +384,7 @@ describe('ScheduleData type', () => {
     expect(data.activityExecuted).toBeUndefined();
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       phaseSchedule: DEFAULT_SCHEDULES.citizen,

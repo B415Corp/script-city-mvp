@@ -141,7 +141,7 @@ export const PriceFluctuationSystem = createPriceFluctuationSystem();
 
 /**
  * Система обновления минимальных расходов
- * Пересчитывает минимальные расходы жителей на основе текущих цен
+ * Пересчитывает минимальные расходы жителей на основе текущих цен за неделю
  */
 export const MinimumExpensesUpdateSystem: System = {
   name: 'MinimumExpensesUpdate',
@@ -152,15 +152,19 @@ export const MinimumExpensesUpdateSystem: System = {
 
     if (Prices.rentPrice[pricesEntity] === undefined) return;
 
-    const currentRentPrice = Prices.rentPrice[pricesEntity];
-    const currentFoodPrice = Prices.foodPrice[pricesEntity];
+    const monthlyRentPrice = Prices.rentPrice[pricesEntity];
+    const monthlyFoodPrice = Prices.foodPrice[pricesEntity];
 
-    // Обновляем минимальные расходы для всех жителей
+    // Рассчитываем недельные расходы (30 дней / 7 дней ≈ 4.28, используем 4.3 для точности)
+    const weeklyRentPrice = monthlyRentPrice / 4.3;
+    const weeklyFoodPrice = monthlyFoodPrice / 4.3;
+
+    // Обновляем минимальные расходы для всех жителей (за неделю)
     for (const citizenId of entities) {
       const housingType = Citizen.housingType[citizenId] || 0;
-      const rentCost = housingType === 1 ? currentRentPrice : 0; // Арендное жилье
+      const weeklyRentCost = housingType === 1 ? weeklyRentPrice : 0; // Арендное жилье
 
-      Citizen.minimumExpenses[citizenId] = rentCost + currentFoodPrice;
+      Citizen.minimumExpenses[citizenId] = weeklyRentCost + weeklyFoodPrice;
     }
   },
 };
@@ -196,18 +200,18 @@ export const NeedsSystem: System = {
 };
 
 /**
- * Создает систему ежемесячных расходов с поддержкой dependency injection
+ * Создает систему еженедельных расходов с поддержкой dependency injection
  */
-export function createMonthlyExpensesSystem(deps?: import('../services/interfaces').ISystemDependencies) {
-  console.log('createMonthlyExpensesSystem called with deps:', !!deps);
+export function createWeeklyExpensesSystem(deps?: import('../services/interfaces').ISystemDependencies) {
+  console.log('createWeeklyExpensesSystem called with deps:', !!deps);
 
   return {
-    name: 'MonthlyExpenses',
+    name: 'WeeklyExpenses',
     components: ['Citizen'],
     dependencies: deps,
 
     update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
-      console.log('=== MonthlyExpensesSystem: update START ===');
+      console.log('=== WeeklyExpensesSystem: update START ===');
       console.log('deps in closure:', deps);
 
       // deps доступны через замыкание
@@ -216,14 +220,14 @@ export function createMonthlyExpensesSystem(deps?: import('../services/interface
       // Используем gameTime из extraData если deps не переданы, иначе используем timeProvider
       const gameTime = systemDeps?.timeProvider ? systemDeps.timeProvider.getCurrentTime() : (extraData as number | undefined);
 
-      console.log('MonthlyExpensesSystem: gameTime =', gameTime, 'systemDeps exists:', !!systemDeps);
+      console.log('WeeklyExpensesSystem: gameTime =', gameTime, 'systemDeps exists:', !!systemDeps);
 
       if (!gameTime) {
-        console.log('MonthlyExpensesSystem: No gameTime, returning');
+        console.log('WeeklyExpensesSystem: No gameTime, returning');
         return;
       }
 
-      console.log('MonthlyExpensesSystem: Starting update with gameTime:', gameTime);
+      console.log('WeeklyExpensesSystem: Starting update with gameTime:', gameTime);
 
     // Рассчитываем текущий день симуляции
     // currentDay = Math.floor(gameTime / (24 * 60)) + 1 (соответствует TimeController.getDay())
@@ -233,19 +237,19 @@ export function createMonthlyExpensesSystem(deps?: import('../services/interface
       // Получаем дату последнего списания для этого жителя
       const lastExpenseDay = Citizen.lastExpenseDay[citizenId] || 0;
 
-      // Списываем расходы раз в месяц (каждые 30 дней)
-      if (currentDay - lastExpenseDay >= 30) {
+      // Списываем расходы раз в неделю (каждые 7 дней)
+      if (currentDay - lastExpenseDay >= 7) {
         const minExpenses = Citizen.minimumExpenses[citizenId] || 0;
         const currentMoney = Citizen.money[citizenId] || 0;
 
         if (currentMoney >= minExpenses) {
           // Достаточно денег - списываем полную сумму
           Citizen.money[citizenId] = currentMoney - minExpenses;
-          console.log(`Citizen ${citizenId} paid monthly expenses: $${minExpenses}`);
+          console.log(`Citizen ${citizenId} paid weekly expenses: $${minExpenses.toFixed(2)}`);
         } else {
           // Недостаточно денег - списываем все что есть, житель в долгах
           Citizen.money[citizenId] = 0;
-          console.log(`Citizen ${citizenId} couldn't afford monthly expenses: $${minExpenses}, only had $${currentMoney}`);
+          console.log(`Citizen ${citizenId} couldn't afford weekly expenses: $${minExpenses.toFixed(2)}, only had $${currentMoney}`);
 
           // Снижаем счастье из-за долгов
           Citizen.happiness[citizenId] = Math.max(0, Citizen.happiness[citizenId] - 15);
@@ -258,15 +262,15 @@ export function createMonthlyExpensesSystem(deps?: import('../services/interface
   },
   };
 
-  console.log('createMonthlyExpensesSystem returning system with update:', typeof system.update);
+  console.log('createWeeklyExpensesSystem returning system with update:', typeof system.update);
   return system;
 }
 
 /**
  * Устаревшая версия системы для обратной совместимости
- * @deprecated Используйте createMonthlyExpensesSystem() с dependency injection
+ * @deprecated Используйте createWeeklyExpensesSystem() с dependency injection
  */
-export const MonthlyExpensesSystem = createMonthlyExpensesSystem();
+export const WeeklyExpensesSystem = createWeeklyExpensesSystem();
 
 /**
  * Система суточных рутин

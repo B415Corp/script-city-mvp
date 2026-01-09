@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Job, type JobData } from '../../../../core/ecs/components/economy/job_component';
 
-describe('Job Component', () => {
-  it('should have all required arrays', () => {
+describe('Компонент работы (Job Component)', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Job.title)).toBe(true);
     expect(Array.isArray(Job.salary)).toBe(true);
     expect(Array.isArray(Job.requirements)).toBe(true);
@@ -14,7 +14,7 @@ describe('Job Component', () => {
     expect(Job.available.length).toBe(0);
   });
 
-  it('should be able to store and retrieve job data', () => {
+  it('должен уметь хранить и извлекать данные о работе', () => {
     const eid = 0;
     const testData = {
       title: 'Программист',
@@ -34,7 +34,7 @@ describe('Job Component', () => {
     expect(Job.available[eid]).toBe(testData.available);
   });
 
-  it('should handle multiple job positions', () => {
+  it('должен обрабатывать несколько должностей', () => {
     const eid1 = 1;
     const eid2 = 2;
     const eid3 = 3;
@@ -76,7 +76,7 @@ describe('Job Component', () => {
     expect(Job.available[eid3]).toBe(false);
   });
 
-  it('should support different salary ranges', () => {
+  it('должен поддерживать различные диапазоны зарплат', () => {
     const testCases = [
       { eid: 4, title: 'Дворник', salary: 200, requirements: ['physical_fitness'] },
       { eid: 5, title: 'Учитель', salary: 800, requirements: ['teaching_degree'] },
@@ -97,7 +97,7 @@ describe('Job Component', () => {
     });
   });
 
-  it('should handle job availability changes', () => {
+  it('должен обрабатывать изменения доступности работы', () => {
     const eid = 8;
 
     // Job is available
@@ -117,7 +117,7 @@ describe('Job Component', () => {
     expect(Job.available[eid]).toBe(true);
   });
 
-  it('should support different requirement combinations', () => {
+  it('должен поддерживать различные комбинации требований', () => {
     const eid = 9;
 
     // Simple requirements
@@ -141,7 +141,7 @@ describe('Job Component', () => {
     ]);
   });
 
-  it('should handle job title updates', () => {
+  it('должен обрабатывать обновления названий должностей', () => {
     const eid = 10;
 
     Job.title[eid] = 'Младший разработчик';
@@ -154,7 +154,7 @@ describe('Job Component', () => {
     expect(Job.title[eid]).toBe('Ведущий разработчик');
   });
 
-  it('should handle salary changes', () => {
+  it('должен обрабатывать изменения зарплаты', () => {
     const eid = 11;
 
     Job.salary[eid] = 1000;
@@ -167,7 +167,7 @@ describe('Job Component', () => {
     expect(Job.salary[eid]).toBe(800);
   });
 
-  it('should support empty requirements array', () => {
+  it('должен поддерживать пустой массив требований', () => {
     const eid = 12;
 
     Job.title[eid] = 'Разнорабочий';
@@ -179,7 +179,7 @@ describe('Job Component', () => {
     expect(Job.available[eid]).toBe(true);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Job.title[eid]).toBeUndefined();
     expect(Job.salary[eid]).toBeUndefined();
@@ -187,7 +187,7 @@ describe('Job Component', () => {
     expect(Job.available[eid]).toBeUndefined();
   });
 
-  it('should handle unicode job titles', () => {
+  it('должен обрабатывать названия должностей в unicode', () => {
     const eid = 13;
 
     const unicodeTitles = [
@@ -209,8 +209,8 @@ describe('Job Component', () => {
   });
 });
 
-describe('JobData type', () => {
-  it('should accept valid JobData object', () => {
+describe('Тип данных работы (JobData type)', () => {
+  it('должен принимать допустимый объект JobData', () => {
     const data: JobData = {
       title: 'Программист',
       salary: 5000,
@@ -224,7 +224,7 @@ describe('JobData type', () => {
     expect(data.available).toBe(true);
   });
 
-  it('should support different job configurations', () => {
+  it('должен поддерживать различные конфигурации работы', () => {
     const testData: JobData[] = [
       {
         title: 'Уборщик',
@@ -260,7 +260,7 @@ describe('JobData type', () => {
     });
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       title: 'Тестировщик',

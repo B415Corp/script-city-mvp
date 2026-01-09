@@ -13,35 +13,35 @@ describe('TimeController', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with default time (8:00)', () => {
+    it('должен инициализировать with default time (8:00)', () => {
       expect(controller.getGameTime()).toBe(8 * 60); // 8:00 = 480 minutes
       expect(controller.getGameTimeOfDay()).toBe(8 * 60);
     });
 
-    it('should initialize with custom time', () => {
+    it('должен инициализировать with custom time', () => {
       const customController = new TimeController(eventBus, 10 * 60); // 10:00
       expect(customController.getGameTime()).toBe(10 * 60);
     });
   });
 
   describe('time management', () => {
-    it('should set and get game time', () => {
+    it('должен устанавливать и получать игровое время', () => {
       controller.setGameTime(720); // 12:00
       expect(controller.getGameTime()).toBe(720);
     });
 
-    it('should set time using setTime method', () => {
+    it('должен устанавливать время используя метод setTime', () => {
       controller.setTime(900); // 15:00
       expect(controller.getGameTime()).toBe(900);
     });
 
-    it('should increment time on tick', () => {
+    it('должен увеличивать время при тике', () => {
       const initialTime = controller.getGameTime();
       controller.tick();
       expect(controller.getGameTime()).toBe(initialTime + 1);
     });
 
-    it('should calculate time of day correctly', () => {
+    it('должен правильно рассчитывать время дня', () => {
       controller.setGameTime(480); // 8:00 Day 1
       expect(controller.getGameTimeOfDay()).toBe(480);
 
@@ -51,7 +51,7 @@ describe('TimeController', () => {
   });
 
   describe('date calculation', () => {
-    it('should calculate date for first day', () => {
+    it('должен рассчитывать дату для первого дня', () => {
       controller.setGameTime(480); // 8:00 Day 1
       const timeData = controller.getTimeUpdateData();
 
@@ -61,7 +61,7 @@ describe('TimeController', () => {
       expect(timeData.dayOfMonth).toBe(1);
     });
 
-    it('should calculate date progression', () => {
+    it('должен рассчитывать прогрессию даты', () => {
       controller.setGameTime(1439); // 23:59 day 1
       let timeData = controller.getTimeUpdateData();
       expect(timeData.day).toBe(1);
@@ -72,7 +72,7 @@ describe('TimeController', () => {
       expect(timeData.dayOfMonth).toBe(2);
     });
 
-    it('should handle month transitions', () => {
+    it('должен обрабатывать month transitions', () => {
       // January has 31 days, so day 32 should be February 1
       controller.setGameTime(30 * 1440); // 30 days = still January
       const timeData = controller.getTimeUpdateData();
@@ -88,7 +88,7 @@ describe('TimeController', () => {
       expect(febData.day).toBe(32);
     });
 
-    it('should handle leap years', () => {
+    it('должен обрабатывать leap years', () => {
       // 2000 is a leap year (divisible by 400)
       controller.setGameTime(366 * 1440); // 366 days (including Feb 29)
       const timeData = controller.getTimeUpdateData();
@@ -98,7 +98,7 @@ describe('TimeController', () => {
       expect(timeData.dayOfMonth).toBe(1);
     });
 
-    it('should handle non-leap years', () => {
+    it('должен обрабатывать non-leap years', () => {
       // 2001 is not a leap year
       // 366 days in 2000 (leap year) + 31 days in Jan 2001 + 28 days in Feb 2001 = 425 days total
       controller.setGameTime(425 * 1440); // March 1, 2001
@@ -111,7 +111,7 @@ describe('TimeController', () => {
   });
 
   describe('time formatting', () => {
-    it('should format time of day correctly', () => {
+    it('должен правильно форматировать время дня', () => {
       controller.setGameTime(0); // 00:00
       expect(controller.getTimeUpdateData().timeOfDay).toBe('00:00');
 
@@ -125,7 +125,7 @@ describe('TimeController', () => {
       expect(controller.getTimeUpdateData().timeOfDay).toBe('23:59');
     });
 
-    it('should format date correctly', () => {
+    it('должен правильно форматировать дату', () => {
       controller.setGameTime(0);
       const timeData = controller.getTimeUpdateData();
       expect(timeData.date).toBe('01.01.2000');
@@ -135,7 +135,7 @@ describe('TimeController', () => {
       expect(nextDayData.date).toBe('02.01.2000');
     });
 
-    it('should pad single digit hours and minutes', () => {
+    it('должен дополнять однозначные часы и минуты', () => {
       controller.setGameTime(5 * 60 + 5); // 05:05
       const timeData = controller.getTimeUpdateData();
       expect(timeData.timeOfDay).toBe('05:05');
@@ -143,7 +143,7 @@ describe('TimeController', () => {
   });
 
   describe('emitTimeUpdate', () => {
-    it('should emit GameTimeUpdated event with correct data', () => {
+    it('должен отправлять событие GameTimeUpdated с правильными данными', () => {
       const mockHandler = vi.fn();
       eventBus.on(Events.GameTimeUpdated, mockHandler);
 
@@ -162,7 +162,7 @@ describe('TimeController', () => {
       expect(emittedData.minutesOfDay).toBe(480);
     });
 
-    it('should emit event with updated time after tick', () => {
+    it('должен отправлять событие с обновленным временем после тика', () => {
       const mockHandler = vi.fn();
       eventBus.on(Events.GameTimeUpdated, mockHandler);
 
@@ -177,7 +177,7 @@ describe('TimeController', () => {
   });
 
   describe('getTimeUpdateData', () => {
-    it('should return complete time data structure', () => {
+    it('должен возвращать complete time data structure', () => {
       controller.setGameTime(480); // 8:00 Day 1
       const data = controller.getTimeUpdateData();
 
@@ -195,7 +195,7 @@ describe('TimeController', () => {
       });
     });
 
-    it('should handle different times correctly', () => {
+    it('должен обрабатывать различные times correctly', () => {
       controller.setGameTime(23 * 60 + 45); // 23:45 Day 1
       const data = controller.getTimeUpdateData();
 
@@ -206,7 +206,7 @@ describe('TimeController', () => {
   });
 
   describe('getStats', () => {
-    it('should return basic time statistics', () => {
+    it('должен возвращать basic time statistics', () => {
       controller.setGameTime(480); // 8:00
       const stats = controller.getStats();
 
@@ -215,7 +215,7 @@ describe('TimeController', () => {
       expect(stats.day).toBe(1);
     });
 
-    it('should handle multi-day time', () => {
+    it('должен обрабатывать multi-day time', () => {
       controller.setGameTime(1440 + 720); // 12:00 Day 2
       const stats = controller.getStats();
 
@@ -226,7 +226,7 @@ describe('TimeController', () => {
   });
 
   describe('getDay', () => {
-    it('should return correct day number', () => {
+    it('должен возвращать correct day number', () => {
       controller.setGameTime(0); // Day 1
       expect(controller.getDay()).toBe(1);
 
@@ -239,7 +239,7 @@ describe('TimeController', () => {
   });
 
   describe('getConstants', () => {
-    it('should return time constants', () => {
+    it('должен возвращать time constants', () => {
       const constants = controller.getConstants();
 
       expect(constants.minutesPerDay).toBe(1440);
@@ -248,7 +248,7 @@ describe('TimeController', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle year transitions', () => {
+    it('должен обрабатывать year transitions', () => {
       controller.setGameTime(365 * 1440); // 365 days = end of year
       const timeData = controller.getTimeUpdateData();
 
@@ -264,7 +264,7 @@ describe('TimeController', () => {
       expect(nextYearData.dayOfMonth).toBe(1);
     });
 
-    it('should handle midnight correctly', () => {
+    it('должен обрабатывать midnight correctly', () => {
       controller.setGameTime(1439); // 23:59 Day 1
       let timeData = controller.getTimeUpdateData();
       expect(timeData.timeOfDay).toBe('23:59');

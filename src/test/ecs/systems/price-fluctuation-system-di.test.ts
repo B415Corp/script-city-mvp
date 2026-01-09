@@ -60,7 +60,7 @@ describe('PriceFluctuationSystem with DI', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize prices on first call', () => {
+    it('должен инициализировать prices on first call', () => {
       // Устанавливаем время в timeProvider
       timeProvider.setTime(8 * 60); // 8:00 AM in minutes
 
@@ -115,7 +115,7 @@ describe('PriceFluctuationSystem with DI', () => {
       expect(Prices.foodPrice[PRICES_ENTITY]).toBe(250);
     });
 
-    it('should update prices after 7 days', () => {
+    it('должен обновлять prices after 7 days', () => {
       // Проходит 8 дней (чтобы гарантированно пройти интервал после инициализации)
       timeProvider.setTime(8 * 24 * 60);
       priceSystem.update(world, [personEid], 1, timeProvider.getCurrentTime());

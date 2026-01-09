@@ -13,7 +13,7 @@ describe('JobFactory', () => {
   });
 
   describe('createJob', () => {
-    it('should create a job with correct components and data', () => {
+    it('должен создавать a job with correct components and data', () => {
       const jobData = {
         title: 'Программист',
         salary: 5000,
@@ -29,7 +29,7 @@ describe('JobFactory', () => {
       expect(Job.available[eid]).toBe(true);
     });
 
-    it('should create job with minimal data', () => {
+    it('должен создавать job with minimal data', () => {
       const jobData = {
         title: 'Уборщик',
         salary: 200,
@@ -47,7 +47,7 @@ describe('JobFactory', () => {
   });
 
   describe('createGoods', () => {
-    it('should create goods with correct components and data', () => {
+    it('должен создавать goods with correct components and data', () => {
       const goodsData = {
         type: GoodsType.FOOD,
         quantity: 100,
@@ -63,7 +63,7 @@ describe('JobFactory', () => {
       expect(Goods.producer[eid]).toBe(123);
     });
 
-    it('should create goods with different types', () => {
+    it('должен создавать goods with different types', () => {
       const foodData = {
         type: GoodsType.FOOD,
         quantity: 200,
@@ -97,7 +97,7 @@ describe('JobFactory', () => {
 
   describe('convenience methods', () => {
     describe('createCashierJob', () => {
-      it('should create a cashier job with default values', () => {
+      it('должен создавать a cashier job with default values', () => {
         const eid = factory.createCashierJob();
 
         expect(Job.title[eid]).toBe('Кассир');
@@ -106,7 +106,7 @@ describe('JobFactory', () => {
         expect(Job.available[eid]).toBe(true);
       });
 
-      it('should create a cashier job with custom salary', () => {
+      it('должен создавать a cashier job with custom salary', () => {
         const eid = factory.createCashierJob(400);
 
         expect(Job.title[eid]).toBe('Кассир');
@@ -117,7 +117,7 @@ describe('JobFactory', () => {
     });
 
     describe('createOfficeJob', () => {
-      it('should create an office job with default values', () => {
+      it('должен создавать an office job with default values', () => {
         const eid = factory.createOfficeJob();
 
         expect(Job.title[eid]).toBe('Офисный работник');
@@ -126,7 +126,7 @@ describe('JobFactory', () => {
         expect(Job.available[eid]).toBe(true);
       });
 
-      it('should create an office job with custom salary', () => {
+      it('должен создавать an office job with custom salary', () => {
         const eid = factory.createOfficeJob(700);
 
         expect(Job.title[eid]).toBe('Офисный работник');
@@ -137,7 +137,7 @@ describe('JobFactory', () => {
     });
 
     describe('createFoodGoods', () => {
-      it('should create food goods with default values', () => {
+      it('должен создавать food goods with default values', () => {
         const eid = factory.createFoodGoods();
 
         expect(Goods.type[eid]).toBe(GoodsType.FOOD);
@@ -146,7 +146,7 @@ describe('JobFactory', () => {
         expect(Goods.producer[eid]).toBe(0);
       });
 
-      it('should create food goods with custom values', () => {
+      it('должен создавать food goods with custom values', () => {
         const eid = factory.createFoodGoods(200, 15);
 
         expect(Goods.type[eid]).toBe(GoodsType.FOOD);
@@ -157,7 +157,7 @@ describe('JobFactory', () => {
     });
 
     describe('createClothesGoods', () => {
-      it('should create clothes goods with default values', () => {
+      it('должен создавать clothes goods with default values', () => {
         const eid = factory.createClothesGoods();
 
         expect(Goods.type[eid]).toBe(GoodsType.CLOTHES);
@@ -166,7 +166,7 @@ describe('JobFactory', () => {
         expect(Goods.producer[eid]).toBe(0);
       });
 
-      it('should create clothes goods with custom values', () => {
+      it('должен создавать clothes goods with custom values', () => {
         const eid = factory.createClothesGoods(75, 75);
 
         expect(Goods.type[eid]).toBe(GoodsType.CLOTHES);
@@ -177,7 +177,7 @@ describe('JobFactory', () => {
     });
 
     describe('createElectronicsGoods', () => {
-      it('should create electronics goods with default values', () => {
+      it('должен создавать electronics goods with default values', () => {
         const eid = factory.createElectronicsGoods();
 
         expect(Goods.type[eid]).toBe(GoodsType.ELECTRONICS);
@@ -186,7 +186,7 @@ describe('JobFactory', () => {
         expect(Goods.producer[eid]).toBe(0);
       });
 
-      it('should create electronics goods with custom values', () => {
+      it('должен создавать electronics goods with custom values', () => {
         const eid = factory.createElectronicsGoods(50, 300);
 
         expect(Goods.type[eid]).toBe(GoodsType.ELECTRONICS);

@@ -3,6 +3,7 @@ import { EventBus } from '../../../event_bus/event_bus';
 import { Events } from '../../../event_bus/events';
 import { CallSystemPayload } from '../../../event_bus/types';
 import { System } from '../types';
+import { TimeService } from '../../../tick/time_service';
 import { Schedule, DayPhase, Activity, DEFAULT_SCHEDULES, EntityType } from '../../components';
 
 /**
@@ -15,9 +16,11 @@ export class DayNightCycleSystem implements System {
 
   private currentPhase: DayPhase = 'dawn';
   private eventBus: EventBus;
+  private timeService: TimeService;
 
-  constructor(eventBus: EventBus) {
+  constructor(eventBus: EventBus, timeService: TimeService) {
     this.eventBus = eventBus;
+    this.timeService = timeService;
   }
 
   update(world: World, entities: readonly EntityId[], delta?: number): void {
@@ -44,11 +47,7 @@ export class DayNightCycleSystem implements System {
    * Получить текущее время дня в минутах
    */
   private getCurrentTimeOfDay(): number {
-    // В реальной игре это должно приходить из TimeController
-    // Пока используем заглушку
-    const now = Date.now();
-    const minutesSinceMidnight = (now % (24 * 60 * 60 * 1000)) / (60 * 1000);
-    return Math.floor(minutesSinceMidnight);
+    return this.timeService.getMinutesOfDay();
   }
 
   /**
@@ -288,5 +287,6 @@ export class DayNightCycleSystem implements System {
   }
 }
 
-// Экспортируем экземпляр системы (будет создан в ECSManager)
-export const createDayNightCycleSystem = (eventBus: EventBus) => new DayNightCycleSystem(eventBus);
+// Экспортируем фабричную функцию для создания системы
+export const createDayNightCycleSystem = (eventBus: EventBus, timeService: TimeService) =>
+  new DayNightCycleSystem(eventBus, timeService);

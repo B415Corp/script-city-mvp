@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DailyRoutineSystem } from '../../../core/ecs/systems/clusters/population_system';
 import { BitECSTestHelper } from '../../helpers/bitECS-test-helper';
 import { Person, Citizen, Needs } from '../../../core/ecs/components';
+import { World, EntityId } from 'bitecs';
 
 describe('Система суточных рутин (DailyRoutineSystem)', () => {
   let world: World;

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { PersonFactory } from '../../../core/ecs/entities/person_factory';
 import { BitECSTestHelper } from '../../helpers/bitECS-test-helper';
 import { Person, Citizen, Needs, Position, Gender, EducationLevel, HousingType } from '../../../core/ecs/components';
+import { World, EntityId } from 'bitecs';
 
 describe('PersonFactory', () => {
   let world: World;
@@ -13,7 +14,7 @@ describe('PersonFactory', () => {
   });
 
   describe('create', () => {
-    it('should create a person with correct basic data', () => {
+    it('должен создавать a person with correct basic data', () => {
       const personData = {
         age: 25,
         gender: Gender.MALE,
@@ -97,7 +98,7 @@ describe('PersonFactory', () => {
   });
 
   describe('createRandom', () => {
-    it('should create random person with valid age range', () => {
+    it('должен создавать random person with valid age range', () => {
       const positionData = { x: 0, y: 0 };
       const eid = factory.createRandom(positionData);
 

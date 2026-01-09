@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Needs, NeedLevel, type NeedsData } from '../../../../core/ecs/components/population/needs_component';
 
 describe('Needs Component', () => {
-  it('should have all required arrays', () => {
+  it('должен содержать все необходимые массивы', () => {
     expect(Array.isArray(Needs.food)).toBe(true);
     expect(Array.isArray(Needs.shopping)).toBe(true);
     expect(Array.isArray(Needs.work)).toBe(true);
@@ -14,7 +14,7 @@ describe('Needs Component', () => {
     expect(Needs.sleep.length).toBe(0);
   });
 
-  it('should be able to store and retrieve needs data', () => {
+  it('должен уметь хранить и извлекать needs data', () => {
     const eid = 0;
     const testData = {
       food: 30,
@@ -34,7 +34,7 @@ describe('Needs Component', () => {
     expect(Needs.sleep[eid]).toBe(testData.sleep);
   });
 
-  it('should handle multiple citizens with different needs', () => {
+  it('должен обрабатывать multiple citizens with different needs', () => {
     const eid1 = 1;
     const eid2 = 2;
 
@@ -63,7 +63,7 @@ describe('Needs Component', () => {
     expect(Needs.sleep[eid2]).toBe(95);
   });
 
-  it('should support different need levels', () => {
+  it('должен поддерживать различные need levels', () => {
     const testCases = [
       { eid: 3, food: NeedLevel.SATISFIED, shopping: NeedLevel.LOW, work: NeedLevel.MEDIUM, sleep: NeedLevel.LOW },
       { eid: 4, food: NeedLevel.CRITICAL, shopping: NeedLevel.HIGH, work: NeedLevel.SATISFIED, sleep: NeedLevel.CRITICAL },
@@ -83,7 +83,7 @@ describe('Needs Component', () => {
     });
   });
 
-  it('should support full range of values (0-100)', () => {
+  it('должен поддерживать full range of values (0-100)', () => {
     const eid = 6;
 
     // Test extremes
@@ -109,7 +109,7 @@ describe('Needs Component', () => {
     expect(Needs.sleep[eid]).toBe(80);
   });
 
-  it('should handle need progression over time', () => {
+  it('должен обрабатывать need progression over time', () => {
     const eid = 7;
 
     // Initial state - well satisfied
@@ -141,7 +141,7 @@ describe('Needs Component', () => {
     expect(Needs.sleep[eid]).toBe(98);
   });
 
-  it('should support independent need changes', () => {
+  it('должен поддерживать independent need changes', () => {
     const eid = 8;
 
     // Set initial values
@@ -166,7 +166,7 @@ describe('Needs Component', () => {
     expect(Needs.work[eid]).toBe(40); // Unchanged
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Needs.food[eid]).toBeUndefined();
     expect(Needs.shopping[eid]).toBeUndefined();
@@ -174,7 +174,7 @@ describe('Needs Component', () => {
     expect(Needs.sleep[eid]).toBeUndefined();
   });
 
-  it('should handle decimal values', () => {
+  it('должен обрабатывать decimal values', () => {
     const eid = 9;
 
     Needs.food[eid] = 33.5;
@@ -220,7 +220,7 @@ describe('NeedLevel enum', () => {
     }
   });
 
-  it('should support all need levels', () => {
+  it('должен поддерживать all need levels', () => {
     const testLevels = [
       NeedLevel.SATISFIED,
       NeedLevel.LOW,
@@ -238,7 +238,7 @@ describe('NeedLevel enum', () => {
 });
 
 describe('NeedsData type', () => {
-  it('should accept valid NeedsData object', () => {
+  it('должен принимать допустимый NeedsData object', () => {
     const data: NeedsData = {
       food: 30,
       shopping: 45,
@@ -252,7 +252,7 @@ describe('NeedsData type', () => {
     expect(data.sleep).toBe(20);
   });
 
-  it('should support different need combinations', () => {
+  it('должен поддерживать различные need combinations', () => {
     const testData: NeedsData[] = [
       {
         food: NeedLevel.SATISFIED,
@@ -288,7 +288,7 @@ describe('NeedsData type', () => {
     });
   });
 
-  it('should enforce required properties', () => {
+  it('должен требовать обязательные свойства', () => {
     // TypeScript should prevent this, but we test the concept
     const data = {
       food: 25,

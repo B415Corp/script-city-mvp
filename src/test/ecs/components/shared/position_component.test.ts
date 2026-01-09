@@ -9,7 +9,7 @@ describe('Position Component', () => {
     expect(Position.y.length).toBe(0);
   });
 
-  it('should be able to store and retrieve position values', () => {
+  it('должен уметь хранить и извлекать position values', () => {
     const eid = 0;
     const x = 10.5;
     const y = 20.3;
@@ -21,7 +21,7 @@ describe('Position Component', () => {
     expect(Position.y[eid]).toBe(y);
   });
 
-  it('should handle multiple entities with different positions', () => {
+  it('должен обрабатывать multiple entities with different positions', () => {
     const eid1 = 1;
     const eid2 = 2;
     const pos1 = { x: 100, y: 200 };
@@ -38,7 +38,7 @@ describe('Position Component', () => {
     expect(Position.y[eid2]).toBe(pos2.y);
   });
 
-  it('should handle floating point coordinates', () => {
+  it('должен обрабатывать floating point coordinates', () => {
     const eid = 3;
     const x = Math.PI;
     const y = Math.E;
@@ -50,13 +50,13 @@ describe('Position Component', () => {
     expect(Position.y[eid]).toBeCloseTo(y);
   });
 
-  it('should return undefined for uninitialized entities', () => {
+  it('должен возвращать undefined для неинициализированных сущностей', () => {
     const eid = 999;
     expect(Position.x[eid]).toBeUndefined();
     expect(Position.y[eid]).toBeUndefined();
   });
 
-  it('should support negative coordinates', () => {
+  it('должен поддерживать negative coordinates', () => {
     const eid = 4;
     const x = -100;
     const y = -200;
@@ -68,7 +68,7 @@ describe('Position Component', () => {
     expect(Position.y[eid]).toBe(y);
   });
 
-  it('should support zero coordinates', () => {
+  it('должен поддерживать zero coordinates', () => {
     const eid = 5;
     const x = 0;
     const y = 0;
@@ -82,7 +82,7 @@ describe('Position Component', () => {
 });
 
 describe('PositionData type', () => {
-  it('should accept valid PositionData object', () => {
+  it('должен принимать допустимый PositionData object', () => {
     const data: PositionData = {
       x: 10,
       y: 20,
@@ -92,7 +92,7 @@ describe('PositionData type', () => {
     expect(data.y).toBe(20);
   });
 
-  it('should support floating point values', () => {
+  it('должен поддерживать floating point values', () => {
     const data: PositionData = {
       x: 15.75,
       y: -8.25,

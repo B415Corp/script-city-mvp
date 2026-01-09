@@ -12,26 +12,44 @@ import {
   DEFAULT_SCHEDULES,
 } from '../../core/ecs/components';
 import { ComponentManager } from '../../core/ecs/components/managers/component_manager';
+import { TimeService } from '../../core/tick/time_service';
+
 /**
- * Простые test doubles для тестирования систем
+ * TimeService wrapper для обратной совместимости с тестами
+ * @deprecated Используйте TimeService.createTestInstance() напрямую
  */
 export class TestTimeProvider {
-  constructor(private currentTime: number = 0) {}
+  private timeService: TimeService;
+
+  constructor(currentTime: number = 0) {
+    this.timeService = TimeService.createTestInstance(currentTime);
+  }
 
   getCurrentTime(): number {
-    return this.currentTime;
+    return this.timeService.getTimeData().totalMinutes;
   }
+
   getCurrentDay(): number {
-    return Math.floor(this.currentTime / (24 * 60));
+    return this.timeService.getDay();
   }
+
   getMinutesOfDay(): number {
-    return this.currentTime % (24 * 60);
+    return this.timeService.getMinutesOfDay();
   }
+
   getHourOfDay(): number {
-    return Math.floor(this.getMinutesOfDay() / 60);
+    return this.timeService.getHour();
   }
+
   setTime(time: number): void {
-    this.currentTime = time;
+    this.timeService.setTime(time);
+  }
+
+  /**
+   * Получить экземпляр TimeService для новых тестов
+   */
+  getTimeService(): TimeService {
+    return this.timeService;
   }
 }
 

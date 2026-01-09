@@ -1,6 +1,11 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './debug_component';
+import { TimeService } from '@/core/tick/time_service';
+import { TimeService as TimeServiceImport } from '@/core/tick/time_service';
+
+// Глобальные типы для браузерных API
+
 import {
   Person,
   Citizen,
@@ -84,9 +89,12 @@ export class SimulationDebug extends DebugComponent {
   private scheduleList!: HTMLElement;
   private updateTimer: number | null = null;
   private updateInterval = 2000; // Обновлять каждые 2 секунды
+  private timeService: TimeService;
 
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus, ecsManager);
+    // Создаем TimeService для получения данных времени
+    this.timeService = TimeService.createFromEventBus(eventBus);
   }
 
   private initDOM(): void {
@@ -146,7 +154,14 @@ export class SimulationDebug extends DebugComponent {
   private updateSimulationInfo(): void {
     try {
       if (!this.ecsManager) {
+        console.warn('ECS Manager not available');
         this.showError('Менеджер ECS недоступен');
+        return;
+      }
+
+      if (!this.timeService) {
+        console.warn('TimeService not available');
+        this.showError('Сервис времени недоступен');
         return;
       }
 
@@ -495,8 +510,18 @@ export class SimulationDebug extends DebugComponent {
     const citizens: CitizenData[] = [];
 
     try {
+      if (!this.ecsManager) {
+        console.warn('ECSManager not available in getCitizensData');
+        return citizens;
+      }
+
       // Получить всех сущностей с компонентами Person и Citizen
-      const world = this.ecsManager!.getWorld();
+      const world = this.ecsManager.getWorld();
+      if (!world) {
+        console.warn('World not available in getCitizensData');
+        return citizens;
+      }
+
       const personEntities = query(world, [Person, Citizen, Needs, Position, Schedule]);
 
       personEntities.forEach((eid: number) => {
@@ -560,7 +585,16 @@ export class SimulationDebug extends DebugComponent {
     const buildings: BuildingData[] = [];
 
     try {
-      const world = this.ecsManager!.getWorld();
+      if (!this.ecsManager) {
+        console.warn('ECSManager not available in getBuildingsData');
+        return buildings;
+      }
+
+      const world = this.ecsManager.getWorld();
+      if (!world) {
+        console.warn('World not available in getBuildingsData');
+        return buildings;
+      }
 
       // Получить жилые дома
       const residentialEntities = query(world, [Residential, Position, ID]);
@@ -659,17 +693,23 @@ export class SimulationDebug extends DebugComponent {
     const citizensData = this.getCitizensData();
 
     // Определить текущее время и фазу
-    const gameTime = this.getCurrentGameTime();
-    const minutesOfDay = gameTime % (24 * 60);
-    const hour = Math.floor(minutesOfDay / 60);
-    const minute = Math.floor(minutesOfDay % 60);
-    const timeOfDay = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-
+    let timeOfDay = '00:00';
     let currentPhase = 'неизвестно';
-    if (hour >= 22 || hour < 6) currentPhase = 'Ночь (Сон)';
-    else if (hour >= 18) currentPhase = 'Вечер (Покупки)';
-    else if (hour >= 9) currentPhase = 'День (Работа)';
-    else if (hour >= 6) currentPhase = 'Утро (Пробуждение)';
+
+    try {
+      const gameTime = this.getCurrentGameTime();
+      const minutesOfDay = gameTime % (24 * 60);
+      const hour = Math.floor(minutesOfDay / 60);
+      const minute = Math.floor(minutesOfDay % 60);
+      timeOfDay = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+      if (hour >= 22 || hour < 6) currentPhase = 'Ночь (Сон)';
+      else if (hour >= 18) currentPhase = 'Вечер (Покупки)';
+      else if (hour >= 9) currentPhase = 'День (Работа)';
+      else if (hour >= 6) currentPhase = 'Утро (Пробуждение)';
+    } catch (error) {
+      console.warn('Error getting time data for schedule:', error);
+    }
 
     // Подсчитать активности
     const activityCounts: Record<string, number> = {};
@@ -691,8 +731,13 @@ export class SimulationDebug extends DebugComponent {
   }
 
   private getCurrentGameTime(): number {
-    // Получить текущее игровое время из ECSManager
-    return this.ecsManager!.getGameTime();
+    // Получить текущее игровое время из TimeService
+    try {
+      return this.timeService.getTimeData().totalMinutes;
+    } catch (error) {
+      console.warn('TimeService not ready, using fallback time');
+      return 8 * 60; // 8:00 fallback
+    }
   }
 
   private getBuildingIcon(type: string): string {
@@ -744,7 +789,17 @@ export class SimulationDebug extends DebugComponent {
 
   private getCurrentPrices(): { rentPrice: number; foodPrice: number } {
     try {
-      const world = this.ecsManager!.getWorld();
+      if (!this.ecsManager) {
+        console.warn('ECSManager not available in getCurrentPrices');
+        return { rentPrice: 300, foodPrice: 250 };
+      }
+
+      const world = this.ecsManager.getWorld();
+      if (!world) {
+        console.warn('World not available in getCurrentPrices');
+        return { rentPrice: 300, foodPrice: 250 };
+      }
+
       const pricesEntity = 99999; // Сущность с глобальными ценами
 
       const rentPrice = Prices.rentPrice[pricesEntity] || 300;
@@ -790,11 +845,21 @@ export class SimulationDebug extends DebugComponent {
     };
 
     const jsonData = JSON.stringify(data, null, 2);
-    navigator.clipboard.writeText(jsonData).then(() => {
-      console.log('Citizen data copied to clipboard');
-      // Можно добавить визуальную обратную связь
-    }).catch(err => {
-      console.error('Failed to copy citizen data:', err);
-    });
+
+    // Проверяем доступность clipboard API
+    if (typeof navigator !== 'undefined' && window.navigator.clipboard) {
+      window.navigator.clipboard
+        .writeText(jsonData)
+        .then(() => {
+          console.log('Citizen data copied to clipboard');
+          // Можно добавить визуальную обратную связь
+        })
+        .catch((err) => {
+          console.error('Failed to copy citizen data:', err);
+        });
+    } else {
+      // Fallback для сред без clipboard API
+      console.log('Clipboard data:', jsonData);
+    }
   }
 }
