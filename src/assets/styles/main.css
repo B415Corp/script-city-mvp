@@ -139,7 +139,6 @@ body {
 
 .debug-tab-content.active {
   display: flex;
-  overflow-y: auto; /* Дополнительная прокрутка для всего контента вкладки */
 }
 
 .debug-tab-content h3 {
@@ -148,6 +147,11 @@ body {
   font-weight: bold;
   text-transform: uppercase;
   color: white;
+  flex-shrink: 0; /* Не сжимать заголовки */
+}
+
+.debug-tab-content[data-tab="events"] {
+  flex-direction: column;
 }
 
 .debug-events-header {
@@ -155,6 +159,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  flex-shrink: 0; /* Не сжимать заголовок */
 }
 
 .debug-clear-btn {
@@ -178,10 +183,9 @@ body {
 }
 
 .debug-events-list {
-  flex: 1 1 auto;
+  flex: 1; /* Занимает всю доступную высоту */
   overflow-y: auto;
   padding-right: 5px;
-  max-height: 100%; /* Ограничивает высоту контейнера */
   min-height: 0; /* Позволяет сжиматься */
 }
 
@@ -218,10 +222,9 @@ body {
 }
 
 .debug-tick-list {
-  flex: 1 1 auto;
+  flex: 1; /* Занимает всю доступную высоту */
   overflow-y: auto;
   padding-right: 5px;
-  max-height: 100%;
   min-height: 0;
 }
 
@@ -260,7 +263,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .debug-ecs-section {

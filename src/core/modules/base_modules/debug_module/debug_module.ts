@@ -58,7 +58,10 @@ export class DebugModule extends BaseModule {
   // обновление компонентов
   public update(): void {
     const currentComponent = this.debugComponentsApi.get(this.currentTab);
-    currentComponent?.onUpdate();
+    // ECS компонент обновляется самостоятельно через setInterval
+    if (currentComponent && this.currentTab !== 'ecs') {
+      currentComponent.onUpdate();
+    }
   }
 
   // инициализация DOM элементов

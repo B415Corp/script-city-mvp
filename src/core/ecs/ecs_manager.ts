@@ -15,7 +15,7 @@ import {
 } from './systems/clusters/schedule_activity_systems';
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
-import { Person, Citizen, Needs, Schedule, Shop, Factory } from './components';
+import { Person, Citizen, Needs, Schedule, Shop, Factory, ID } from './components';
 import { TestSystem } from './systems/clusters/test_system';
 
 /**
@@ -355,11 +355,61 @@ export class ECSManager {
   }
 
   /**
+   * Получить количество сущностей
+   */
+  getEntityCount(): number {
+    // В BiteCS нет прямого способа получить общее количество сущностей
+    // Используем query с любым компонентом для подсчета
+    try {
+      const entities = query(this.world, [ID]); // ID есть у всех сущностей
+      return entities.length;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Получить количество сущностей по типам компонентов
+   */
+  getEntityCountsByType(): Record<string, number> {
+    const counts: Record<string, number> = {};
+
+    // Подсчет сущностей с компонентами Person
+    try {
+      const personEntities = query(this.world, [Person]);
+      counts['Person'] = personEntities.length;
+    } catch {
+      counts['Person'] = 0;
+    }
+
+    // Подсчет сущностей с компонентами Shop
+    try {
+      const shopEntities = query(this.world, [Shop]);
+      counts['Shop'] = shopEntities.length;
+    } catch {
+      counts['Shop'] = 0;
+    }
+
+    // Подсчет сущностей с компонентами Factory
+    try {
+      const factoryEntities = query(this.world, [Factory]);
+      counts['Factory'] = factoryEntities.length;
+    } catch {
+      counts['Factory'] = 0;
+    }
+
+    return counts;
+  }
+
+  /**
    * Получить статистику симуляции
    */
   getStats(): {
     totalSystemsCount: number;
     clustersCount: number;
+    systems: string[]; // Список всех зарегистрированных систем
+    totalEntities: number; // Общее количество сущностей
+    entityCounts: Record<string, number>; // Количество сущностей по типам
     clusters: Record<
       string,
       {
@@ -392,6 +442,9 @@ export class ECSManager {
     return {
       totalSystemsCount: Object.keys(this.systems).length,
       clustersCount: Object.keys(clusters).length,
+      systems: Object.keys(this.systems), // Список всех зарегистрированных систем
+      totalEntities: this.getEntityCount(), // Общее количество сущностей
+      entityCounts: this.getEntityCountsByType(), // Количество сущностей по типам
       clusters,
     };
   }

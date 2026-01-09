@@ -16,6 +16,9 @@ declare global {
 export interface ECSStats {
   totalSystemsCount: number;
   clustersCount: number;
+  systems: string[]; // Список всех зарегистрированных систем
+  totalEntities: number; // Общее количество сущностей
+  entityCounts: Record<string, number>; // Количество сущностей по типам
   clusters: Record<
     string,
     {
@@ -31,8 +34,8 @@ export class ECSDebug extends DebugComponent {
   private systemsList!: HTMLElement;
   private componentsList!: HTMLElement;
   private entitiesList!: HTMLElement;
-  private lastUpdate = 0;
-  private updateInterval = 1000; // Обновлять каждую секунду
+  private updateTimer: number | null = null;
+  private updateInterval = 5000; // Обновлять каждые 5 секунд
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     super(scene, eventBus);
@@ -57,22 +60,37 @@ export class ECSDebug extends DebugComponent {
       this.initDOM();
     }
 
-    // Сбросим таймер, чтобы данные обновились сразу
-    this.lastUpdate = 0;
-    this.updateECSInfo();
+    // Запустим периодическое обновление
+    this.startPeriodicUpdate();
   }
 
   // деактивация компонента
   public onDeactivate(): void {
-    // Очистка не требуется
+    this.stopPeriodicUpdate();
   }
 
-  // обновление компонента
+  // обновление компонента (вызывается из DebugModule, но мы используем свой интервал)
   public onUpdate(): void {
-    const now = Date.now();
-    if (now - this.lastUpdate > this.updateInterval) {
+    // Пустой метод - обновление происходит в setInterval
+  }
+
+  private startPeriodicUpdate(): void {
+    // Остановим предыдущий интервал если он есть
+    this.stopPeriodicUpdate();
+
+    // Обновим данные сразу
+    this.updateECSInfo();
+
+    // Запустим периодическое обновление
+    this.updateTimer = window.setInterval(() => {
       this.updateECSInfo();
-      this.lastUpdate = now;
+    }, this.updateInterval);
+  }
+
+  private stopPeriodicUpdate(): void {
+    if (this.updateTimer) {
+      window.clearInterval(this.updateTimer);
+      this.updateTimer = null;
     }
   }
 
@@ -80,22 +98,19 @@ export class ECSDebug extends DebugComponent {
     try {
       const sim = window.sim;
       if (!sim || !sim.getECSStats) {
-        console.log('ECSDebug: window.sim.getECSStats not available yet');
         this.showError('ECS stats not available');
         return;
       }
 
       const stats = sim.getECSStats() as ECSStats;
       if (!stats) {
-        console.log('ECSDebug: no stats returned');
         this.showError('No ECS data');
         return;
       }
 
-      console.log('ECSDebug: updating with stats', stats);
       this.updateSystemsList(stats);
       this.updateComponentsList();
-      this.updateEntitiesList();
+      this.updateEntitiesList(stats);
     } catch (error) {
       console.error('Error updating ECS debug info:', error);
       this.showError('Error loading ECS data');
@@ -112,6 +127,19 @@ export class ECSDebug extends DebugComponent {
     totalDiv.className = 'debug-ecs-item debug-ecs-summary';
     totalDiv.textContent = `• Total systems: ${stats.totalSystemsCount}`;
     this.systemsList.appendChild(totalDiv);
+
+    // Список всех систем
+    const systemsHeader = document.createElement('div');
+    systemsHeader.className = 'debug-ecs-item debug-ecs-summary';
+    systemsHeader.textContent = `• Registered systems:`;
+    this.systemsList.appendChild(systemsHeader);
+
+    stats.systems.forEach((systemName) => {
+      const systemItem = document.createElement('div');
+      systemItem.className = 'debug-ecs-item debug-ecs-system';
+      systemItem.textContent = `  • ${systemName}`;
+      this.systemsList.appendChild(systemItem);
+    });
 
     const clustersDiv = document.createElement('div');
     clustersDiv.className = 'debug-ecs-item debug-ecs-summary';
@@ -166,24 +194,24 @@ export class ECSDebug extends DebugComponent {
     });
   }
 
-  private updateEntitiesList(): void {
+  private updateEntitiesList(stats: ECSStats): void {
     if (!this.entitiesList) return;
 
     this.entitiesList.innerHTML = '';
 
-    // Для получения количества сущностей нам нужен доступ к миру
-    // Пока что покажем заглушку
+    // Общее количество сущностей
     const entitiesDiv = document.createElement('div');
     entitiesDiv.className = 'debug-ecs-item debug-ecs-entity';
-    entitiesDiv.textContent = `• Total entities: ~100 (approximate)`;
+    entitiesDiv.textContent = `• Total entities: ${stats.totalEntities}`;
     this.entitiesList.appendChild(entitiesDiv);
 
-    // Добавим информацию о типах сущностей
+    // Количество сущностей по типам
     const entityTypes = ['Person', 'Shop', 'Factory'];
     entityTypes.forEach((type) => {
+      const count = stats.entityCounts[type] || 0;
       const typeDiv = document.createElement('div');
       typeDiv.className = 'debug-ecs-item debug-ecs-entity-type';
-      typeDiv.textContent = `• ${type} entities: counting...`;
+      typeDiv.textContent = `• ${type} entities: ${count}`;
       this.entitiesList.appendChild(typeDiv);
     });
   }
