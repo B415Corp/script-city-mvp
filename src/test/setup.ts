@@ -7,7 +7,6 @@ import {
   ID,
   Render,
   Schedule,
-  Prices,
   Workplace,
 } from '../core/ecs/components';
 
@@ -20,7 +19,6 @@ const COMPONENT_REGISTRY = {
   ID,
   Render,
   Schedule,
-  Prices,
   Workplace,
 } as const;
 
@@ -33,7 +31,6 @@ const COMPONENTS_TO_RESET = [
   ID,
   Render,
   Schedule,
-  Prices,
   Workplace,
 ] as const;
 

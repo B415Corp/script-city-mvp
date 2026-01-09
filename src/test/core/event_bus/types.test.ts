@@ -11,7 +11,7 @@ import { Events } from '../../../core/event_bus/events';
 
 describe('Event Bus Types', () => {
   describe('CallSystemPayload', () => {
-    it('должен принимать допустимый CallSystemPayload with all fields', () => {
+    it('should accept valid CallSystemPayload with all fields', () => {
       const payload: CallSystemPayload = {
         systemName: 'TestSystem',
         entityId: 123,
@@ -44,7 +44,7 @@ describe('Event Bus Types', () => {
   });
 
   describe('Subscription', () => {
-    it('должен принимать допустимый Subscription object', () => {
+    it('should accept valid Subscription object', () => {
       const subscription: Subscription = {
         unsubscribe: () => {
           // mock unsubscribe
@@ -65,7 +65,7 @@ describe('Event Bus Types', () => {
   });
 
   describe('HandlerInfo', () => {
-    it('должен принимать допустимый HandlerInfo object', () => {
+    it('should accept valid HandlerInfo object', () => {
       const handler: EventHandler = () => {};
       const handlerInfo: HandlerInfo = {
         handler,
@@ -76,7 +76,7 @@ describe('Event Bus Types', () => {
       expect(handlerInfo.once).toBe(false);
     });
 
-    it('должен поддерживать once flag', () => {
+    it('should support once flag', () => {
       const handler: EventHandler = () => {};
       const handlerInfo: HandlerInfo = {
         handler,
@@ -132,7 +132,7 @@ describe('Event Bus Types', () => {
         Events.ResetToolToDefault,
       ];
 
-      noPayloadEvents.forEach((event) => {
+      noPayloadEvents.forEach(event => {
         const payloadType: EventPayload<typeof event> = undefined;
         expect(payloadType).toBeUndefined();
       });
@@ -177,7 +177,10 @@ describe('Event Bus Types', () => {
     });
 
     it('should work with function parameters', () => {
-      function handleEvent<T extends Events>(event: T, payload: EventPayload<T>): void {
+      function handleEvent<T extends Events>(
+        event: T,
+        payload: EventPayload<T>
+      ): void {
         if (event === Events.CallSystem && payload && 'systemName' in payload) {
           expect(payload.systemName).toBeDefined();
         }
@@ -209,7 +212,7 @@ describe('Event Bus Types', () => {
     it('should work with generic constraints', () => {
       function createEventHandler<T extends Events>(
         event: T,
-        handler: (payload: EventPayload<T>) => void,
+        handler: (payload: EventPayload<T>) => void
       ): void {
         // This function signature ensures type safety
         handler(undefined as EventPayload<T>);

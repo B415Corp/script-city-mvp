@@ -212,7 +212,7 @@ export class SimulationDebug extends DebugComponent {
         </div>
       `;
 
-      // Работа и образование
+      // Работа
       const workSection = document.createElement('div');
       workSection.className = 'debug-simulation-citizen-section';
       workSection.innerHTML = `
@@ -220,10 +220,6 @@ export class SimulationDebug extends DebugComponent {
         <div class="debug-simulation-citizen-stat-item">
           <span class="debug-simulation-citizen-stat-icon">💼</span>
           <span>Работа: ID ${citizen.workplace}</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">💰</span>
-          <span>Зарплата: $${citizen.salary}/день</span>
         </div>
       `;
 
@@ -236,33 +232,6 @@ export class SimulationDebug extends DebugComponent {
           <span class="debug-simulation-citizen-stat-icon">🏠</span>
           <span>Дом: ID ${citizen.home}</span>
         </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">📋</span>
-          <span>Тип: ${citizen.housingType}</span>
-        </div>
-      `;
-
-      // Потребности
-      const needsSection = document.createElement('div');
-      needsSection.className = 'debug-simulation-citizen-section';
-      needsSection.innerHTML = `
-        <div class="debug-simulation-citizen-section-title">🎯 Потребности</div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">🍎</span>
-          <span>Голод: ${citizen.needs.food.toFixed(0)}%</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">🛒</span>
-          <span>Покупки: ${citizen.needs.shopping.toFixed(0)}%</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">💼</span>
-          <span>Работа: ${citizen.needs.work.toFixed(0)}%</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">😴</span>
-          <span>Сон: ${citizen.needs.sleep.toFixed(0)}%</span>
-        </div>
       `;
 
       // Местоположение
@@ -271,29 +240,17 @@ export class SimulationDebug extends DebugComponent {
       locationSection.innerHTML = `
         <div class="debug-simulation-citizen-section-title">📍 Местоположение</div>
         <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">🏠</span>
-          <span>Дом ID: ${citizen.home}</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
           <span class="debug-simulation-citizen-stat-icon">📍</span>
           <span>Позиция: (${citizen.position.x.toFixed(1)}, ${citizen.position.y.toFixed(1)})</span>
         </div>
       `;
-
-      // Кнопка копирования
-      const copyButton = document.createElement('button');
-      copyButton.className = 'debug-simulation-citizen-copy-btn';
-      copyButton.textContent = '📋 Копировать данные';
-      copyButton.onclick = (): void => this.copyCitizenDataToClipboard(citizen);
 
       // Добавляем все секции
       citizenDiv.appendChild(basicInfo);
       citizenDiv.appendChild(statusSection);
       citizenDiv.appendChild(workSection);
       citizenDiv.appendChild(housingSection);
-      citizenDiv.appendChild(needsSection);
       citizenDiv.appendChild(locationSection);
-      citizenDiv.appendChild(copyButton);
 
       this.citizensList.appendChild(citizenDiv);
     });
@@ -676,39 +633,4 @@ export class SimulationDebug extends DebugComponent {
     if (this.scheduleList) this.scheduleList.innerHTML = errorDiv;
   }
 
-  private copyCitizenDataToClipboard(citizen: CitizenData): void {
-    const data = {
-      id: citizen.id,
-      age: citizen.age,
-      gender: citizen.gender,
-      happiness: citizen.happiness,
-      energy: citizen.energy,
-      money: citizen.money,
-      home: citizen.home,
-      workplace: citizen.workplace,
-      housingType: citizen.housingType,
-      salary: citizen.salary,
-      needs: citizen.needs,
-      currentActivity: citizen.currentActivity,
-      position: citizen.position,
-    };
-
-    const jsonData = JSON.stringify(data, null, 2);
-
-    // Проверяем доступность clipboard API
-    if (typeof navigator !== 'undefined' && window.navigator.clipboard) {
-      window.navigator.clipboard
-        .writeText(jsonData)
-        .then(() => {
-          console.log('Citizen data copied to clipboard');
-          // Можно добавить визуальную обратную связь
-        })
-        .catch((err) => {
-          console.error('Failed to copy citizen data:', err);
-        });
-    } else {
-      // Fallback для сред без clipboard API
-      console.log('Clipboard data:', jsonData);
-    }
-  }
 }

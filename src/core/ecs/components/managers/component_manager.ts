@@ -7,7 +7,6 @@ import {
   ID,
   Render,
   Schedule,
-  Prices,
   Workplace,
   type PersonData,
   type CitizenData,
@@ -16,7 +15,6 @@ import {
   type IdData,
   type RenderData,
   type ScheduleData,
-  type PricesData,
   type WorkplaceData,
 } from '../index';
 
@@ -108,20 +106,6 @@ export class ComponentManager {
     if (data.y !== undefined) Position.y[eid] = data.y;
   }
 
-  // Prices Component (global)
-  getPrices(eid: EntityId): PricesData {
-    return {
-      rentPrice: Prices.rentPrice[eid] || 0,
-      foodPrice: Prices.foodPrice[eid] || 0,
-      lastUpdateDay: Prices.lastUpdateDay[eid] || 0,
-    };
-  }
-
-  setPrices(eid: EntityId, data: Partial<PricesData>): void {
-    if (data.rentPrice !== undefined) Prices.rentPrice[eid] = data.rentPrice;
-    if (data.foodPrice !== undefined) Prices.foodPrice[eid] = data.foodPrice;
-    if (data.lastUpdateDay !== undefined) Prices.lastUpdateDay[eid] = data.lastUpdateDay;
-  }
 
   // Workplace Component
   getWorkplace(eid: EntityId): WorkplaceData {

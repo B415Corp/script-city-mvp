@@ -6,6 +6,3 @@ export * from './population';
 
 // Компоненты зданий
 export * from './buildings';
-
-// Компоненты экономики
-export * from './economy';

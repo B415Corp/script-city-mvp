@@ -7,50 +7,20 @@ import {
   ID,
   Render,
   Schedule,
-  Prices,
   Workplace,
-  DEFAULT_SCHEDULES,
 } from '../../core/ecs/components';
 import { ComponentManager } from '../../core/ecs/components/managers/component_manager';
-import { TimeService } from '../../core/tick/time_service';
-
 /**
- * TimeService wrapper для обратной совместимости с тестами
- * @deprecated Используйте TimeService.createTestInstance() напрямую
+ * Простые test doubles для тестирования систем
  */
 export class TestTimeProvider {
-  private timeService: TimeService;
+  constructor(private currentTime: number = 0) {}
 
-  constructor(currentTime: number = 0) {
-    this.timeService = TimeService.createTestInstance(currentTime);
-  }
-
-  getCurrentTime(): number {
-    return this.timeService.getTimeData().totalMinutes;
-  }
-
-  getCurrentDay(): number {
-    return this.timeService.getDay();
-  }
-
-  getMinutesOfDay(): number {
-    return this.timeService.getMinutesOfDay();
-  }
-
-  getHourOfDay(): number {
-    return this.timeService.getHour();
-  }
-
-  setTime(time: number): void {
-    this.timeService.setTime(time);
-  }
-
-  /**
-   * Получить экземпляр TimeService для новых тестов
-   */
-  getTimeService(): TimeService {
-    return this.timeService;
-  }
+  getCurrentTime(): number { return this.currentTime; }
+  getCurrentDay(): number { return Math.floor(this.currentTime / (24 * 60)); }
+  getMinutesOfDay(): number { return this.currentTime % (24 * 60); }
+  getHourOfDay(): number { return Math.floor(this.getMinutesOfDay() / 60); }
+  setTime(time: number): void { this.currentTime = time; }
 }
 
 export class TestRandomProvider {
@@ -84,28 +54,20 @@ export class TestRandomProvider {
 export class TestLogger {
   logs: string[] = [];
 
-  info(message: string): void {
-    this.logs.push(`INFO: ${message}`);
-  }
-  warn(message: string): void {
-    this.logs.push(`WARN: ${message}`);
-  }
-  error(message: string): void {
-    this.logs.push(`ERROR: ${message}`);
-  }
-  debug(message: string): void {
-    this.logs.push(`DEBUG: ${message}`);
-  }
+  info(message: string): void { this.logs.push(`INFO: ${message}`); }
+  warn(message: string): void { this.logs.push(`WARN: ${message}`); }
+  error(message: string): void { this.logs.push(`ERROR: ${message}`); }
+  debug(message: string): void { this.logs.push(`DEBUG: ${message}`); }
 }
 
 export class TestEventBus {
-  events: Array<{ event: string; payload?: unknown }> = [];
+  events: Array<{event: string, payload?: any}> = [];
 
-  emit(event: string, payload?: unknown): void {
+  emit(event: string, payload?: any): void {
     this.events.push({ event, payload });
   }
 
-  on(event: string, handler: (payload?: unknown) => void) {
+  on(event: string, handler: (payload?: any) => void) {
     return { unsubscribe: () => {} };
   }
 }
@@ -303,32 +265,6 @@ export class BitECSTestHelper {
     };
   }
 
-  /**
-   * Устанавливает данные компонента Prices
-   */
-  static setPricesData(
-    eid: EntityId,
-    data: {
-      rentPrice?: number;
-      foodPrice?: number;
-      lastUpdateDay?: number;
-    },
-  ) {
-    if (data.rentPrice !== undefined) Prices.rentPrice[eid] = data.rentPrice;
-    if (data.foodPrice !== undefined) Prices.foodPrice[eid] = data.foodPrice;
-    if (data.lastUpdateDay !== undefined) Prices.lastUpdateDay[eid] = data.lastUpdateDay;
-  }
-
-  /**
-   * Получает данные компонента Prices
-   */
-  static getPricesData(eid: EntityId) {
-    return {
-      rentPrice: Prices.rentPrice[eid],
-      foodPrice: Prices.foodPrice[eid],
-      lastUpdateDay: Prices.lastUpdateDay[eid],
-    };
-  }
 }
 
 // Test doubles уже экспортированы выше

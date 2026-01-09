@@ -10,7 +10,6 @@ import { Citizen, Workplace, Person } from '../ecs/components';
 export class EntrySimulation {
   private entityFactory: EntityFactory;
   private simulationStartTime: number = 0;
-  private simulationDuration: number = 24 * 60 * 60 * 1000; // 24 часа в миллисекундах
   private isSimulationRunning: boolean = false;
 
   constructor(
@@ -121,7 +120,6 @@ export class EntrySimulation {
             jobSearchAttempts: 0,
             lastJobSearchDay: 0,
             lastExpenseDay: 0,
-            lastWorkDay: 0, // Еще не получал зарплату
           },
           houses[houseIndex],
         );

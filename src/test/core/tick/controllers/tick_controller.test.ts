@@ -9,24 +9,24 @@ describe('TickController', () => {
   });
 
   describe('initialization', () => {
-    it('должен инициализировать with default tick rate', () => {
+    it('should initialize with default tick rate', () => {
       const defaultController = new TickController();
       expect(defaultController.getTickRate()).toBe(10);
       expect(defaultController.getFixedStepMs()).toBe(100);
     });
 
-    it('должен инициализировать with custom tick rate', () => {
+    it('should initialize with custom tick rate', () => {
       expect(controller.getTickRate()).toBe(10);
       expect(controller.getFixedStepMs()).toBe(100);
     });
 
-    it('должен запускаться без паузы', () => {
+    it('should start unpaused', () => {
       expect(controller.isPaused()).toBe(false);
     });
   });
 
   describe('update', () => {
-    it('должен возвращать 0 ticks when paused', () => {
+    it('should return 0 ticks when paused', () => {
       controller.pause();
       const ticks = controller.update(100);
       expect(ticks).toBe(0);
@@ -46,13 +46,13 @@ describe('TickController', () => {
       expect(ticks3).toBe(1);
     });
 
-    it('должен обрабатывать multiple ticks in single update', () => {
+    it('should handle multiple ticks in single update', () => {
       // 200ms delta = 2 ticks
       const ticks = controller.update(200);
       expect(ticks).toBe(2);
     });
 
-    it('должен обрабатывать fractional time accumulation', () => {
+    it('should handle fractional time accumulation', () => {
       // 250ms = 2 ticks + 50ms remainder
       controller.update(250);
       expect(controller.isPaused()).toBe(false); // Just to trigger accumulator processing
@@ -111,7 +111,7 @@ describe('TickController', () => {
   });
 
   describe('pause control', () => {
-    it('должен приостанавливаться и возобновляться', () => {
+    it('should pause and resume', () => {
       expect(controller.isPaused()).toBe(false);
 
       controller.pause();
@@ -133,21 +133,21 @@ describe('TickController', () => {
   });
 
   describe('getters', () => {
-    it('должен возвращать correct fixed step in milliseconds', () => {
+    it('should return correct fixed step in milliseconds', () => {
       expect(controller.getFixedStepMs()).toBe(100);
 
       controller.setSpeed(20);
       expect(controller.getFixedStepMs()).toBe(50);
     });
 
-    it('должен возвращать correct tick rate', () => {
+    it('should return correct tick rate', () => {
       expect(controller.getTickRate()).toBe(10);
 
       controller.setSpeed(30);
       expect(controller.getTickRate()).toBe(30);
     });
 
-    it('должен возвращать pause state', () => {
+    it('should return pause state', () => {
       expect(controller.isPaused()).toBe(false);
 
       controller.pause();
@@ -156,22 +156,22 @@ describe('TickController', () => {
   });
 
   describe('edge cases', () => {
-    it('должен обрабатывать very small deltas', () => {
+    it('should handle very small deltas', () => {
       const ticks = controller.update(0.1);
       expect(ticks).toBe(0);
     });
 
-    it('должен обрабатывать zero delta', () => {
+    it('should handle zero delta', () => {
       const ticks = controller.update(0);
       expect(ticks).toBe(0);
     });
 
-    it('должен обрабатывать negative delta', () => {
+    it('should handle negative delta', () => {
       const ticks = controller.update(-100);
       expect(ticks).toBe(0);
     });
 
-    it('должен обрабатывать very fast updates', () => {
+    it('should handle very fast updates', () => {
       // Multiple updates in quick succession
       let totalTicks = 0;
       for (let i = 0; i < 10; i++) {

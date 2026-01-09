@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Events } from '../../../core/event_bus/events';
 
-describe('Перечисление событий (Events enum)', () => {
-  it('должен содержать все необходимые типы событий', () => {
+describe('Events enum', () => {
+  it('should have all required event types', () => {
     // Game state events
     expect(Events.GameStarted).toBe('GameStarted');
     expect(Events.GamePaused).toBe('GamePaused');
@@ -40,19 +40,19 @@ describe('Перечисление событий (Events enum)', () => {
     expect(Events.CallSystem).toBe('CallSystem');
   });
 
-  it('должен иметь уникальные значения', () => {
+  it('should have unique values', () => {
     const values = Object.values(Events);
     const uniqueValues = new Set(values);
     expect(values.length).toBe(uniqueValues.size);
   });
 
-  it('должен быть пригоден для использования в качестве строковых литералов', () => {
+  it('should be usable as string literals', () => {
     const eventName: string = Events.GameStarted;
     expect(eventName).toBe('GameStarted');
     expect(typeof eventName).toBe('string');
   });
 
-  it('должен быть пригоден для использования в массивах и множествах', () => {
+  it('should be usable in arrays and sets', () => {
     const eventArray = [Events.GameStarted, Events.LogicTick, Events.CallSystem];
     expect(eventArray).toContain(Events.GameStarted);
     expect(eventArray).toContain(Events.LogicTick);
@@ -64,7 +64,7 @@ describe('Перечисление событий (Events enum)', () => {
     expect(eventSet.has(Events.GamePaused)).toBe(false);
   });
 
-  it('должен работать с ключами объектов', () => {
+  it('should work with object keys', () => {
     const eventHandlers = {
       [Events.GameStarted]: () => 'game started',
       [Events.LogicTick]: () => 'logic tick',
@@ -76,7 +76,7 @@ describe('Перечисление событий (Events enum)', () => {
     expect(eventHandlers[Events.CallSystem]()).toBe('call system');
   });
 
-  it('должен быть итерируемым', () => {
+  it('should be iterable', () => {
     const eventKeys = Object.keys(Events);
     const eventValues = Object.values(Events);
 
@@ -90,8 +90,8 @@ describe('Перечисление событий (Events enum)', () => {
     });
   });
 
-  describe('категории событий', () => {
-    it('должен содержать события состояния игры', () => {
+  describe('event categories', () => {
+    it('should have game state events', () => {
       const gameStateEvents = [Events.GameStarted, Events.GamePaused, Events.GameStopped];
 
       gameStateEvents.forEach((event) => {
@@ -100,7 +100,7 @@ describe('Перечисление событий (Events enum)', () => {
       });
     });
 
-    it('должен содержать события связанные с тиками', () => {
+    it('should have tick-related events', () => {
       const tickEvents = [
         Events.TickStarted,
         Events.TickEnded,
@@ -113,7 +113,7 @@ describe('Перечисление событий (Events enum)', () => {
       });
     });
 
-    it('должен содержать события связанные с картой', () => {
+    it('should have map-related events', () => {
       const mapEvents = [
         Events.TileUnhovered,
         Events.TileHovered,
@@ -128,7 +128,7 @@ describe('Перечисление событий (Events enum)', () => {
       });
     });
 
-    it('должен содержать события связанные с инструментами', () => {
+    it('should have tool-related events', () => {
       const toolEvents = [Events.SelectTool, Events.ToolActivated, Events.ResetToolToDefault];
 
       toolEvents.forEach((event) => {
@@ -136,7 +136,7 @@ describe('Перечисление событий (Events enum)', () => {
       });
     });
 
-    it('должен содержать события связанные с модулями', () => {
+    it('should have module-related events', () => {
       const moduleEvents = [Events.ModuleEnabled, Events.ModuleDisabled, Events.ModuleError];
 
       moduleEvents.forEach((event) => {
@@ -144,7 +144,7 @@ describe('Перечисление событий (Events enum)', () => {
       });
     });
 
-    it('должен содержать события связанные с ECS', () => {
+    it('should have ECS-related events', () => {
       const ecsEvents = [Events.CallSystem];
 
       ecsEvents.forEach((event) => {
