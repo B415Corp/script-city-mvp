@@ -10,8 +10,10 @@ import {
   DailyRoutineSystem,
   JobSearchSystem,
   FiringSystem,
+  createPriceFluctuationSystem,
   PriceFluctuationSystem,
   MinimumExpensesUpdateSystem,
+  createMonthlyExpensesSystem,
   MonthlyExpensesSystem,
 } from './systems/clusters';
 import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
@@ -85,7 +87,7 @@ const clustersRegistry: Record<string, SystemCluster> = {
   economy: {
     systemNames: ['PriceFluctuation', 'MinimumExpensesUpdate', 'MonthlyExpenses'], // Экономические системы
     enabled: true,
-    interval: 120.0,
+    interval: undefined, // Каждый тик для тестирования
   },
   infrastructure: {
     systemNames: ['Test', 'DayNightCycle'], // Можно добавить инфраструктурные системы
@@ -109,6 +111,7 @@ export class ECSManager {
   constructor(
     private eventBus: EventBus,
     private timeController?: unknown,
+    private systemDependencies?: import('./systems/types').ISystemDependencies,
   ) {
     console.log('🚀 ECSManager initialized');
     this.world = createWorld();
@@ -180,11 +183,39 @@ export class ECSManager {
    * Регистрирует базовые системы
    */
   private registerBaseSystems(): void {
-    for (const [systemName, system] of Object.entries(systemRegistry)) {
+    // Создаем системы с dependency injection
+    const systems = this.createSystemsWithDependencies();
+
+    for (const [systemName, system] of Object.entries(systems)) {
       this.registerSystem(systemName, system);
     }
 
     console.log(`📋 Registered ${Object.keys(this.systems).length} base systems`);
+  }
+
+  /**
+   * Создает системы с dependency injection
+   */
+  private createSystemsWithDependencies(): Record<string, System> {
+    return {
+      Population: PopulationSystem,
+      Needs: NeedsSystem,
+      DailyRoutine: DailyRoutineSystem,
+      PriceFluctuation: createPriceFluctuationSystem(this.systemDependencies),
+      MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
+      MonthlyExpenses: createMonthlyExpensesSystem(this.systemDependencies),
+      JobSearch: JobSearchSystem,
+      Firing: FiringSystem,
+      Test: TestSystem,
+      // Системы расписания
+      WakeUp: WakeUpSystem,
+      Work: WorkSystem,
+      Feeding: FeedingSystem,
+      Sleep: SleepSystem,
+      ShoppingDecision: ShoppingDecisionSystem,
+      ScheduleManager: ScheduleManagerSystem,
+      Movement: MovementSystem,
+    };
   }
 
   /**

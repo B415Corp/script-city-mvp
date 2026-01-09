@@ -1,4 +1,4 @@
-import { World, EntityId, query } from 'bitecs';
+import { World, EntityId, query, hasComponent } from 'bitecs';
 import { System } from '../types';
 import {
   Person,
@@ -95,15 +95,14 @@ export const JobSearchSystem: System = {
     const availableWorkplaces: EntityId[] = [];
     for (const eid of entities) {
       try {
-        if (Workplace.worker[eid] === undefined || Workplace.worker[eid] === 0) {
+        // Проверяем, имеет ли entity Workplace компонент
+        if (hasComponent(world, Workplace, eid) && (Workplace.worker[eid] === undefined || Workplace.worker[eid] === 0)) {
           availableWorkplaces.push(eid);
         }
       } catch {
         // Игнорируем ошибки
       }
     }
-
-    if (availableWorkplaces.length === 0) return;
 
     // Жители без работы ищут работу
     for (const citizenId of entities) {
@@ -131,8 +130,8 @@ export const JobSearchSystem: System = {
       }
 
       // Проверяем, не искал ли работу уже сегодня (для фактического поиска работы)
-      if (lastSearchDay >= currentDay) {
-        // Уже искал работу сегодня
+      if (lastSearchDay >= currentDay || availableWorkplaces.length === 0) {
+        // Уже искал работу сегодня или нет доступных рабочих мест
         continue;
       }
 

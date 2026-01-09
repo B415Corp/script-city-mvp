@@ -34,51 +34,110 @@ export const PopulationSystem: System = {
  * Система колебаний цен
  * Обновляет рыночные цены на товары и услуги
  */
-export const PriceFluctuationSystem: System = {
-  name: 'PriceFluctuation',
-  components: ['Person'], // Dummy component requirement for global system
+/**
+ * Создает систему колебаний цен с поддержкой dependency injection
+ */
+export function createPriceFluctuationSystem(deps?: import('../services/interfaces').ISystemDependencies) {
+  console.log('createPriceFluctuationSystem called with deps:', !!deps);
 
-  update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
-    const gameTime = extraData as number | undefined;
-    if (!gameTime) return;
+  const system = {
+    name: 'PriceFluctuation',
+    components: ['Prices'] as const, // Global system working with Prices component
+    dependencies: deps,
 
-    // Обновляем цены раз в 7 игровых дней
-    const currentDay = Math.floor(gameTime / (24 * 60));
-    const pricesEntity = 99999; // Специальная сущность для хранения глобальных цен
+    update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
+      console.log('=== PriceFluctuationSystem: update START ===');
+      console.log('deps in closure:', deps);
+      // deps доступны через замыкание
+      const systemDeps = deps;
+      const gameTime = extraData as number | undefined;
+      if (!gameTime) return;
 
-    // Инициализируем цены, если они еще не установлены
-    if (Prices.rentPrice[pricesEntity] === undefined) {
-      Prices.rentPrice[pricesEntity] = 300; // Базовая цена аренды
-      Prices.foodPrice[pricesEntity] = 250; // Базовая цена еды
+      // Используем инжектированные зависимости или дефолтные
+      const timeProvider = systemDeps?.timeProvider || {
+        getCurrentDay: () => Math.floor(gameTime / (24 * 60))
+      };
+      const currentDay = timeProvider.getCurrentDay();
+      const randomProvider = systemDeps?.randomProvider || Math;
+      const logger = systemDeps?.logger || console;
+      const gameConfig = systemDeps?.gameConfig || {
+        pricesEntityId: 99999,
+        initialRentPrice: 300,
+        initialFoodPrice: 250,
+        priceUpdateIntervalDays: 7
+      };
+
+      // Обновляем цены раз в заданное количество дней
+      const pricesEntity = gameConfig.pricesEntityId;
+
+      // Инициализируем цены, если они еще не установлены
+      console.log('Checking prices at entity', pricesEntity, ':', {
+        rentPrice: Prices.rentPrice[pricesEntity],
+        foodPrice: Prices.foodPrice[pricesEntity],
+        lastUpdateDay: Prices.lastUpdateDay[pricesEntity],
+      });
+
+      if (Prices.rentPrice[pricesEntity] === undefined || Prices.rentPrice[pricesEntity] === 0) {
+        console.log('Initializing prices...');
+        Prices.rentPrice[pricesEntity] = gameConfig.initialRentPrice;
+        Prices.foodPrice[pricesEntity] = gameConfig.initialFoodPrice;
+        Prices.lastUpdateDay[pricesEntity] = currentDay;
+
+        console.log('Prices after init:', {
+          rentPrice: Prices.rentPrice[pricesEntity],
+          foodPrice: Prices.foodPrice[pricesEntity],
+          lastUpdateDay: Prices.lastUpdateDay[pricesEntity],
+        });
+
+        logger.info(
+          `Prices initialized: Rent ${gameConfig.initialRentPrice}, Food ${gameConfig.initialFoodPrice}`,
+        );
+      } else {
+        console.log('Prices already initialized, skipping');
+      }
+
+      // Проверяем, нужно ли обновлять цены
+      const lastUpdateDay = Prices.lastUpdateDay[pricesEntity] || 0;
+      if (currentDay - lastUpdateDay < gameConfig.priceUpdateIntervalDays) return;
+
+      // Обновляем цены с небольшими колебаниями
+      const rentFluctuation = (randomProvider.random() - 0.5) * 0.2; // ±10%
+      const foodFluctuation = (randomProvider.random() - 0.5) * 0.15; // ±7.5%
+
+      const currentRentPrice = Prices.rentPrice[pricesEntity];
+      const currentFoodPrice = Prices.foodPrice[pricesEntity];
+
+      Prices.rentPrice[pricesEntity] = Math.max(
+        200,
+        Math.min(600, currentRentPrice * (1 + rentFluctuation)),
+      );
+      Prices.foodPrice[pricesEntity] = Math.max(
+        150,
+        Math.min(450, currentFoodPrice * (1 + foodFluctuation)),
+      );
       Prices.lastUpdateDay[pricesEntity] = currentDay;
-    }
 
-    // Проверяем, нужно ли обновлять цены
-    const lastUpdateDay = Prices.lastUpdateDay[pricesEntity] || 0;
-    if (currentDay - lastUpdateDay < 7) return; // Обновляем раз в 7 дней
+      logger.info(
+        `Prices updated: Rent: ${Prices.rentPrice[pricesEntity].toFixed(0)}, Food: ${Prices.foodPrice[pricesEntity].toFixed(0)}`,
+      );
 
-    // Обновляем цены с небольшими колебаниями
-    const rentFluctuation = (Math.random() - 0.5) * 0.2; // ±10%
-    const foodFluctuation = (Math.random() - 0.5) * 0.15; // ±7.5%
+      // Отправляем событие об обновлении цен
+      systemDeps?.eventBus?.emit('pricesUpdated', {
+        rentPrice: Math.round(Prices.rentPrice[pricesEntity]),
+        foodPrice: Math.round(Prices.foodPrice[pricesEntity]),
+      });
+    },
+  };
 
-    const currentRentPrice = Prices.rentPrice[pricesEntity];
-    const currentFoodPrice = Prices.foodPrice[pricesEntity];
+  console.log('createPriceFluctuationSystem returning system with update:', typeof system.update);
+  return system;
+}
 
-    Prices.rentPrice[pricesEntity] = Math.max(
-      200,
-      Math.min(600, currentRentPrice * (1 + rentFluctuation)),
-    );
-    Prices.foodPrice[pricesEntity] = Math.max(
-      150,
-      Math.min(450, currentFoodPrice * (1 + foodFluctuation)),
-    );
-    Prices.lastUpdateDay[pricesEntity] = currentDay;
-
-    console.log(
-      `Prices updated: Rent: ${Prices.rentPrice[pricesEntity].toFixed(0)}, Food: ${Prices.foodPrice[pricesEntity].toFixed(0)}`,
-    );
-  },
-};
+/**
+ * Устаревшая версия системы для обратной совместимости
+ * @deprecated Используйте createPriceFluctuationSystem() с dependency injection
+ */
+export const PriceFluctuationSystem = createPriceFluctuationSystem();
 
 /**
  * Система обновления минимальных расходов
@@ -115,7 +174,9 @@ export const NeedsSystem: System = {
   components: ['Needs'],
 
   update(world: World, entities: readonly number[], delta?: number) {
-    const deltaTime = delta || 1;
+    const deltaTime = delta || 0; // Используем 0 если delta не указан
+    if (deltaTime <= 0) return; // Не обновляем при нулевом или отрицательном времени
+
     const increaseRate = deltaTime * 0.1; // Рост потребностей за тик
 
     for (const eid of entities) {
@@ -135,16 +196,34 @@ export const NeedsSystem: System = {
 };
 
 /**
- * Система ежемесячного списания расходов
- * Списывает деньги за аренду и еду каждый месяц
+ * Создает систему ежемесячных расходов с поддержкой dependency injection
  */
-export const MonthlyExpensesSystem: System = {
-  name: 'MonthlyExpenses',
-  components: ['Citizen'],
+export function createMonthlyExpensesSystem(deps?: import('../services/interfaces').ISystemDependencies) {
+  console.log('createMonthlyExpensesSystem called with deps:', !!deps);
 
-  update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
-    const gameTime = extraData as number | undefined;
-    if (!gameTime) return;
+  return {
+    name: 'MonthlyExpenses',
+    components: ['Citizen'],
+    dependencies: deps,
+
+    update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
+      console.log('=== MonthlyExpensesSystem: update START ===');
+      console.log('deps in closure:', deps);
+
+      // deps доступны через замыкание
+      const systemDeps = deps;
+
+      // Используем gameTime из extraData если deps не переданы, иначе используем timeProvider
+      const gameTime = systemDeps?.timeProvider ? systemDeps.timeProvider.getCurrentTime() : (extraData as number | undefined);
+
+      console.log('MonthlyExpensesSystem: gameTime =', gameTime, 'systemDeps exists:', !!systemDeps);
+
+      if (!gameTime) {
+        console.log('MonthlyExpensesSystem: No gameTime, returning');
+        return;
+      }
+
+      console.log('MonthlyExpensesSystem: Starting update with gameTime:', gameTime);
 
     // Рассчитываем текущий день симуляции
     const currentDay = Math.floor(gameTime / (24 * 60));
@@ -176,7 +255,17 @@ export const MonthlyExpensesSystem: System = {
       }
     }
   },
-};
+  };
+
+  console.log('createMonthlyExpensesSystem returning system with update:', typeof system.update);
+  return system;
+}
+
+/**
+ * Устаревшая версия системы для обратной совместимости
+ * @deprecated Используйте createMonthlyExpensesSystem() с dependency injection
+ */
+export const MonthlyExpensesSystem = createMonthlyExpensesSystem();
 
 /**
  * Система суточных рутин

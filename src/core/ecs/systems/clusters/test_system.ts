@@ -4,6 +4,8 @@ export const TestSystem: System = {
   name: 'Test',
   components: ['Person'],
   update: (world, entities) => {
-    console.log('TestSystem');
+    if (entities.length > 0) {
+      console.log('TestSystem');
+    }
   },
 };

@@ -34,6 +34,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
+    if (!this.tickManager) return; // Wait for initialization
     this.tickManager.update(time, delta);
 
     // Emit SceneReady event on first update if not already emitted
