@@ -1,5 +1,5 @@
 import { World, query } from 'bitecs';
-import { Person, Citizen, Needs } from '../../components';
+import { Person, Citizen, Needs, Prices } from '../../components';
 import { System } from '../types';
 
 /**
@@ -31,6 +31,82 @@ export const PopulationSystem: System = {
 };
 
 /**
+ * Система колебаний цен
+ * Обновляет рыночные цены на товары и услуги
+ */
+export const PriceFluctuationSystem: System = {
+  name: 'PriceFluctuation',
+  components: ['Person'], // Dummy component requirement for global system
+
+  update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
+    const gameTime = extraData as number | undefined;
+    if (!gameTime) return;
+
+    // Обновляем цены раз в 7 игровых дней
+    const currentDay = Math.floor(gameTime / (24 * 60));
+    const pricesEntity = 99999; // Специальная сущность для хранения глобальных цен
+
+    // Инициализируем цены, если они еще не установлены
+    if (Prices.rentPrice[pricesEntity] === undefined) {
+      Prices.rentPrice[pricesEntity] = 300; // Базовая цена аренды
+      Prices.foodPrice[pricesEntity] = 250; // Базовая цена еды
+      Prices.lastUpdateDay[pricesEntity] = currentDay;
+    }
+
+    // Проверяем, нужно ли обновлять цены
+    const lastUpdateDay = Prices.lastUpdateDay[pricesEntity] || 0;
+    if (currentDay - lastUpdateDay < 7) return; // Обновляем раз в 7 дней
+
+    // Обновляем цены с небольшими колебаниями
+    const rentFluctuation = (Math.random() - 0.5) * 0.2; // ±10%
+    const foodFluctuation = (Math.random() - 0.5) * 0.15; // ±7.5%
+
+    const currentRentPrice = Prices.rentPrice[pricesEntity];
+    const currentFoodPrice = Prices.foodPrice[pricesEntity];
+
+    Prices.rentPrice[pricesEntity] = Math.max(
+      200,
+      Math.min(600, currentRentPrice * (1 + rentFluctuation)),
+    );
+    Prices.foodPrice[pricesEntity] = Math.max(
+      150,
+      Math.min(450, currentFoodPrice * (1 + foodFluctuation)),
+    );
+    Prices.lastUpdateDay[pricesEntity] = currentDay;
+
+    console.log(
+      `Prices updated: Rent: ${Prices.rentPrice[pricesEntity].toFixed(0)}, Food: ${Prices.foodPrice[pricesEntity].toFixed(0)}`,
+    );
+  },
+};
+
+/**
+ * Система обновления минимальных расходов
+ * Пересчитывает минимальные расходы жителей на основе текущих цен
+ */
+export const MinimumExpensesUpdateSystem: System = {
+  name: 'MinimumExpensesUpdate',
+  components: ['Citizen'],
+
+  update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
+    const pricesEntity = 99999; // Сущность с глобальными ценами
+
+    if (Prices.rentPrice[pricesEntity] === undefined) return;
+
+    const currentRentPrice = Prices.rentPrice[pricesEntity];
+    const currentFoodPrice = Prices.foodPrice[pricesEntity];
+
+    // Обновляем минимальные расходы для всех жителей
+    for (const citizenId of entities) {
+      const housingType = Citizen.housingType[citizenId] || 0;
+      const rentCost = housingType === 1 ? currentRentPrice : 0; // Арендное жилье
+
+      Citizen.minimumExpenses[citizenId] = rentCost + currentFoodPrice;
+    }
+  },
+};
+
+/**
  * Система управления потребностями
  * Увеличивает уровни потребностей со временем
  */
@@ -53,6 +129,50 @@ export const NeedsSystem: System = {
       const avgNeeds = (Needs.food[eid] + Needs.shopping[eid] + Needs.sleep[eid]) / 3;
       if (avgNeeds > 70 && Citizen.happiness[eid] !== undefined) {
         Citizen.happiness[eid] = Math.max(0, Citizen.happiness[eid] - increaseRate * 0.5);
+      }
+    }
+  },
+};
+
+/**
+ * Система ежемесячного списания расходов
+ * Списывает деньги за аренду и еду каждый месяц
+ */
+export const MonthlyExpensesSystem: System = {
+  name: 'MonthlyExpenses',
+  components: ['Citizen'],
+
+  update(world: World, entities: readonly number[], delta?: number, extraData?: unknown) {
+    const gameTime = extraData as number | undefined;
+    if (!gameTime) return;
+
+    // Рассчитываем текущий день симуляции
+    const currentDay = Math.floor(gameTime / (24 * 60));
+
+    for (const citizenId of entities) {
+      // Получаем дату последнего списания для этого жителя
+      const lastExpenseDay = Citizen.lastExpenseDay[citizenId] || 0;
+
+      // Списываем расходы раз в месяц (каждые 30 дней)
+      if (currentDay - lastExpenseDay >= 30) {
+        const minExpenses = Citizen.minimumExpenses[citizenId] || 0;
+        const currentMoney = Citizen.money[citizenId] || 0;
+
+        if (currentMoney >= minExpenses) {
+          // Достаточно денег - списываем полную сумму
+          Citizen.money[citizenId] = currentMoney - minExpenses;
+          console.log(`Citizen ${citizenId} paid monthly expenses: $${minExpenses}`);
+        } else {
+          // Недостаточно денег - списываем все что есть, житель в долгах
+          Citizen.money[citizenId] = 0;
+          console.log(`Citizen ${citizenId} couldn't afford monthly expenses: $${minExpenses}, only had $${currentMoney}`);
+
+          // Снижаем счастье из-за долгов
+          Citizen.happiness[citizenId] = Math.max(0, Citizen.happiness[citizenId] - 15);
+        }
+
+        // Обновляем дату последнего списания
+        Citizen.lastExpenseDay[citizenId] = currentDay;
       }
     }
   },

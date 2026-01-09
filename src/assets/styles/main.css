@@ -26,7 +26,7 @@ body {
   position: fixed;
   top: 0;
   right: 0;
-  width: 450px;
+  width: 50vw;
   height: 100vh;
   background: rgba(34, 34, 34, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -474,21 +474,54 @@ body {
   margin-bottom: 4px;
 }
 
-.debug-simulation-citizen-stats {
+.debug-simulation-citizen-section {
+  margin-bottom: 8px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+}
+
+.debug-simulation-citizen-section-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #4fc3f7;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.debug-simulation-citizen-stat-item {
+  display: flex;
+  align-items: center;
   font-size: 10px;
-  color: #fff3e0;
+  color: #e0e0e0;
   margin-bottom: 2px;
+  line-height: 1.2;
 }
 
-.debug-simulation-citizen-needs {
-  font-size: 9px;
-  color: #bcaaa4;
-  margin-bottom: 2px;
+.debug-simulation-citizen-stat-icon {
+  margin-right: 6px;
+  width: 14px;
+  text-align: center;
+  font-size: 11px;
 }
 
-.debug-simulation-citizen-location {
-  font-size: 9px;
-  color: #90caf9;
+.debug-simulation-citizen-copy-btn {
+  width: 100%;
+  padding: 6px 12px;
+  background: rgba(76, 175, 80, 0.8);
+  border: none;
+  border-radius: 3px;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.debug-simulation-citizen-copy-btn:hover {
+  background: rgba(76, 175, 80, 1);
 }
 
 .debug-simulation-building-type {

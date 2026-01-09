@@ -39,6 +39,7 @@ export class Core {
   private async initModules(): Promise<void> {
     return new Promise((res) => {
       this.phaser?.events.once('ready', () => {
+        console.log('Phaser ready, initializing scene with eventBus:', this.eventBus);
         const scene = this.phaser!.scene.getScene('main_scene') as MainScene;
         scene.init(this.eventBus, this.tickManager);
         this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager);

@@ -9,6 +9,8 @@ import {
   Render,
   Schedule,
   Gender,
+  EducationLevel,
+  HousingType,
   type PersonData,
   type CitizenData,
   type NeedsData,
@@ -80,12 +82,19 @@ export class PersonFactory {
   createRandom(positionData: PositionData, homeId?: EntityId): EntityId {
     const gender = Math.random() < 0.5 ? Gender.MALE : Gender.FEMALE;
     const age = 18 + Math.random() * 60; // 18-78 лет
+    const education = this.generateRandomEducation(age);
 
     const personData: PersonData = {
       age,
       gender,
       name: this.generateName(gender),
+      education,
     };
+
+    const housingType = Math.random() < 0.7 ? HousingType.OWNED : HousingType.RENTED;
+    const rentCost = housingType === HousingType.RENTED ? 200 + Math.random() * 300 : 0; // Аренда 200-500
+    const foodCost = 150 + Math.random() * 200; // Еда 150-350
+    const minimumExpenses = rentCost + foodCost;
 
     const citizenData: CitizenData = {
       happiness: 70 + Math.random() * 30, // 70-100
@@ -93,6 +102,13 @@ export class PersonFactory {
       workplace: undefined,
       money: 100 + Math.random() * 900, // 100-1000
       energy: 80 + Math.random() * 20, // 80-100
+      housingType,
+      minimumExpenses,
+      salary: 0, // Пока нет работы
+      isLookingForJob: true, // Начинает с поиска работы
+      jobSearchAttempts: 0,
+      lastJobSearchDay: 0,
+      lastExpenseDay: 0,
     };
 
     return this.create(personData, citizenData, positionData, homeId);
@@ -127,11 +143,44 @@ export class PersonFactory {
     return names[Math.floor(Math.random() * names.length)];
   }
 
+  /**
+   * Генерирует случайный уровень образования в зависимости от возраста
+   */
+  private generateRandomEducation(age: number): EducationLevel {
+    // Распределение образования по возрастам
+    if (age < 25) {
+      // Молодежь - чаще имеют высшее образование
+      const rand = Math.random();
+      if (rand < 0.3) return EducationLevel.NONE;
+      if (rand < 0.5) return EducationLevel.PRIMARY;
+      if (rand < 0.7) return EducationLevel.SECONDARY;
+      if (rand < 0.9) return EducationLevel.COLLEGE;
+      return EducationLevel.UNIVERSITY;
+    } else if (age < 45) {
+      // Средний возраст - смешанное образование
+      const rand = Math.random();
+      if (rand < 0.2) return EducationLevel.NONE;
+      if (rand < 0.4) return EducationLevel.PRIMARY;
+      if (rand < 0.6) return EducationLevel.SECONDARY;
+      if (rand < 0.8) return EducationLevel.COLLEGE;
+      return EducationLevel.UNIVERSITY;
+    } else {
+      // Старшее поколение - чаще низкое образование
+      const rand = Math.random();
+      if (rand < 0.4) return EducationLevel.NONE;
+      if (rand < 0.6) return EducationLevel.PRIMARY;
+      if (rand < 0.8) return EducationLevel.SECONDARY;
+      if (rand < 0.9) return EducationLevel.COLLEGE;
+      return EducationLevel.UNIVERSITY;
+    }
+  }
+
   // Методы для установки данных компонентов
   private setPersonData(eid: EntityId, data: PersonData) {
     Person.age[eid] = data.age;
     Person.gender[eid] = data.gender;
     Person.name[eid] = data.name;
+    Person.education[eid] = data.education;
   }
 
   private setCitizenData(eid: EntityId, data: CitizenData) {
@@ -140,6 +189,12 @@ export class PersonFactory {
     Citizen.workplace[eid] = data.workplace || 0;
     Citizen.money[eid] = data.money;
     Citizen.energy[eid] = data.energy;
+    Citizen.housingType[eid] = data.housingType;
+    Citizen.minimumExpenses[eid] = data.minimumExpenses;
+    Citizen.salary[eid] = data.salary;
+    Citizen.isLookingForJob[eid] = data.isLookingForJob;
+    Citizen.jobSearchAttempts[eid] = data.jobSearchAttempts;
+    Citizen.lastJobSearchDay[eid] = data.lastJobSearchDay;
   }
 
   private setNeedsData(eid: EntityId, data: NeedsData) {

@@ -1,4 +1,5 @@
 import { EntityId } from 'bitecs';
+import { EducationLevel } from '../population/person_component';
 
 /**
  * Рабочее место
@@ -13,6 +14,8 @@ export const Workplace = {
   worker: [] as (EntityId | undefined)[],
   /** Здание, где находится рабочее место */
   building: [] as EntityId[],
+  /** Минимальный уровень образования для работы */
+  minEducationLevel: [] as number[],
 } as const;
 
 /**
@@ -33,4 +36,5 @@ export type WorkplaceData = {
   salary: number;
   worker?: EntityId;
   building: EntityId;
+  minEducationLevel: EducationLevel;
 };

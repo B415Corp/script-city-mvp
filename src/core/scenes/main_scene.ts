@@ -2,11 +2,13 @@ import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { TickManager } from '../tick/tick_manager';
 import { Tiles } from './tiles';
+import { ModuleManager } from '../modules/module_manager';
 
 export class MainScene extends Phaser.Scene {
   private eventBus!: EventBus;
   private tickManager!: TickManager;
-  private moduleManager!: any; // Для доступа к DebugModule
+  private moduleManager!: ModuleManager; // Для доступа к DebugModule
+  private sceneReadyEmitted = false;
 
   constructor() {
     super({ key: 'main_scene' });
@@ -17,27 +19,36 @@ export class MainScene extends Phaser.Scene {
   }
 
   init(eventBus: EventBus, tickManager: TickManager): void {
+    console.log('MainScene init called with eventBus:', eventBus, typeof eventBus);
     this.eventBus = eventBus;
     this.tickManager = tickManager;
+    console.log('Scene initialized successfully');
   }
 
-  setModuleManager(moduleManager: any): void {
+  setModuleManager(moduleManager: ModuleManager): void {
     this.moduleManager = moduleManager;
   }
 
   create(): void {
     console.log('MainScene create');
-
-    this.eventBus.emit(Events.SceneReady);
   }
 
   update(time: number, delta: number): void {
     this.tickManager.update(time, delta);
 
+    // Emit SceneReady event on first update if not already emitted
+    if (!this.sceneReadyEmitted && this.eventBus && typeof this.eventBus.emit === 'function') {
+      console.log('Emitting SceneReady event from update');
+      this.eventBus.emit(Events.SceneReady);
+      this.sceneReadyEmitted = true;
+    }
+
     // Обновляем DebugModule
     if (this.moduleManager) {
-      const debugModule = this.moduleManager.getBaseModuleApi('DebugModule');
-      debugModule?.update();
+      const debugModule = this.moduleManager.getBaseModuleApi('DebugModule') as {
+        update?: () => void;
+      };
+      debugModule?.update?.();
     }
   }
 

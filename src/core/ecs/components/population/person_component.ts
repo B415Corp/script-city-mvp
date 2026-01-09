@@ -9,6 +9,8 @@ export const Person = {
   gender: [] as number[],
   /** Имя человека */
   name: [] as string[],
+  /** Уровень образования (1-5: Без образования, Начальное, Среднее, Колледж, Высшее) */
+  education: [] as number[],
 } as const;
 
 /**
@@ -20,10 +22,22 @@ export enum Gender {
 }
 
 /**
+ * Уровни образования
+ */
+export enum EducationLevel {
+  NONE = 1, // Без образования
+  PRIMARY = 2, // Начальное
+  SECONDARY = 3, // Среднее
+  COLLEGE = 4, // Колледж
+  UNIVERSITY = 5, // Высшее
+}
+
+/**
  * Тип для данных человека
  */
 export type PersonData = {
   age: number;
   gender: Gender;
   name: string;
+  education: EducationLevel;
 };

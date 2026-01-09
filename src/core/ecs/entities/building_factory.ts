@@ -15,6 +15,7 @@ import {
   type RenderData,
   CommercialType,
   SpriteType,
+  EducationLevel,
 } from '../components';
 
 /**
@@ -143,6 +144,37 @@ export class BuildingFactory {
       salary,
       worker: undefined,
       building: 0, // Будет установлено позже
+      minEducationLevel: EducationLevel.SECONDARY, // Минимум среднее образование
+    };
+
+    return this.createWorkplace(workplaceData, positionData);
+  }
+
+  /**
+   * Создает рабочее место кассира в магазине
+   */
+  createShopCashier(positionData: PositionData, salary: number = 300): EntityId {
+    const workplaceData: WorkplaceData = {
+      jobType: 'cashier',
+      salary,
+      worker: undefined,
+      building: 0, // Будет установлено позже
+      minEducationLevel: EducationLevel.PRIMARY, // Минимум начальное образование
+    };
+
+    return this.createWorkplace(workplaceData, positionData);
+  }
+
+  /**
+   * Создает рабочее место менеджера магазина
+   */
+  createShopManager(positionData: PositionData, salary: number = 450): EntityId {
+    const workplaceData: WorkplaceData = {
+      jobType: 'manager',
+      salary,
+      worker: undefined,
+      building: 0, // Будет установлено позже
+      minEducationLevel: EducationLevel.COLLEGE, // Минимум колледж
     };
 
     return this.createWorkplace(workplaceData, positionData);
@@ -167,6 +199,7 @@ export class BuildingFactory {
     Workplace.salary[eid] = data.salary;
     Workplace.worker[eid] = data.worker || 0;
     Workplace.building[eid] = data.building;
+    Workplace.minEducationLevel[eid] = data.minEducationLevel;
   }
 
   private setPositionData(eid: EntityId, data: PositionData) {

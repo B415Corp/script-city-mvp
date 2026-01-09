@@ -23,4 +23,4 @@ export interface TickStartedPayload {
 /**
  * Типы для контроллеров
  */
-export type SetSpeedPayload = { speed: 10 | 30 | 60 };
+export type SetSpeedPayload = { speed: 10 | 60 | 240 };

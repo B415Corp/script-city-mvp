@@ -4,7 +4,16 @@ import { Events } from '../event_bus/events';
 import { CallSystemPayload } from '../event_bus/types';
 
 import { EntityFactory } from './entities';
-import { PopulationSystem, NeedsSystem, DailyRoutineSystem } from './systems/clusters';
+import {
+  PopulationSystem,
+  NeedsSystem,
+  DailyRoutineSystem,
+  JobSearchSystem,
+  FiringSystem,
+  PriceFluctuationSystem,
+  MinimumExpensesUpdateSystem,
+  MonthlyExpensesSystem,
+} from './systems/clusters';
 import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
 import {
   WakeUpSystem,
@@ -40,6 +49,11 @@ const systemRegistry: Record<string, System> = {
   Population: PopulationSystem,
   Needs: NeedsSystem,
   DailyRoutine: DailyRoutineSystem,
+  PriceFluctuation: PriceFluctuationSystem,
+  MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
+  MonthlyExpenses: MonthlyExpensesSystem,
+  JobSearch: JobSearchSystem,
+  Firing: FiringSystem,
   Test: TestSystem,
   // Системы расписания
   WakeUp: WakeUpSystem,
@@ -62,12 +76,14 @@ const clustersRegistry: Record<string, SystemCluster> = {
       'Feeding',
       'Sleep',
       'ShoppingDecision',
+      'JobSearch',
+      'Firing',
     ],
     enabled: true,
     interval: undefined, // Каждый тик
   },
   economy: {
-    systemNames: [], // Можно добавить экономические системы
+    systemNames: ['PriceFluctuation', 'MinimumExpensesUpdate', 'MonthlyExpenses'], // Экономические системы
     enabled: true,
     interval: 120.0,
   },
@@ -92,7 +108,7 @@ export class ECSManager {
 
   constructor(
     private eventBus: EventBus,
-    private timeController?: any,
+    private timeController?: unknown,
   ) {
     console.log('🚀 ECSManager initialized');
     this.world = createWorld();
@@ -453,7 +469,7 @@ export class ECSManager {
    * Получить текущее игровое время в минутах
    */
   getGameTime(): number {
-    return this.timeController?.getGameTime() || 0;
+    return (this.timeController as { getGameTime?: () => number })?.getGameTime?.() || 0;
   }
 
   /**

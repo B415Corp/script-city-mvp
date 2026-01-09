@@ -1,6 +1,7 @@
 import { addEntity, addComponent } from 'bitecs';
 import { World, EntityId } from 'bitecs';
 import { Job, Goods, type JobData, type GoodsData, GoodsType } from '../components';
+import { EducationLevel } from '../components/population/person_component';
 
 /**
  * Фабрика для создания рабочих мест и товаров

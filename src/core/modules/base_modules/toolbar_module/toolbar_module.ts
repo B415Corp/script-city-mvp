@@ -114,7 +114,7 @@ export class ToolbarModule extends BaseModule {
       text: 'X2',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 30 });
+        this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
         switchTimeButton('speedX2');
       },
     });
@@ -127,7 +127,7 @@ export class ToolbarModule extends BaseModule {
       text: 'X3',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
+        this.eventBus.emit(Events.SetGameSpeed, { speed: 240 });
         switchTimeButton('speedX3');
       },
     });

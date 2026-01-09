@@ -11,8 +11,27 @@ import {
   Commercial,
   Workplace,
   ID,
+  EducationLevel,
+  HousingType,
+  Prices,
 } from '@/core/ecs/components';
 import { query } from 'bitecs';
+
+// Вспомогательные функции
+/**
+ * Расчет дней до уплаты долгов
+ * Основан на месячном дефиците и дневной зарплате
+ * salary / 30 = дневная зарплата (предполагаем 30 дней в месяце)
+ * Math.ceil() используется для округления вверх
+ */
+function calculateDebtDays(salary: number, minimumExpenses: number): string {
+  if (salary >= minimumExpenses) return '0'; // Нет долгов
+  if (salary <= 0) return '∞'; // Невозможно выплатить
+
+  const monthlyDeficit = minimumExpenses - salary;
+  const daysToCover = Math.ceil(monthlyDeficit / (salary / 30)); // 30 дней в месяце
+  return daysToCover.toString();
+}
 
 // Интерфейсы для данных симуляции
 export interface CitizenData {
@@ -24,6 +43,14 @@ export interface CitizenData {
   money: number;
   home: number;
   workplace?: number;
+  education: string; // Уровень образования
+  housingType: string; // Тип собственности жилья
+  salary: number; // Зарплата
+  minimumExpenses: number; // Минимальные расходы
+  isLookingForJob: boolean; // Ищет ли работу
+  jobSearchAttempts: number; // Количество попыток поиска работы
+  lastJobSearchDay: number; // День последней попытки поиска
+  lastExpenseDay: number; // День последнего списания расходов
   needs: {
     food: number; // Hunger level
     shopping: number; // Shopping need
@@ -140,6 +167,8 @@ export class SimulationDebug extends DebugComponent {
 
     // Получить всех жителей из ECS
     const citizensData = this.getCitizensData();
+    // Получить текущие цены
+    const pricesData = this.getCurrentPrices();
 
     if (citizensData.length === 0) {
       const noDataDiv = document.createElement('div');
@@ -163,27 +192,150 @@ export class SimulationDebug extends DebugComponent {
       const energyStatus = citizen.energy > 70 ? '🟢' : citizen.energy > 30 ? '🟡' : '🔴';
       const happinessStatus = citizen.happiness > 70 ? '😊' : citizen.happiness > 30 ? '😐' : '😢';
 
-      citizenDiv.innerHTML = `
+      const salaryStatus =
+        citizen.salary > citizen.minimumExpenses
+          ? '🟢'
+          : citizen.salary > citizen.minimumExpenses * 0.8
+            ? '🟡'
+            : '🔴';
+
+      // Рассчитываем стоимость аренды для этого жителя
+      const rentCost = citizen.housingType === 'Арендное' ? pricesData.rentPrice : 0;
+
+      // Основная информация
+      const basicInfo = document.createElement('div');
+      basicInfo.className = 'debug-simulation-citizen-section';
+      basicInfo.innerHTML = `
         <div class="debug-simulation-citizen-header">
           <strong>ID ${citizen.id}</strong> - ${citizen.age.toFixed(1)}г, ${citizen.gender === 'Male' ? 'Муж' : 'Жен'}
         </div>
-        <div class="debug-simulation-citizen-stats">
-          ${energyStatus} Энергия: ${citizen.energy.toFixed(0)}% |
-          ${happinessStatus} Счастье: ${citizen.happiness.toFixed(0)}% |
-          💰 $${citizen.money.toFixed(0)}
+      `;
+
+      // Статусы и ресурсы
+      const statusSection = document.createElement('div');
+      statusSection.className = 'debug-simulation-citizen-section';
+      statusSection.innerHTML = `
+        <div class="debug-simulation-citizen-section-title">📊 Статусы и ресурсы</div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">${energyStatus}</span>
+          <span>Энергия: ${citizen.energy.toFixed(0)}%</span>
         </div>
-        <div class="debug-simulation-citizen-needs">
-          🍎 Голод: ${citizen.needs.food.toFixed(0)}% |
-          🛒 Нужда в покупках: ${citizen.needs.shopping.toFixed(0)}% |
-          💼 Нужда в работе: ${citizen.needs.work.toFixed(0)}% |
-          😴 Нужда во сне: ${citizen.needs.sleep.toFixed(0)}%
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">${happinessStatus}</span>
+          <span>Счастье: ${citizen.happiness.toFixed(0)}%</span>
         </div>
-        <div class="debug-simulation-citizen-location">
-          🏠 Дом: ${citizen.home} |
-          💼 Работа: ${citizen.workplace || 'Нет'} |
-          📍 Позиция: (${citizen.position.x.toFixed(1)}, ${citizen.position.y.toFixed(1)})
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">💰</span>
+          <span>Деньги: $${citizen.money.toFixed(0)}</span>
         </div>
       `;
+
+      // Работа и образование
+      const workSection = document.createElement('div');
+      workSection.className = 'debug-simulation-citizen-section';
+      workSection.innerHTML = `
+        <div class="debug-simulation-citizen-section-title">💼 Работа и образование</div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🎓</span>
+          <span>Образование: ${citizen.education}</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">💼</span>
+          <span>Работа: ${citizen.workplace || 'Нет'}</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🔍</span>
+          <span>Ищет работу: ${citizen.isLookingForJob ? 'Да' : 'Нет'}</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">📊</span>
+          <span>Попыток поиска: ${citizen.jobSearchAttempts}</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">${salaryStatus}</span>
+          <span>Зарплата: $${citizen.salary.toFixed(0)}/мес</span>
+        </div>
+      `;
+
+      // Жилье и финансы
+      const housingSection = document.createElement('div');
+      housingSection.className = 'debug-simulation-citizen-section';
+      housingSection.innerHTML = `
+        <div class="debug-simulation-citizen-section-title">🏠 Жилье и финансы</div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🏠</span>
+          <span>Тип жилья: ${citizen.housingType}</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">💰</span>
+          <span>Аренда: $${rentCost.toFixed(0)}/мес</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🍎</span>
+          <span>Еда: $${pricesData.foodPrice.toFixed(0)}/мес</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">💰</span>
+          <span>Итого расходы: $${citizen.minimumExpenses.toFixed(0)}/мес</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">⏰</span>
+          <span>Долги: ${calculateDebtDays(citizen.salary, citizen.minimumExpenses)} дней</span>
+        </div>
+      `;
+
+      // Потребности
+      const needsSection = document.createElement('div');
+      needsSection.className = 'debug-simulation-citizen-section';
+      needsSection.innerHTML = `
+        <div class="debug-simulation-citizen-section-title">🎯 Потребности</div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🍎</span>
+          <span>Голод: ${citizen.needs.food.toFixed(0)}%</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🛒</span>
+          <span>Покупки: ${citizen.needs.shopping.toFixed(0)}%</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">💼</span>
+          <span>Работа: ${citizen.needs.work.toFixed(0)}%</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">😴</span>
+          <span>Сон: ${citizen.needs.sleep.toFixed(0)}%</span>
+        </div>
+      `;
+
+      // Местоположение
+      const locationSection = document.createElement('div');
+      locationSection.className = 'debug-simulation-citizen-section';
+      locationSection.innerHTML = `
+        <div class="debug-simulation-citizen-section-title">📍 Местоположение</div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">🏠</span>
+          <span>Дом ID: ${citizen.home}</span>
+        </div>
+        <div class="debug-simulation-citizen-stat-item">
+          <span class="debug-simulation-citizen-stat-icon">📍</span>
+          <span>Позиция: (${citizen.position.x.toFixed(1)}, ${citizen.position.y.toFixed(1)})</span>
+        </div>
+      `;
+
+      // Кнопка копирования
+      const copyButton = document.createElement('button');
+      copyButton.className = 'debug-simulation-citizen-copy-btn';
+      copyButton.textContent = '📋 Копировать данные';
+      copyButton.onclick = () => this.copyCitizenDataToClipboard(citizen);
+
+      // Добавляем все секции
+      citizenDiv.appendChild(basicInfo);
+      citizenDiv.appendChild(statusSection);
+      citizenDiv.appendChild(workSection);
+      citizenDiv.appendChild(housingSection);
+      citizenDiv.appendChild(needsSection);
+      citizenDiv.appendChild(locationSection);
+      citizenDiv.appendChild(copyButton);
 
       this.citizensList.appendChild(citizenDiv);
     });
@@ -259,21 +411,42 @@ export class SimulationDebug extends DebugComponent {
     const economyDiv = document.createElement('div');
     economyDiv.className = 'debug-simulation-economy';
 
+    const citizensData = this.getCitizensData();
+    const totalSalaries = citizensData.reduce((sum, citizen) => sum + citizen.salary, 0);
+    const totalMinExpenses = citizensData.reduce(
+      (sum, citizen) => sum + citizen.minimumExpenses,
+      0,
+    );
+
+    const employmentStats = this.getEmploymentStats();
+
     economyDiv.innerHTML = `
       <div class="debug-simulation-economy-item">
+        👥 <strong>Население:</strong> ${citizensData.length} чел.
+      </div>
+      <div class="debug-simulation-economy-item">
+        💼 <strong>С работой:</strong> ${employmentStats.employed} чел.
+      </div>
+      <div class="debug-simulation-economy-item">
+        🔍 <strong>Без работы:</strong> ${employmentStats.unemployed} чел.
+      </div>
+      <div class="debug-simulation-economy-item">
         💰 <strong>Общие деньги:</strong> $${economyData.totalMoney.toFixed(0)}
+      </div>
+      <div class="debug-simulation-economy-item">
+        💼 <strong>Общие зарплаты:</strong> $${totalSalaries.toFixed(0)}/мес
+      </div>
+      <div class="debug-simulation-economy-item">
+        💸 <strong>Минимальные расходы:</strong> $${totalMinExpenses.toFixed(0)}/мес
       </div>
       <div class="debug-simulation-economy-item">
         📈 <strong>Общий доход:</strong> $${economyData.totalRevenue.toFixed(0)}/день
       </div>
       <div class="debug-simulation-economy-item">
-        💸 <strong>Общие расходы:</strong> $${economyData.totalCosts.toFixed(0)}/день
-      </div>
-      <div class="debug-simulation-economy-item">
         😊 <strong>Среднее счастье:</strong> ${economyData.averageHappiness.toFixed(1)}%
       </div>
       <div class="debug-simulation-economy-item">
-        💼 <strong>Уровень занятости:</strong> ${(economyData.employmentRate * 100).toFixed(1)}%
+        📊 <strong>Уровень занятости:</strong> ${(economyData.employmentRate * 100).toFixed(1)}%
       </div>
     `;
 
@@ -327,6 +500,21 @@ export class SimulationDebug extends DebugComponent {
       const personEntities = query(world, [Person, Citizen, Needs, Position, Schedule]);
 
       personEntities.forEach((eid: number) => {
+        const educationLevel = Person.education[eid] || 1;
+        const educationNames: Record<EducationLevel, string> = {
+          [EducationLevel.NONE]: 'Без образования',
+          [EducationLevel.PRIMARY]: 'Начальное',
+          [EducationLevel.SECONDARY]: 'Среднее',
+          [EducationLevel.COLLEGE]: 'Колледж',
+          [EducationLevel.UNIVERSITY]: 'Высшее',
+        };
+
+        const housingType = Citizen.housingType[eid] || 0;
+        const housingNames: Record<HousingType, string> = {
+          [HousingType.OWNED]: 'Собственное',
+          [HousingType.RENTED]: 'Арендное',
+        };
+
         citizens.push({
           id: eid,
           age: Person.age[eid],
@@ -339,6 +527,14 @@ export class SimulationDebug extends DebugComponent {
             Citizen.workplace[eid] && Citizen.workplace[eid] > 0
               ? Citizen.workplace[eid]
               : undefined,
+          education: educationNames[educationLevel as EducationLevel] || 'Неизвестно',
+          housingType: housingNames[housingType as HousingType] || 'Неизвестно',
+          salary: Citizen.salary[eid] || 0,
+          minimumExpenses: Citizen.minimumExpenses[eid] || 0,
+          isLookingForJob: Citizen.isLookingForJob[eid] || false,
+          jobSearchAttempts: Citizen.jobSearchAttempts[eid] || 0,
+          lastJobSearchDay: Citizen.lastJobSearchDay[eid] || 0,
+          lastExpenseDay: Citizen.lastExpenseDay[eid] || 0,
           needs: {
             food: Needs.food[eid],
             shopping: Needs.shopping[eid],
@@ -412,18 +608,27 @@ export class SimulationDebug extends DebugComponent {
     const buildingsData = this.getBuildingsData();
 
     const totalMoney = citizensData.reduce((sum, citizen) => sum + citizen.money, 0);
+    const totalSalaries = citizensData.reduce((sum, citizen) => sum + citizen.salary, 0);
+    const totalMinExpenses = citizensData.reduce(
+      (sum, citizen) => sum + citizen.minimumExpenses,
+      0,
+    );
+
+    // Подсчет статистики занятости
+    const employedCitizens = citizensData.filter(
+      (citizen) => citizen.workplace !== undefined,
+    ).length;
+    const unemployedCitizens = citizensData.length - employedCitizens;
+
     // Пока используем заглушки для экономики, так как эти данные еще не реализованы в компонентах
     const totalRevenue = 0; // TODO: Реализовать в компонентах зданий
-    const totalCosts = 0; // TODO: Реализовать в компонентах зданий
+    const totalCosts = totalMinExpenses; // Пока что минимальные расходы жителей
+
     const averageHappiness =
       citizensData.length > 0
         ? citizensData.reduce((sum, citizen) => sum + citizen.happiness, 0) / citizensData.length
         : 0;
-    const employmentRate =
-      citizensData.length > 0
-        ? citizensData.filter((citizen) => citizen.workplace !== undefined).length /
-          citizensData.length
-        : 0;
+    const employmentRate = citizensData.length > 0 ? employedCitizens / citizensData.length : 0;
 
     return {
       totalMoney,
@@ -432,6 +637,17 @@ export class SimulationDebug extends DebugComponent {
       averageHappiness,
       employmentRate,
     };
+  }
+
+  /**
+   * Получить статистику занятости жителей
+   */
+  private getEmploymentStats(): { employed: number; unemployed: number } {
+    const citizensData = this.getCitizensData();
+    const employed = citizensData.filter((citizen) => citizen.workplace !== undefined).length;
+    const unemployed = citizensData.length - employed;
+
+    return { employed, unemployed };
   }
 
   private getScheduleData(): {
@@ -526,6 +742,21 @@ export class SimulationDebug extends DebugComponent {
     }
   }
 
+  private getCurrentPrices(): { rentPrice: number; foodPrice: number } {
+    try {
+      const world = this.ecsManager!.getWorld();
+      const pricesEntity = 99999; // Сущность с глобальными ценами
+
+      const rentPrice = Prices.rentPrice[pricesEntity] || 300;
+      const foodPrice = Prices.foodPrice[pricesEntity] || 250;
+
+      return { rentPrice, foodPrice };
+    } catch (error) {
+      console.error('Error getting current prices:', error);
+      return { rentPrice: 300, foodPrice: 250 };
+    }
+  }
+
   private showError(message: string): void {
     const errorDiv = `<div class="debug-no-data debug-error">• ${message}</div>`;
 
@@ -533,5 +764,37 @@ export class SimulationDebug extends DebugComponent {
     if (this.buildingsList) this.buildingsList.innerHTML = errorDiv;
     if (this.economyList) this.economyList.innerHTML = errorDiv;
     if (this.scheduleList) this.scheduleList.innerHTML = errorDiv;
+  }
+
+  private copyCitizenDataToClipboard(citizen: CitizenData): void {
+    const data = {
+      id: citizen.id,
+      age: citizen.age,
+      gender: citizen.gender,
+      happiness: citizen.happiness,
+      energy: citizen.energy,
+      money: citizen.money,
+      home: citizen.home,
+      workplace: citizen.workplace,
+      education: citizen.education,
+      housingType: citizen.housingType,
+      salary: citizen.salary,
+      minimumExpenses: citizen.minimumExpenses,
+      isLookingForJob: citizen.isLookingForJob,
+      jobSearchAttempts: citizen.jobSearchAttempts,
+      lastJobSearchDay: citizen.lastJobSearchDay,
+      lastExpenseDay: citizen.lastExpenseDay,
+      needs: citizen.needs,
+      currentActivity: citizen.currentActivity,
+      position: citizen.position,
+    };
+
+    const jsonData = JSON.stringify(data, null, 2);
+    navigator.clipboard.writeText(jsonData).then(() => {
+      console.log('Citizen data copied to clipboard');
+      // Можно добавить визуальную обратную связь
+    }).catch(err => {
+      console.error('Failed to copy citizen data:', err);
+    });
   }
 }
