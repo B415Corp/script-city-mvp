@@ -5,8 +5,7 @@ import { TickManager } from '../tick/tick_manager';
 import { LogicTickData } from '../tick/types';
 import { Events } from '../event_bus/events';
 import { Gender, EducationLevel, HousingType } from '../ecs/components/population';
-import { CommercialType } from '../ecs/components/buildings';
-import { Citizen, Workplace, Person, Prices } from '../ecs/components';
+import { Citizen, Workplace, Person } from '../ecs/components';
 
 export class EntrySimulation {
   private entityFactory: EntityFactory;
@@ -72,189 +71,66 @@ export class EntrySimulation {
   }
 
   private createInitialEntities(): void {
-    console.log('Creating initial entities for MVP simulation...');
+    console.log('Creating initial entities for simplified simulation...');
 
     // Создаем жилые дома (10 штук)
     const houses: { x: number; y: number }[] = [];
+    const houseIds: number[] = [];
     for (let i = 0; i < 10; i++) {
       const position = { x: Math.random() * 100, y: Math.random() * 100 };
       houses.push(position);
-      this.entityFactory.buildings.createSimpleHouse(position);
+      const houseId = this.entityFactory.buildings.createSimpleHouse(position);
+      houseIds.push(houseId);
     }
 
-    // Создаем коммерческие здания (5 магазинов и 3 офиса)
-    const shopIds: number[] = [];
-    const officeIds: number[] = [];
+    // Создаем 100 жителей - по 10 на каждый дом
+    const citizens: number[] = [];
+    let workplaceCounter = 0;
 
-    for (let i = 0; i < 5; i++) {
-      const shopId = this.entityFactory.buildings.createSimpleShop({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-      });
-      shopIds.push(shopId);
-    }
+    for (let houseIndex = 0; houseIndex < houses.length; houseIndex++) {
+      for (let citizenInHouse = 0; citizenInHouse < 10; citizenInHouse++) {
+        const age = 25 + Math.random() * 30;
+        const education = this.generateRandomEducation(age);
 
-    for (let i = 0; i < 3; i++) {
-      const officeId = this.entityFactory.buildings.createSimpleOffice({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-      });
-      officeIds.push(officeId);
-    }
-
-    // Создаем рабочие места для магазинов (кассары и менеджеры)
-    const workplaceIds: number[] = [];
-    for (const shopId of shopIds) {
-      // 2 кассира на магазин
-      for (let j = 0; j < 2; j++) {
-        const workplaceId = this.entityFactory.buildings.createShopCashier(
-          {
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-          },
-          250 + Math.random() * 100,
-        ); // Зарплата 250-350
-        workplaceIds.push(workplaceId);
-      }
-      // 1 менеджер на магазин
-      const managerId = this.entityFactory.buildings.createShopManager(
-        {
-          x: Math.random() * 100,
-          y: Math.random() * 100,
-        },
-        400 + Math.random() * 200,
-      ); // Зарплата 400-600
-      workplaceIds.push(managerId);
-    }
-
-    // Создаем рабочие места для офисов
-    for (const officeId of officeIds) {
-      // 3 рабочих места на офис
-      for (let j = 0; j < 3; j++) {
+        // Создаем рабочее место для каждого жителя
         const workplaceId = this.entityFactory.buildings.createSimpleOffice(
           {
             x: Math.random() * 100,
             y: Math.random() * 100,
           },
-          400 + Math.random() * 300,
-        ); // Зарплата 400-700
-        workplaceIds.push(workplaceId);
+          100, // Фиксированная зарплата 100
+        );
+
+        const citizenId = this.entityFactory.persons.create(
+          {
+            age,
+            gender: Math.random() < 0.5 ? Gender.MALE : Gender.FEMALE,
+            name: `Citizen ${houseIndex}-${citizenInHouse}`,
+            education,
+          },
+          {
+            happiness: 50,
+            home: houseIds[houseIndex], // ID реального дома
+            workplace: workplaceId, // Уже имеет работу
+            money: 100, // Стартовые 100 денег
+            energy: 30 + Math.random() * 20,
+            housingType: HousingType.OWNED, // Все имеют собственное жилье
+            minimumExpenses: 0, // Нет расходов в упрощенной симуляции
+            salary: 100, // Фиксированная зарплата
+            isLookingForJob: false, // Уже имеет работу
+            jobSearchAttempts: 0,
+            lastJobSearchDay: 0,
+            lastExpenseDay: 0,
+          },
+          houses[houseIndex],
+        );
+
+        citizens.push(citizenId);
+        workplaceCounter++;
       }
     }
 
-    // Создаем жителей (20 человек) и распределяем их по домам
-    const citizens: number[] = [];
-    for (let i = 0; i < 150; i++) {
-      const homeIndex = Math.floor(Math.random() * houses.length);
-
-      const age = 25 + Math.random() * 30;
-      // Генерируем образование в зависимости от возраста
-      const education = this.generateRandomEducation(age);
-
-      const housingType = Math.random() < 0.7 ? HousingType.OWNED : HousingType.RENTED;
-      const rentCost = housingType === HousingType.RENTED ? 200 + Math.random() * 300 : 0; // Аренда 200-500
-      const foodCost = 150 + Math.random() * 200; // Еда 150-350
-      const minimumExpenses = rentCost + foodCost;
-
-      const citizenId = this.entityFactory.persons.create(
-        {
-          age,
-          gender: Math.random() < 0.5 ? Gender.MALE : Gender.FEMALE,
-          name: `Person ${i}`,
-          education,
-        }, // возраст 25-55
-        {
-          happiness: 50,
-          home: homeIndex, // ID дома
-          workplace: undefined, // Будет назначено системой
-          money: 1000 + Math.random() * 4000,
-          energy: 30 + Math.random() * 20, // Начинаем со средней/низкой энергией (спят)
-          housingType,
-          minimumExpenses,
-          salary: 0, // Пока нет работы
-          isLookingForJob: true, // Начинает с поиска работы
-          jobSearchAttempts: 0,
-          lastJobSearchDay: 0,
-          lastExpenseDay: 0,
-        },
-        houses[homeIndex], // позиция дома
-      );
-
-      citizens.push(citizenId);
-    }
-
-    // Назначаем рабочие места жителям
-    this.assignWorkplaces(citizens);
-
-    // Инициализируем глобальные цены
-    this.initializeGlobalPrices();
-
-    console.log('Initial entities created: 20 citizens, 10 houses, 5 shops, 3 offices, 8 jobs');
-  }
-
-  private assignWorkplaces(citizenIds: number[]): void {
-    // Получить все доступные рабочие места
-    const world = this.ecsManager.getWorld();
-    const workplaces: number[] = [];
-
-    // Ищем все сущности с компонентом Workplace
-    for (let i = 0; i < 10000; i++) {
-      try {
-        if (Workplace.jobType[i] !== undefined && Workplace.worker[i] === undefined) {
-          workplaces.push(i);
-        }
-      } catch {
-        // Игнорируем ошибки - сущность не существует
-      }
-    }
-
-    console.log(
-      `Found ${workplaces.length} available workplaces, assigning to ${citizenIds.length} citizens`,
-    );
-
-    // Назначаем рабочие места жителям с учетом образования
-    let assignedCount = 0;
-    for (const citizenId of citizenIds) {
-      if (assignedCount >= workplaces.length) break;
-
-      // Ищем подходящее рабочее место для жителя
-      const citizenEducation = Person.education[citizenId] || 1;
-
-      for (const workplaceId of workplaces) {
-        if (Workplace.worker[workplaceId] !== undefined) continue; // Уже занято
-
-        const requiredEducation = Workplace.minEducationLevel[workplaceId] || 1;
-        const salary = Workplace.salary[workplaceId] || 0;
-        const minExpenses = Citizen.minimumExpenses[citizenId] || 0;
-
-        // Проверяем соответствие образованию и достаточности зарплаты
-        if (citizenEducation >= requiredEducation && salary >= minExpenses) {
-          // Назначаем работу
-          Citizen.workplace[citizenId] = workplaceId;
-          Citizen.salary[citizenId] = salary;
-          Workplace.worker[workplaceId] = citizenId;
-
-          console.log(
-            `Assigned workplace ${workplaceId} (salary: ${salary}) to citizen ${citizenId} (education: ${citizenEducation})`,
-          );
-          assignedCount++;
-          break; // Переходим к следующему жителю
-        }
-      }
-    }
-
-    console.log(`Assigned ${assignedCount} workplaces to citizens`);
-  }
-
-  private initializeGlobalPrices(): void {
-    const pricesEntity = 99999;
-
-    // Инициализируем базовые цены
-    Prices.rentPrice[pricesEntity] = 300; // Базовая месячная аренда
-    Prices.foodPrice[pricesEntity] = 250; // Базовая месячная стоимость еды
-    Prices.lastUpdateDay[pricesEntity] = 0;
-
-    console.log('Global prices initialized');
+    console.log('Initial entities created: 100 citizens, 10 houses, 100 workplaces');
   }
 
   /**

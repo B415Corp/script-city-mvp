@@ -220,7 +220,7 @@ export const WakeUpSystem: System = {
  */
 export const WorkSystem: System = {
   name: 'Work',
-  components: ['Person', 'Citizen', 'Needs', 'Schedule'],
+  components: ['Person', 'Citizen', 'Schedule'],
 
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
     const deltaTime = delta || 1;
@@ -228,34 +228,13 @@ export const WorkSystem: System = {
     for (const eid of entities) {
       // Выполняем только если текущая активность - work
       if (Schedule.currentActivity[eid] === 'work') {
-        // Логика работы - тратим энергию, получаем зарплату
-        Citizen.energy[eid] = Math.max(0, Citizen.energy[eid] - 8 * deltaTime);
-
         // Получаем зарплату за работу (ежедневно)
-        const salary = Citizen.salary[eid] || 0;
+        const salary = Citizen.salary[eid] || 100; // В упрощенной симуляции всегда 100
         const dailySalary = salary / 7; // Предполагаем 7 рабочих дней в неделю
         Citizen.money[eid] += dailySalary * deltaTime;
 
-        // Во время работы немного хочется есть
-        Needs.food[eid] = Math.min(100, Needs.food[eid] + 5 * deltaTime);
-
-        // Влияние на счастье: зависит от соотношения зарплаты к минимальным расходам
-        const minExpenses = Citizen.minimumExpenses[eid] || 0;
-        const salaryRatio = minExpenses > 0 ? salary / minExpenses : 1;
-
-        if (salaryRatio >= 1.5) {
-          // Хорошая зарплата - счастье растет
-          Citizen.happiness[eid] = Math.min(100, Citizen.happiness[eid] + 2 * deltaTime);
-        } else if (salaryRatio >= 1.0) {
-          // Нормальная зарплата - счастье не меняется
-          // Ничего не делаем
-        } else {
-          // Низкая зарплата - счастье падает
-          Citizen.happiness[eid] = Math.max(0, Citizen.happiness[eid] - 3 * deltaTime);
-        }
-
         console.log(
-          `Entity ${eid} working! Energy: ${Citizen.energy[eid]}, Money: ${Citizen.money[eid]}, Salary ratio: ${salaryRatio.toFixed(2)}, Happiness: ${Citizen.happiness[eid]}`,
+          `Entity ${eid} working! Money: ${Citizen.money[eid].toFixed(0)} (+${(dailySalary * deltaTime).toFixed(0)})`,
         );
       }
     }
@@ -484,24 +463,16 @@ function executeScheduledActivity(
   // Здесь только логируем начало активности
   // Фактические действия выполняются отдельными системами каждый тик
   switch (systemName) {
-    case 'WakeUpSystem':
-      console.log(`🌅 Entity ${eid} is waking up!`);
-      break;
-
     case 'WorkSystem':
       console.log(`💼 Entity ${eid} started working!`);
       break;
 
-    case 'ShoppingDecisionSystem':
-      console.log(`🛒 Entity ${eid} is deciding about shopping/eating!`);
-      break;
-
-    case 'SleepSystem':
-      console.log(`😴 Entity ${eid} went to sleep!`);
+    case 'MovementSystem':
+      console.log(`🏠 Entity ${eid} moved home!`);
       break;
 
     default:
-      console.log(`❓ Entity ${eid} - unknown activity: ${systemName}`);
+      console.log(`❓ Entity ${eid} - activity: ${activity.activity}`);
   }
 }
 
@@ -531,25 +502,6 @@ function updateCitizenPosition(world: World, eid: EntityId, activity: string): v
   const workplaceId = Citizen.workplace[eid];
 
   switch (activity) {
-    case 'sleep':
-    case 'wake_up':
-      // Дома
-      if (homeId !== undefined) {
-        // Ищем позицию дома
-        try {
-          const residentialEntities = query(world, [Residential, Position]);
-          const homeEntity = residentialEntities.find((entityId: number) => entityId === homeId);
-          if (homeEntity !== undefined) {
-            Position.x[eid] = Position.x[homeEntity];
-            Position.y[eid] = Position.y[homeEntity];
-            console.log(`🏠 Citizen ${eid} moved home to (${Position.x[eid]}, ${Position.y[eid]})`);
-          }
-        } catch (error) {
-          console.warn(`Could not find home position for citizen ${eid}`);
-        }
-      }
-      break;
-
     case 'work':
       // На работе
       if (workplaceId !== undefined) {
@@ -569,24 +521,22 @@ function updateCitizenPosition(world: World, eid: EntityId, activity: string): v
       }
       break;
 
-    case 'shopping_or_eat':
-      // В магазине (выбираем случайный магазин)
-      try {
-        const shopEntities = query(world, [Commercial, Position]);
-        if (shopEntities.length > 0) {
-          const randomShop = shopEntities[Math.floor(Math.random() * shopEntities.length)];
-          Position.x[eid] = Position.x[randomShop];
-          Position.y[eid] = Position.y[randomShop];
-          console.log(
-            `🛒 Citizen ${eid} moved shopping to (${Position.x[eid]}, ${Position.y[eid]})`,
-          );
+    case 'idle':
+    default:
+      // Дома (все нерабочие активности)
+      if (homeId !== undefined) {
+        try {
+          const residentialEntities = query(world, [Residential, Position]);
+          const homeEntity = residentialEntities.find((entityId: number) => entityId === homeId);
+          if (homeEntity !== undefined) {
+            Position.x[eid] = Position.x[homeEntity];
+            Position.y[eid] = Position.y[homeEntity];
+            console.log(`🏠 Citizen ${eid} moved home to (${Position.x[eid]}, ${Position.y[eid]})`);
+          }
+        } catch (error) {
+          console.warn(`Could not find home position for citizen ${eid}`);
         }
-      } catch (error) {
-        console.warn(`Could not find shop position for citizen ${eid}`);
       }
       break;
-
-    default:
-      console.log(`📍 Citizen ${eid} stays at current position for activity: ${activity}`);
   }
 }

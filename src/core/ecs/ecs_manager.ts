@@ -6,32 +6,18 @@ import { TimeService } from '../tick/time_service';
 import { TickManager } from '../tick/tick_manager';
 
 import { EntityFactory } from './entities';
-import {
-  PopulationSystem,
-  NeedsSystem,
-  DailyRoutineSystem,
-  JobSearchSystem,
-  FiringSystem,
-  createPriceFluctuationSystem,
-  PriceFluctuationSystem,
-  MinimumExpensesUpdateSystem,
-  createWeeklyExpensesSystem,
-  WeeklyExpensesSystem,
-} from './systems/clusters';
+// Отключенные системы в упрощенной симуляции:
+// import { PopulationSystem, NeedsSystem, DailyRoutineSystem, JobSearchSystem, FiringSystem, createPriceFluctuationSystem, PriceFluctuationSystem, MinimumExpensesUpdateSystem, createWeeklyExpensesSystem, WeeklyExpensesSystem } from './systems/clusters';
 import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
 import {
-  WakeUpSystem,
   WorkSystem,
-  FeedingSystem,
-  SleepSystem,
-  ShoppingDecisionSystem,
   ScheduleManagerSystem,
   MovementSystem,
 } from './systems/clusters/schedule_activity_systems';
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
 import { Person, Citizen, Needs, Schedule, Shop, Factory, ID } from './components';
-import { TestSystem } from './systems/clusters/test_system';
+// import { TestSystem } from './systems/clusters/test_system'; // Отключена в упрощенной симуляции
 
 /**
  * Реестр компонентов для запросов по именам
@@ -50,21 +36,18 @@ const COMPONENT_REGISTRY: Record<
 
 // Регистр систем
 const systemRegistry: Record<string, System> = {
-  Population: PopulationSystem,
-  Needs: NeedsSystem,
-  DailyRoutine: DailyRoutineSystem,
-  PriceFluctuation: PriceFluctuationSystem,
-  MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
-  WeeklyExpenses: WeeklyExpensesSystem,
-  JobSearch: JobSearchSystem,
-  Firing: FiringSystem,
-  Test: TestSystem,
-  // Системы расписания
-  WakeUp: WakeUpSystem,
+  // Отключенные системы в упрощенной симуляции
+  // Population: PopulationSystem,
+  // Needs: NeedsSystem,
+  // DailyRoutine: DailyRoutineSystem,
+  // PriceFluctuation: PriceFluctuationSystem,
+  // MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
+  // WeeklyExpenses: WeeklyExpensesSystem,
+  // JobSearch: JobSearchSystem,
+  // Firing: FiringSystem,
+  // Test: TestSystem,
+  // Только активные системы в упрощенной симуляции
   Work: WorkSystem,
-  Feeding: FeedingSystem,
-  Sleep: SleepSystem,
-  ShoppingDecision: ShoppingDecisionSystem,
   ScheduleManager: ScheduleManagerSystem,
   Movement: MovementSystem,
 } as const;
@@ -72,27 +55,17 @@ const systemRegistry: Record<string, System> = {
 // Регистр кластеров
 const clustersRegistry: Record<string, SystemCluster> = {
   population: {
-    systemNames: [
-      'ScheduleManager',
-      'Movement',
-      'WakeUp',
-      'Work',
-      'Feeding',
-      'Sleep',
-      'ShoppingDecision',
-      'JobSearch',
-      'Firing',
-    ],
+    systemNames: ['ScheduleManager', 'Movement', 'Work'],
     enabled: true,
     interval: undefined, // Каждый тик
   },
   economy: {
-    systemNames: ['PriceFluctuation', 'MinimumExpensesUpdate', 'WeeklyExpenses'], // Экономические системы
-    enabled: true,
-    interval: undefined, // Каждый тик для тестирования
+    systemNames: [], // Экономические системы отключены в упрощенной симуляции
+    enabled: false,
+    interval: undefined,
   },
   infrastructure: {
-    systemNames: ['Test', 'DayNightCycle'], // Можно добавить инфраструктурные системы
+    systemNames: ['DayNightCycle'], // Только цикл дня и ночи
     enabled: true,
     interval: 240.0,
   },
@@ -199,21 +172,8 @@ export class ECSManager {
    */
   private createSystemsWithDependencies(): Record<string, System> {
     return {
-      Population: PopulationSystem,
-      Needs: NeedsSystem,
-      DailyRoutine: DailyRoutineSystem,
-      PriceFluctuation: createPriceFluctuationSystem(this.systemDependencies),
-      MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
-      WeeklyExpenses: createWeeklyExpensesSystem(this.systemDependencies),
-      JobSearch: JobSearchSystem,
-      Firing: FiringSystem,
-      Test: TestSystem,
-      // Системы расписания
-      WakeUp: WakeUpSystem,
+      // Только активные системы в упрощенной симуляции
       Work: WorkSystem,
-      Feeding: FeedingSystem,
-      Sleep: SleepSystem,
-      ShoppingDecision: ShoppingDecisionSystem,
       ScheduleManager: ScheduleManagerSystem,
       Movement: MovementSystem,
     };
