@@ -5,12 +5,14 @@ import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
 import { TickDebug } from './components/tick_debug';
 import { ECSDebug } from './components/ecs_debug';
+import { SimulationDebug } from './components/simulation_debug';
 
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
   events: EventsDebug,
   tick: TickDebug,
   ecs: ECSDebug,
+  simulation: SimulationDebug,
 } as const;
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
@@ -18,6 +20,11 @@ type ComponentsRegister = keyof typeof debugComponentsRegister;
 // Типы конструкторов для разных компонентов
 type DebugComponentConstructor = new (scene: Phaser.Scene, eventBus: EventBus) => DebugComponent;
 type ECSDebugComponentConstructor = new (
+  scene: Phaser.Scene,
+  eventBus: EventBus,
+  ecsManager: ECSManager,
+) => DebugComponent;
+type SimulationDebugComponentConstructor = new (
   scene: Phaser.Scene,
   eventBus: EventBus,
   ecsManager: ECSManager,
@@ -62,8 +69,8 @@ export class DebugModule extends BaseModule {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
       let component: DebugComponent;
 
-      // ECSDebug получает ECSManager для доступа к статистике entities
-      if (name === 'ecs') {
+      // ECSDebug и SimulationDebug получают ECSManager для доступа к статистике entities
+      if (name === 'ecs' || name === 'simulation') {
         component = new (ModuleClass as ECSDebugComponentConstructor)(
           this.scene,
           this.eventBus,
@@ -81,8 +88,8 @@ export class DebugModule extends BaseModule {
   // обновление компонентов
   public update(): void {
     const currentComponent = this.debugComponentsApi.get(this.currentTab);
-    // ECS компонент обновляется самостоятельно через setInterval
-    if (currentComponent && this.currentTab !== 'ecs') {
+    // ECS и Simulation компоненты обновляются самостоятельно через setInterval
+    if (currentComponent && this.currentTab !== 'ecs' && this.currentTab !== 'simulation') {
       currentComponent.onUpdate();
     }
   }

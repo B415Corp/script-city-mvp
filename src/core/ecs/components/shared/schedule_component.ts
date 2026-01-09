@@ -32,6 +32,10 @@ export const Schedule = {
   phaseSchedule: [] as Record<DayPhase, Activity>[],
   /** Текущая активность */
   currentActivity: [] as string[],
+  /** Текущая фаза дня */
+  currentPhase: [] as string[],
+  /** Флаг, показывающий, была ли активность выполнена в текущей фазе */
+  activityExecuted: [] as boolean[],
   /** Время следующей активности (минуты от начала дня) */
   nextActivityTime: [] as number[],
   /** Модификаторы расписания */
@@ -69,4 +73,6 @@ export type ScheduleData = {
   phaseSchedule: Record<DayPhase, Activity>;
   modifiers?: ScheduleModifier[];
   entityType: EntityType;
+  currentPhase?: DayPhase;
+  activityExecuted?: boolean;
 };

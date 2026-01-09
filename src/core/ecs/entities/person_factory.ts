@@ -169,6 +169,8 @@ export class PersonFactory {
     Schedule.phaseSchedule[eid] = data.phaseSchedule;
     Schedule.entityType[eid] = data.entityType;
     Schedule.currentActivity[eid] = '';
+    Schedule.currentPhase[eid] = data.currentPhase || 'night';
+    Schedule.activityExecuted[eid] = data.activityExecuted || false;
     Schedule.nextActivityTime[eid] = 0;
     Schedule.modifiers[eid] = data.modifiers || [];
   }

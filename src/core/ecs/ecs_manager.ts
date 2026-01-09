@@ -13,6 +13,7 @@ import {
   SleepSystem,
   ShoppingDecisionSystem,
   ScheduleManagerSystem,
+  MovementSystem,
 } from './systems/clusters/schedule_activity_systems';
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
@@ -47,14 +48,23 @@ const systemRegistry: Record<string, System> = {
   Sleep: SleepSystem,
   ShoppingDecision: ShoppingDecisionSystem,
   ScheduleManager: ScheduleManagerSystem,
+  Movement: MovementSystem,
 } as const;
 
 // Регистр кластеров
 const clustersRegistry: Record<string, SystemCluster> = {
   population: {
-    systemNames: ['ScheduleManager'],
+    systemNames: [
+      'ScheduleManager',
+      'Movement',
+      'WakeUp',
+      'Work',
+      'Feeding',
+      'Sleep',
+      'ShoppingDecision',
+    ],
     enabled: true,
-    interval: 60.0, // Каждую секунду
+    interval: undefined, // Каждый тик
   },
   economy: {
     systemNames: [], // Можно добавить экономические системы
@@ -80,7 +90,10 @@ export class ECSManager {
   private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
   private currentGameTimeOfDay: number = 0; // Текущее время дня в минутах
 
-  constructor(private eventBus: EventBus) {
+  constructor(
+    private eventBus: EventBus,
+    private timeController?: any,
+  ) {
     console.log('🚀 ECSManager initialized');
     this.world = createWorld();
     this.entityFactory = new EntityFactory(this.world);
@@ -434,6 +447,13 @@ export class ECSManager {
     }
 
     return counts;
+  }
+
+  /**
+   * Получить текущее игровое время в минутах
+   */
+  getGameTime(): number {
+    return this.timeController?.getGameTime() || 0;
   }
 
   /**

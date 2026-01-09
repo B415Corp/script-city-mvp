@@ -11,7 +11,7 @@ export class TimeController {
 
   // Константы времени
   private readonly MINUTES_PER_DAY = 24 * 60; // 1440 минут в сутках
-  private readonly MINUTES_PER_TICK = 5; // 15 минут игры за 1 логический тик
+  private readonly MINUTES_PER_TICK = 1; // 1 минут игры за 1 логический тик
 
   // Дата начала игры: 01.01.2000
   private readonly START_YEAR = 2000;
@@ -30,6 +30,13 @@ export class TimeController {
    */
   setTime(minutes: number): void {
     this.gameTime = minutes;
+  }
+
+  /**
+   * Получить текущее игровое время в минутах от начала игры
+   */
+  getGameTime(): number {
+    return this.gameTime;
   }
 
   /**
@@ -169,13 +176,6 @@ export class TimeController {
    */
   setGameTime(minutes: number): void {
     this.gameTime = minutes;
-  }
-
-  /**
-   * Получить текущее игровое время в минутах
-   */
-  getGameTime(): number {
-    return this.gameTime;
   }
 
   /**

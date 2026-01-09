@@ -6,6 +6,7 @@ import { LogicTickData } from '../tick/types';
 import { Events } from '../event_bus/events';
 import { Gender } from '../ecs/components/population';
 import { CommercialType } from '../ecs/components/buildings';
+import { Citizen, Workplace } from '../ecs/components';
 
 export class EntrySimulation {
   private entityFactory: EntityFactory;
@@ -107,10 +108,11 @@ export class EntrySimulation {
     }
 
     // Создаем жителей (20 человек) и распределяем их по домам
+    const citizens: number[] = [];
     for (let i = 0; i < 20; i++) {
       const homeIndex = Math.floor(Math.random() * houses.length);
 
-      this.entityFactory.persons.create(
+      const citizenId = this.entityFactory.persons.create(
         {
           age: 25 + Math.random() * 30,
           gender: Math.random() < 0.5 ? Gender.MALE : Gender.FEMALE,
@@ -125,8 +127,50 @@ export class EntrySimulation {
         },
         houses[homeIndex], // позиция дома
       );
+
+      citizens.push(citizenId);
     }
 
+    // Назначаем рабочие места жителям
+    this.assignWorkplaces(citizens);
+
     console.log('Initial entities created: 20 citizens, 10 houses, 5 shops, 3 offices, 8 jobs');
+  }
+
+  private assignWorkplaces(citizenIds: number[]): void {
+    // Получить все доступные рабочие места
+    const world = this.ecsManager.getWorld();
+    const workplaces: number[] = [];
+
+    // Простая логика: ищем все сущности с компонентом Workplace
+    // В реальности нужно использовать query, но для простоты используем прямой доступ
+    for (let i = 0; i < 1000; i++) {
+      // Предполагаем, что ID рабочих мест начинаются с 1000+
+      try {
+        if (Workplace.jobType[i] !== undefined) {
+          workplaces.push(i);
+        }
+      } catch {
+        // Игнорируем ошибки - сущность не существует
+      }
+    }
+
+    console.log(
+      `Found ${workplaces.length} workplaces, assigning to ${citizenIds.length} citizens`,
+    );
+
+    // Назначаем рабочие места жителям (простая логика - каждому второму жителю)
+    let workplaceIndex = 0;
+    citizenIds.forEach((citizenId, index) => {
+      if (index % 2 === 0 && workplaceIndex < workplaces.length) {
+        // Каждый второй житель работает
+        const workplaceId = workplaces[workplaceIndex];
+        Citizen.workplace[citizenId] = workplaceId;
+        Workplace.worker[workplaceId] = citizenId;
+
+        console.log(`Assigned workplace ${workplaceId} to citizen ${citizenId}`);
+        workplaceIndex++;
+      }
+    });
   }
 }
