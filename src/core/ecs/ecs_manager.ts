@@ -33,6 +33,7 @@ const COMPONENT_REGISTRY: Record<
   Factory,
 };
 
+// Регистр систем
 const systemRegistry: Record<string, System> = {
   Population: PopulationSystem,
   Needs: NeedsSystem,
@@ -46,6 +47,25 @@ const systemRegistry: Record<string, System> = {
   ShoppingDecision: ShoppingDecisionSystem,
 } as const;
 
+// Регистр кластеров
+const clustersRegistry: Record<string, SystemCluster> = {
+  population: {
+    systemNames: [],
+    enabled: true,
+    interval: 60.0, // Каждую секунду
+  },
+  economy: {
+    systemNames: [], // Можно добавить экономические системы
+    enabled: true,
+    interval: 120.0,
+  },
+  infrastructure: {
+    systemNames: ['Test', 'DayNightCycle'], // Можно добавить инфраструктурные системы
+    enabled: true,
+    interval: 240.0,
+  },
+};
+
 export type SystemName = keyof typeof systemRegistry;
 export type systemsClusters = Record<string, SystemCluster>;
 
@@ -54,23 +74,7 @@ export class ECSManager {
   private entityFactory: EntityFactory; // Фабрика сущностей для создания новых сущностей
   private systems: Record<string, System> = {}; // Все системы по именам
   private queries: Map<string, ReturnType<typeof query>> = new Map(); // Кэш query объектов
-  private systemsClusters: systemsClusters = {
-    population: {
-      systemNames: [],
-      enabled: true,
-      interval: 60.0, // Каждую секунду
-    },
-    economy: {
-      systemNames: [], // Можно добавить экономические системы
-      enabled: true,
-      interval: 120.0,
-    },
-    infrastructure: {
-      systemNames: ['Test', 'DayNightCycle'], // Можно добавить инфраструктурные системы
-      enabled: true,
-      interval: 240.0,
-    },
-  };
+  private systemsClusters: systemsClusters = clustersRegistry; // Регистр кластеров
   private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
   private currentGameTimeOfDay: number = 0; // Текущее время дня в минутах
 
