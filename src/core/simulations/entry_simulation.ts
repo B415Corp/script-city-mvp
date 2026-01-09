@@ -121,6 +121,7 @@ export class EntrySimulation {
             jobSearchAttempts: 0,
             lastJobSearchDay: 0,
             lastExpenseDay: 0,
+            lastWorkDay: 0, // Еще не получал зарплату
           },
           houses[houseIndex],
         );

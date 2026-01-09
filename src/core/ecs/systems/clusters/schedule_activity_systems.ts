@@ -223,19 +223,39 @@ export const WorkSystem: System = {
   components: ['Person', 'Citizen', 'Schedule'],
 
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
-    const deltaTime = delta || 1;
+    const timeService = extraData as import('../../../tick/time_service').TimeService | undefined;
+    if (!timeService) {
+      console.log('WorkSystem: No TimeService');
+      return;
+    }
 
+    // Начисляем зарплату один раз в день во время работы
+    const currentDay = timeService.getDay();
+    const minutesOfDay = timeService.getMinutesOfDay();
+
+    // Логируем время каждый час для отладки
+    const hour = Math.floor(minutesOfDay / 60);
+    if (minutesOfDay % 60 === 0) {
+      console.log(`WorkSystem: Day ${currentDay}, Hour ${hour}`);
+    }
+
+    // Начисляем зарплату всем работающим жителям один раз в день
     for (const eid of entities) {
-      // Выполняем только если текущая активность - work
-      if (Schedule.currentActivity[eid] === 'work') {
-        // Получаем зарплату за работу (ежедневно)
-        const salary = Citizen.salary[eid] || 100; // В упрощенной симуляции всегда 100
-        const dailySalary = salary / 7; // Предполагаем 7 рабочих дней в неделю
-        Citizen.money[eid] += dailySalary * deltaTime;
+      // Проверяем, что у жителя есть работа
+      if (Citizen.workplace[eid] && Citizen.workplace[eid] > 0) {
+        const lastWorkDay = Citizen.lastWorkDay?.[eid] || 0;
 
-        console.log(
-          `Entity ${eid} working! Money: ${Citizen.money[eid].toFixed(0)} (+${(dailySalary * deltaTime).toFixed(0)})`,
-        );
+        if (lastWorkDay < currentDay) {
+          // Начисляем дневную зарплату
+          const salary = Citizen.salary[eid] || 100;
+          const dailySalary = salary / 7; // 7 рабочих дней в неделю
+          Citizen.money[eid] += dailySalary;
+          Citizen.lastWorkDay[eid] = currentDay;
+
+          console.log(
+            `Entity ${eid} received daily salary! Money: ${Citizen.money[eid].toFixed(0)} (+${dailySalary.toFixed(0)}), Day: ${currentDay}`,
+          );
+        }
       }
     }
   },

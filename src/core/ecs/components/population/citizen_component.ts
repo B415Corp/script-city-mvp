@@ -37,6 +37,8 @@ export const Citizen = {
   lastJobSearchDay: [] as number[],
   /** День последнего списания месячных расходов */
   lastExpenseDay: [] as number[],
+  /** День последнего получения зарплаты */
+  lastWorkDay: [] as number[],
 } as const;
 
 /**
