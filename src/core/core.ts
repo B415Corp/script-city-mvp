@@ -4,6 +4,7 @@ import { MainScene } from './scenes';
 import { EventBus } from './event_bus/event_bus';
 import { ECSManager } from './ecs/ecs_manager';
 import { TickManager } from './tick/tick_manager';
+import { EntrySimulation } from './simulations/entry_simulation';
 
 export class Core {
   private phaserConfig!: Phaser.Types.Core.GameConfig;
@@ -61,6 +62,7 @@ export class Core {
   }
 
   private async startSimulation(): Promise<void> {
-    // TODO: Implement simulation start logic
+    const entrySimulation = new EntrySimulation();
+    entrySimulation.start();
   }
 }

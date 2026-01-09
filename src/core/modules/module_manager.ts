@@ -11,7 +11,7 @@ const baseModuleRegistry = {
   MapModule: MapModule,
   ToolsModule: ToolsModule,
   ToolbarModule: ToolbarModule,
-  DebugModule: DebugModule,
+  // DebugModule: DebugModule,
 } as const;
 
 // названия кастомных модулей с их классами
