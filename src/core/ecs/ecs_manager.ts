@@ -113,12 +113,32 @@ export class ECSManager {
   }
 
   /**
+   * Создает ключ для кэширования query на основе массива имен компонентов
+   */
+  private getQueryKey(componentNames: readonly string[]): string {
+    return [...componentNames].sort().join(',');
+  }
+
+  /**
    * Инициализирует query объекты для часто используемых комбинаций компонентов
    */
   private initializeQueries(): void {
-    // В bitECS query принимает компоненты как отдельные аргументы
-    // Но для динамических запросов мы будем создавать query на лету
-    console.log(`📋 Query system initialized`);
+    // Создаем предварительные query для наиболее часто используемых комбинаций компонентов
+    // Это улучшает производительность, так как query создаются один раз при инициализации
+
+    // Query для жителей города (Person + Citizen + Needs) - самая частая комбинация
+    this.queries.set('citizens', query(this.world, [Person, Citizen, Needs]));
+
+    // Query для всех людей
+    this.queries.set('persons', query(this.world, [Person]));
+
+    // Query для магазинов
+    this.queries.set('shops', query(this.world, [Shop]));
+
+    // Query для фабрик
+    this.queries.set('factories', query(this.world, [Factory]));
+
+    console.log(`📋 Query system initialized with ${this.queries.size} pre-built queries`);
   }
 
   /**
@@ -271,7 +291,16 @@ export class ECSManager {
       return [];
     }
 
-    // Получаем компонент-объекты по именам
+    // Сначала проверяем, есть ли предварительный query для этой комбинации
+    const queryKey = this.getQueryKey(componentNames);
+    const cachedQuery = this.queries.get(queryKey);
+
+    if (cachedQuery) {
+      // Используем предварительный query
+      return Array.from(cachedQuery);
+    }
+
+    // Если предварительного query нет, создаем его на лету
     const components = componentNames
       .map((name) => {
         const component = COMPONENT_REGISTRY[name];
@@ -376,24 +405,24 @@ export class ECSManager {
 
     // Подсчет сущностей с компонентами Person
     try {
-      const personEntities = query(this.world, [Person]);
-      counts['Person'] = personEntities.length;
+      const personQuery = this.queries.get('persons') || query(this.world, [Person]);
+      counts['Person'] = personQuery.length;
     } catch {
       counts['Person'] = 0;
     }
 
     // Подсчет сущностей с компонентами Shop
     try {
-      const shopEntities = query(this.world, [Shop]);
-      counts['Shop'] = shopEntities.length;
+      const shopQuery = this.queries.get('shops') || query(this.world, [Shop]);
+      counts['Shop'] = shopQuery.length;
     } catch {
       counts['Shop'] = 0;
     }
 
     // Подсчет сущностей с компонентами Factory
     try {
-      const factoryEntities = query(this.world, [Factory]);
-      counts['Factory'] = factoryEntities.length;
+      const factoryQuery = this.queries.get('factories') || query(this.world, [Factory]);
+      counts['Factory'] = factoryQuery.length;
     } catch {
       counts['Factory'] = 0;
     }
