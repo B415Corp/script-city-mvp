@@ -87,6 +87,9 @@ export class DayNightCycleSystem implements System {
       return; // Нет расписания для этой фазы
     }
 
+    // Устанавливаем текущую фазу для сущности
+    Schedule.currentPhase[eid] = phase;
+
     const activity = phaseSchedule[phase];
 
     // Применяем модификаторы расписания

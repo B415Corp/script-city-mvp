@@ -89,7 +89,8 @@ export const JobSearchSystem: System = {
 
     // Рассчитываем текущий день симуляции
     // 24 * 60 = 1440 минут в сутках
-    const currentDay = Math.floor(gameTime / (24 * 60));
+    // currentDay = Math.floor(gameTime / (24 * 60)) + 1 (соответствует TimeController.getDay())
+    const currentDay = Math.floor(gameTime / (24 * 60)) + 1;
 
     // Получаем все доступные рабочие места
     const availableWorkplaces: EntityId[] = [];
@@ -106,6 +107,11 @@ export const JobSearchSystem: System = {
 
     // Жители без работы ищут работу
     for (const citizenId of entities) {
+      // Проверяем, что entity имеет необходимые компоненты
+      if (!hasComponent(world, Person, citizenId) || !hasComponent(world, Citizen, citizenId)) {
+        continue;
+      }
+
       const workplaceId = Citizen.workplace[citizenId];
       if (workplaceId !== undefined && workplaceId !== 0) {
         // Уже работает - сбрасываем статус поиска
@@ -113,16 +119,12 @@ export const JobSearchSystem: System = {
         continue;
       }
 
-      // Устанавливаем статус поиска работы (всегда для безработных)
-      Citizen.isLookingForJob[citizenId] = true;
-
       // Каждый день для безработных увеличиваем счетчик попыток поиска
       // Это отражает тот факт, что они ежедневно пытаются найти работу
       const lastSearchDay = Citizen.lastJobSearchDay[citizenId] || 0;
       if (lastSearchDay < currentDay) {
         // Новый день - увеличиваем счетчик попыток
         Citizen.jobSearchAttempts[citizenId] = (Citizen.jobSearchAttempts[citizenId] || 0) + 1;
-        Citizen.lastJobSearchDay[citizenId] = currentDay;
 
         console.log(
           `Citizen ${citizenId} is unemployed, job search attempts now: ${Citizen.jobSearchAttempts[citizenId]}`,
@@ -134,6 +136,9 @@ export const JobSearchSystem: System = {
         // Уже искал работу сегодня или нет доступных рабочих мест
         continue;
       }
+
+      // Устанавливаем статус поиска работы только если будем искать работу
+      Citizen.isLookingForJob[citizenId] = true;
 
       const citizenEducation = Person.education[citizenId] || 1;
       const minExpenses = Citizen.minimumExpenses[citizenId] || 0;
@@ -165,6 +170,7 @@ export const JobSearchSystem: System = {
           Citizen.salary[citizenId] = salary;
           Citizen.isLookingForJob[citizenId] = false;
           Citizen.jobSearchAttempts[citizenId] = 0; // Сбрасываем счетчик при устройстве на работу
+          Citizen.lastJobSearchDay[citizenId] = currentDay; // Запоминаем день поиска
           Workplace.worker[workplaceId] = citizenId;
 
           console.log(
@@ -177,6 +183,7 @@ export const JobSearchSystem: System = {
 
       // Если не нашли работу сегодня, счетчик уже был увеличен выше
       if (!foundJob) {
+        Citizen.lastJobSearchDay[citizenId] = currentDay; // Запоминаем день поиска
         console.log(
           `Citizen ${citizenId} job search failed today, total attempts: ${Citizen.jobSearchAttempts[citizenId]}`,
         );
@@ -269,26 +276,27 @@ export const FeedingSystem: System = {
 
     for (const eid of entities) {
       // Выполняем только если текущая активность - feeding (еда)
-      // Пока оставим как есть, но это можно изменить в будущем
-      // Проверяем, есть ли деньги на еду (30 монет за прием пищи)
-      const foodCost = 30;
-      if (Citizen.money[eid] >= foodCost) {
-        // Покупаем еду и едим
-        Citizen.money[eid] -= foodCost * deltaTime;
-        Needs.food[eid] = Math.max(0, Needs.food[eid] - 50 * deltaTime); // Хорошо поели
+      if (Schedule.currentActivity[eid] === 'feeding') {
+        // Проверяем, есть ли деньги на еду (30 монет за прием пищи)
+        const foodCost = 30;
+        if (Citizen.money[eid] >= foodCost) {
+          // Покупаем еду и едим
+          Citizen.money[eid] -= foodCost * deltaTime;
+          Needs.food[eid] = Math.max(0, Needs.food[eid] - 50 * deltaTime); // Хорошо поели
 
-        // После еды немного восстанавливается энергия
-        Citizen.energy[eid] = Math.min(100, Citizen.energy[eid] + 10 * deltaTime);
+          // После еды немного восстанавливается энергия
+          Citizen.energy[eid] = Math.min(100, Citizen.energy[eid] + 10 * deltaTime);
 
-        console.log(
-          `Entity ${eid} eating! Money: ${Citizen.money[eid]}, Hunger: ${Needs.food[eid]}, Energy: ${Citizen.energy[eid]}`,
-        );
-      } else {
-        // Не хватает денег - только частичное утоление голода
-        Needs.food[eid] = Math.max(0, Needs.food[eid] - 20 * deltaTime);
-        console.log(
-          `Entity ${eid} eating little (no money)! Money: ${Citizen.money[eid]}, Hunger: ${Needs.food[eid]}`,
-        );
+          console.log(
+            `Entity ${eid} eating! Money: ${Citizen.money[eid]}, Hunger: ${Needs.food[eid]}, Energy: ${Citizen.energy[eid]}`,
+          );
+        } else {
+          // Не хватает денег - только частичное утоление голода
+          Needs.food[eid] = Math.max(0, Needs.food[eid] - 20 * deltaTime);
+          console.log(
+            `Entity ${eid} eating little (no money)! Money: ${Citizen.money[eid]}, Hunger: ${Needs.food[eid]}`,
+          );
+        }
       }
     }
   },
@@ -503,8 +511,12 @@ export const MovementSystem: System = {
   components: ['Person', 'Citizen', 'Schedule', 'Position'],
 
   update(world: World, entities: readonly EntityId[], delta?: number, extraData?: unknown) {
-    // Система работает через executeScheduledActivity, которая вызывается при изменении фазы
-    // Здесь можно добавить дополнительную логику перемещения если нужно
+    for (const eid of entities) {
+      const currentActivity = Schedule.currentActivity[eid];
+      if (currentActivity) {
+        updateCitizenPosition(world, eid, currentActivity);
+      }
+    }
   },
 };
 

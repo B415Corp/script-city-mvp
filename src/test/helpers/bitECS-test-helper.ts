@@ -9,6 +9,7 @@ import {
   Schedule,
   Prices,
   Workplace,
+  DEFAULT_SCHEDULES,
 } from '../../core/ecs/components';
 import { ComponentManager } from '../../core/ecs/components/managers/component_manager';
 /**
@@ -17,11 +18,21 @@ import { ComponentManager } from '../../core/ecs/components/managers/component_m
 export class TestTimeProvider {
   constructor(private currentTime: number = 0) {}
 
-  getCurrentTime(): number { return this.currentTime; }
-  getCurrentDay(): number { return Math.floor(this.currentTime / (24 * 60)); }
-  getMinutesOfDay(): number { return this.currentTime % (24 * 60); }
-  getHourOfDay(): number { return Math.floor(this.getMinutesOfDay() / 60); }
-  setTime(time: number): void { this.currentTime = time; }
+  getCurrentTime(): number {
+    return this.currentTime;
+  }
+  getCurrentDay(): number {
+    return Math.floor(this.currentTime / (24 * 60));
+  }
+  getMinutesOfDay(): number {
+    return this.currentTime % (24 * 60);
+  }
+  getHourOfDay(): number {
+    return Math.floor(this.getMinutesOfDay() / 60);
+  }
+  setTime(time: number): void {
+    this.currentTime = time;
+  }
 }
 
 export class TestRandomProvider {
@@ -55,20 +66,28 @@ export class TestRandomProvider {
 export class TestLogger {
   logs: string[] = [];
 
-  info(message: string): void { this.logs.push(`INFO: ${message}`); }
-  warn(message: string): void { this.logs.push(`WARN: ${message}`); }
-  error(message: string): void { this.logs.push(`ERROR: ${message}`); }
-  debug(message: string): void { this.logs.push(`DEBUG: ${message}`); }
+  info(message: string): void {
+    this.logs.push(`INFO: ${message}`);
+  }
+  warn(message: string): void {
+    this.logs.push(`WARN: ${message}`);
+  }
+  error(message: string): void {
+    this.logs.push(`ERROR: ${message}`);
+  }
+  debug(message: string): void {
+    this.logs.push(`DEBUG: ${message}`);
+  }
 }
 
 export class TestEventBus {
-  events: Array<{event: string, payload?: any}> = [];
+  events: Array<{ event: string; payload?: unknown }> = [];
 
-  emit(event: string, payload?: any): void {
+  emit(event: string, payload?: unknown): void {
     this.events.push({ event, payload });
   }
 
-  on(event: string, handler: (payload?: any) => void) {
+  on(event: string, handler: (payload?: unknown) => void) {
     return { unsubscribe: () => {} };
   }
 }
@@ -175,7 +194,7 @@ export class BitECSTestHelper {
       housingType?: number;
       minimumExpenses?: number;
       salary?: number;
-      isLookingForJob?: number;
+      isLookingForJob?: boolean;
       jobSearchAttempts?: number;
       lastJobSearchDay?: number;
       lastExpenseDay?: number;

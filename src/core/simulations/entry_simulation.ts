@@ -144,7 +144,7 @@ export class EntrySimulation {
 
     // Создаем жителей (20 человек) и распределяем их по домам
     const citizens: number[] = [];
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 150; i++) {
       const homeIndex = Math.floor(Math.random() * houses.length);
 
       const age = 25 + Math.random() * 30;

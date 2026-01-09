@@ -3,7 +3,7 @@ import { PopulationSystem } from '../../../core/ecs/systems/clusters/population_
 import { BitECSTestHelper } from '../../helpers/bitECS-test-helper';
 import { Person, Citizen } from '../../../core/ecs/components';
 
-describe('PopulationSystem', () => {
+describe('Система населения (PopulationSystem)', () => {
   let world: World;
   let entities: EntityId[];
 
@@ -11,8 +11,8 @@ describe('PopulationSystem', () => {
     ({ world, entities } = BitECSTestHelper.createTestSetup(3));
   });
 
-  describe('aging', () => {
-    it('should age citizens over time', () => {
+  describe('старение жителей', () => {
+    it('должен стареть жителей со временем', () => {
       const eid = entities[0];
 
       // Создаем жителя с Person компонентом
@@ -27,7 +27,7 @@ describe('PopulationSystem', () => {
       expect(Person.age[eid]).toBe(initialAge + 1);
     });
 
-    it('should age multiple citizens differently', () => {
+    it('должен стареть нескольких жителей по-разному', () => {
       const eid1 = entities[0];
       const eid2 = entities[1];
 
@@ -45,7 +45,7 @@ describe('PopulationSystem', () => {
       expect(Person.age[eid2]).toBe(32); // 30 + 2
     });
 
-    it('should handle fractional aging', () => {
+    it('должен обрабатывать дробное старение', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setPersonData(eid, { age: 25 });
@@ -58,8 +58,8 @@ describe('PopulationSystem', () => {
     });
   });
 
-  describe('mortality', () => {
-    it('should not kill young citizens', () => {
+  describe('смертность жителей', () => {
+    it('не должен убивать молодых жителей', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setPersonData(eid, { age: 25 });
@@ -73,7 +73,7 @@ describe('PopulationSystem', () => {
       expect(Person.age[eid]).toBeGreaterThan(25);
     });
 
-    it('should potentially kill very old citizens', () => {
+    it('должен потенциально убивать очень пожилых жителей', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setPersonData(eid, { age: 85 });
@@ -98,7 +98,7 @@ describe('PopulationSystem', () => {
       expect(Person.age[eid]).toBeGreaterThanOrEqual(85);
     });
 
-    it('should handle multiple citizens with different mortality rates', () => {
+    it('должен обрабатывать нескольких жителей с разными показателями смертности', () => {
       const youngEid = entities[0];
       const middleEid = entities[1];
       const oldEid = entities[2];
@@ -127,14 +127,14 @@ describe('PopulationSystem', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle empty entity list', () => {
+  describe('граничные случаи', () => {
+    it('должен обрабатывать пустой список сущностей', () => {
       expect(() => {
         PopulationSystem.update(world, [], 365);
       }).not.toThrow();
     });
 
-    it('should handle very small delta time', () => {
+    it('должен обрабатывать очень маленькое время delta', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setPersonData(eid, { age: 25 });
@@ -148,7 +148,7 @@ describe('PopulationSystem', () => {
       expect(Person.age[eid]).toBeLessThan(initialAge + 0.01);
     });
 
-    it('should handle very large delta time', () => {
+    it('должен обрабатывать очень большое время delta', () => {
       const eid = entities[0];
       BitECSTestHelper.createCitizenEntity(world);
       BitECSTestHelper.setPersonData(eid, { age: 25 });

@@ -55,7 +55,7 @@ export function createPriceFluctuationSystem(deps?: import('../services/interfac
 
       // Используем инжектированные зависимости или дефолтные
       const timeProvider = systemDeps?.timeProvider || {
-        getCurrentDay: () => Math.floor(gameTime / (24 * 60))
+        getCurrentDay: () => Math.floor(gameTime / (24 * 60)) + 1 // соответствует TimeController.getDay()
       };
       const currentDay = timeProvider.getCurrentDay();
       const randomProvider = systemDeps?.randomProvider || Math;
@@ -226,7 +226,8 @@ export function createMonthlyExpensesSystem(deps?: import('../services/interface
       console.log('MonthlyExpensesSystem: Starting update with gameTime:', gameTime);
 
     // Рассчитываем текущий день симуляции
-    const currentDay = Math.floor(gameTime / (24 * 60));
+    // currentDay = Math.floor(gameTime / (24 * 60)) + 1 (соответствует TimeController.getDay())
+    const currentDay = Math.floor(gameTime / (24 * 60)) + 1;
 
     for (const citizenId of entities) {
       // Получаем дату последнего списания для этого жителя
