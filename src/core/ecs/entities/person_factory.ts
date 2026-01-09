@@ -7,6 +7,7 @@ import {
   Position,
   ID,
   Render,
+  Schedule,
   Gender,
   type PersonData,
   type CitizenData,
@@ -14,7 +15,9 @@ import {
   type PositionData,
   type IdData,
   type RenderData,
+  type ScheduleData,
   SpriteType,
+  DEFAULT_SCHEDULES,
 } from '../components';
 
 /**
@@ -40,6 +43,7 @@ export class PersonFactory {
     addComponent(this.world, eid, Person);
     addComponent(this.world, eid, Citizen);
     addComponent(this.world, eid, Needs);
+    addComponent(this.world, eid, Schedule);
     addComponent(this.world, eid, Position);
     addComponent(this.world, eid, ID);
     addComponent(this.world, eid, Render);
@@ -48,6 +52,10 @@ export class PersonFactory {
     this.setPersonData(eid, personData);
     this.setCitizenData(eid, citizenData);
     this.setNeedsData(eid, { food: 50, shopping: 30, work: 20, sleep: 20 });
+    this.setScheduleData(eid, {
+      phaseSchedule: DEFAULT_SCHEDULES.citizen,
+      entityType: 'citizen',
+    });
     this.setPositionData(eid, positionData);
     this.setIdData(eid, { value: this.nextId++ });
     this.setRenderData(eid, {
@@ -155,5 +163,13 @@ export class PersonFactory {
     Render.layer[eid] = data.layer;
     Render.spriteType[eid] = data.spriteType;
     Render.color[eid] = data.color;
+  }
+
+  private setScheduleData(eid: EntityId, data: ScheduleData) {
+    Schedule.phaseSchedule[eid] = data.phaseSchedule;
+    Schedule.entityType[eid] = data.entityType;
+    Schedule.currentActivity[eid] = '';
+    Schedule.nextActivityTime[eid] = 0;
+    Schedule.modifiers[eid] = data.modifiers || [];
   }
 }

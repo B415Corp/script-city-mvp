@@ -12,6 +12,7 @@ import {
   FeedingSystem,
   SleepSystem,
   ShoppingDecisionSystem,
+  ScheduleManagerSystem,
 } from './systems/clusters/schedule_activity_systems';
 import { System, SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
@@ -45,12 +46,13 @@ const systemRegistry: Record<string, System> = {
   Feeding: FeedingSystem,
   Sleep: SleepSystem,
   ShoppingDecision: ShoppingDecisionSystem,
+  ScheduleManager: ScheduleManagerSystem,
 } as const;
 
 // Регистр кластеров
 const clustersRegistry: Record<string, SystemCluster> = {
   population: {
-    systemNames: [],
+    systemNames: ['ScheduleManager'],
     enabled: true,
     interval: 60.0, // Каждую секунду
   },

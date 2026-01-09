@@ -26,6 +26,13 @@ export class TimeController {
   }
 
   /**
+   * Устанавливает игровое время в минутах от начала игры
+   */
+  setTime(minutes: number): void {
+    this.gameTime = minutes;
+  }
+
+  /**
    * Получить время дня (минуты от начала текущего дня)
    */
   private get gameTimeOfDay(): number {

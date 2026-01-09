@@ -59,6 +59,8 @@ export class Core {
 
   private async initTickManager(): Promise<void> {
     this.tickManager = new TickManager(this.eventBus, 10);
+    // Устанавливаем начальное время на 2:00 ночи (жители спят)
+    this.tickManager.getTimeController().setTime(2 * 60); // 2:00 AM
   }
 
   private async startSimulation(): Promise<void> {
