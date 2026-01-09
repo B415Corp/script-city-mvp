@@ -1,4 +1,5 @@
 import { EventBus } from '../event_bus/event_bus';
+import { ECSManager } from '../ecs/ecs_manager';
 import KekModule from './custom_modules/kek_module';
 import MapModule from './base_modules/map_module/map_module';
 import ToolbarModule from './base_modules/toolbar_module/toolbar_module';
@@ -11,7 +12,7 @@ const baseModuleRegistry = {
   MapModule: MapModule,
   ToolsModule: ToolsModule,
   ToolbarModule: ToolbarModule,
-  // DebugModule: DebugModule,
+  DebugModule: DebugModule,
 } as const;
 
 // названия кастомных модулей с их классами
@@ -26,6 +27,7 @@ type CustomModuleName = keyof typeof customModuleRegistry;
 export class ModuleManager {
   private scene!: Phaser.Scene;
   private eventBus!: EventBus;
+  private ecsManager!: ECSManager;
 
   // api модулей
   private baseModuleApi: Map<string, BaseModule> = new Map();
@@ -35,9 +37,10 @@ export class ModuleManager {
   private baseModules = baseModuleRegistry;
   private customModules = customModuleRegistry;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     this.scene = scene;
     this.eventBus = eventBus;
+    this.ecsManager = ecsManager;
   }
 
   public init(): void {
@@ -48,7 +51,21 @@ export class ModuleManager {
   // инициализация базовых модулей в порядке очереди
   private initBaseModules(): void {
     Object.entries(this.baseModules).forEach(([name, ModuleClass]) => {
-      this.baseModuleApi.set(name, new ModuleClass(this.scene, this.eventBus));
+      // DebugModule получает ECSManager для доступа к статистике entities
+      let module: BaseModule;
+      if (name === 'DebugModule') {
+        module = new (ModuleClass as new (
+          scene: Phaser.Scene,
+          eventBus: EventBus,
+          ecsManager: ECSManager,
+        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager);
+      } else {
+        module = new (ModuleClass as new (scene: Phaser.Scene, eventBus: EventBus) => BaseModule)(
+          this.scene,
+          this.eventBus,
+        );
+      }
+      this.baseModuleApi.set(name, module);
     });
   }
 

@@ -1,4 +1,5 @@
 import { EventBus } from '@/core/event_bus/event_bus';
+import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './debug_component';
 
 // Глобальный интерфейс для отладки (объявлен в main.ts)
@@ -37,8 +38,9 @@ export class ECSDebug extends DebugComponent {
   private updateTimer: number | null = null;
   private updateInterval = 5000; // Обновлять каждые 5 секунд
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus);
+    this.ecsManager = ecsManager;
   }
 
   private initDOM(): void {
@@ -96,13 +98,12 @@ export class ECSDebug extends DebugComponent {
 
   private updateECSInfo(): void {
     try {
-      const sim = window.sim;
-      if (!sim || !sim.getECSStats) {
-        this.showError('ECS stats not available');
+      if (!this.ecsManager) {
+        this.showError('ECS manager not available');
         return;
       }
 
-      const stats = sim.getECSStats() as ECSStats;
+      const stats = this.ecsManager.getStats() as ECSStats;
       if (!stats) {
         this.showError('No ECS data');
         return;
@@ -199,20 +200,86 @@ export class ECSDebug extends DebugComponent {
 
     this.entitiesList.innerHTML = '';
 
-    // Общее количество сущностей
-    const entitiesDiv = document.createElement('div');
-    entitiesDiv.className = 'debug-ecs-item debug-ecs-entity';
-    entitiesDiv.textContent = `• Total entities: ${stats.totalEntities}`;
-    this.entitiesList.appendChild(entitiesDiv);
+    // Общая статистика ECS
+    const overviewDiv = document.createElement('div');
+    overviewDiv.className = 'debug-ecs-overview';
+    overviewDiv.innerHTML = `
+      <div class="debug-ecs-item debug-ecs-summary">📊 <strong>ECS Overview</strong></div>
+      <div class="debug-ecs-item">• Systems: ${stats.totalSystemsCount}</div>
+      <div class="debug-ecs-item">• Clusters: ${stats.clustersCount}</div>
+      <div class="debug-ecs-item">• Total entities: ${stats.totalEntities}</div>
+    `;
+    this.entitiesList.appendChild(overviewDiv);
 
-    // Количество сущностей по типам
-    const entityTypes = ['Person', 'Shop', 'Factory'];
-    entityTypes.forEach((type) => {
+    // Разделитель
+    const separator1 = document.createElement('hr');
+    separator1.className = 'debug-separator';
+    this.entitiesList.appendChild(separator1);
+
+    // Сущности по типам
+    const entitiesHeader = document.createElement('div');
+    entitiesHeader.className = 'debug-ecs-item debug-ecs-summary';
+    entitiesHeader.textContent = '🏷️ Entities by Type:';
+    this.entitiesList.appendChild(entitiesHeader);
+
+    // Получить все типы сущностей из entityCounts
+    const allEntityTypes = Object.keys(stats.entityCounts).sort();
+    allEntityTypes.forEach((type) => {
       const count = stats.entityCounts[type] || 0;
       const typeDiv = document.createElement('div');
       typeDiv.className = 'debug-ecs-item debug-ecs-entity-type';
-      typeDiv.textContent = `• ${type} entities: ${count}`;
+      typeDiv.textContent = `• ${type}: ${count}`;
       this.entitiesList.appendChild(typeDiv);
+    });
+
+    // Если нет сущностей по типам, показать сообщение
+    if (allEntityTypes.length === 0) {
+      const noEntitiesDiv = document.createElement('div');
+      noEntitiesDiv.className = 'debug-ecs-item debug-ecs-no-data';
+      noEntitiesDiv.textContent = '• No entities found';
+      this.entitiesList.appendChild(noEntitiesDiv);
+    }
+
+    // Разделитель
+    const separator2 = document.createElement('hr');
+    separator2.className = 'debug-separator';
+    this.entitiesList.appendChild(separator2);
+
+    // Кластеры
+    const clustersHeader = document.createElement('div');
+    clustersHeader.className = 'debug-ecs-item debug-ecs-summary';
+    clustersHeader.textContent = '⚙️ System Clusters:';
+    this.entitiesList.appendChild(clustersHeader);
+
+    Object.entries(stats.clusters).forEach(([clusterName, cluster]) => {
+      const clusterDiv = document.createElement('div');
+      clusterDiv.className = 'debug-ecs-cluster-summary';
+
+      const status = cluster.enabled ? '🟢' : '🔴';
+      const interval = cluster.interval ? `${cluster.interval}s` : 'every tick';
+
+      clusterDiv.innerHTML = `
+        <div class="debug-ecs-item debug-ecs-cluster-header">
+          ${status} ${clusterName} (${cluster.systemsCount} systems, ${interval})
+        </div>
+      `;
+
+      // Показать системы в кластере если их мало
+      if (cluster.systems.length <= 3) {
+        cluster.systems.forEach((systemName) => {
+          const systemDiv = document.createElement('div');
+          systemDiv.className = 'debug-ecs-item debug-ecs-system-small';
+          systemDiv.textContent = `  • ${systemName}`;
+          clusterDiv.appendChild(systemDiv);
+        });
+      } else {
+        const systemsDiv = document.createElement('div');
+        systemsDiv.className = 'debug-ecs-item debug-ecs-system-small';
+        systemsDiv.textContent = `  • ${cluster.systems.slice(0, 2).join(', ')}... (+${cluster.systems.length - 2} more)`;
+        clusterDiv.appendChild(systemsDiv);
+      }
+
+      this.entitiesList.appendChild(clusterDiv);
     });
   }
 

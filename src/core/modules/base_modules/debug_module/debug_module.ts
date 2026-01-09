@@ -1,5 +1,6 @@
 import { BaseModule } from '../../extends';
 import { EventBus } from '@/core/event_bus/event_bus';
+import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
 import { TickDebug } from './components/tick_debug';
@@ -14,9 +15,18 @@ const debugComponentsRegister = {
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
 
+// Типы конструкторов для разных компонентов
+type DebugComponentConstructor = new (scene: Phaser.Scene, eventBus: EventBus) => DebugComponent;
+type ECSDebugComponentConstructor = new (
+  scene: Phaser.Scene,
+  eventBus: EventBus,
+  ecsManager: ECSManager,
+) => DebugComponent;
+
 export class DebugModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  protected ecsManager!: ECSManager;
 
   private isOpen: boolean = false;
   private currentTab: ComponentsRegister = 'events';
@@ -31,11 +41,12 @@ export class DebugModule extends BaseModule {
   private tabButtons: Map<string, HTMLElement> = new Map();
   private tabContents: Map<string, HTMLElement> = new Map();
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     console.log('DebugModule: init');
     super(scene, eventBus);
     this.scene = scene;
     this.eventBus = eventBus;
+    this.ecsManager = ecsManager;
 
     this.registerComponents();
     this.initDOM();
@@ -49,7 +60,19 @@ export class DebugModule extends BaseModule {
   // регистрация компонентов
   private registerComponents(): void {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
-      const component = new ModuleClass(this.scene, this.eventBus);
+      let component: DebugComponent;
+
+      // ECSDebug получает ECSManager для доступа к статистике entities
+      if (name === 'ecs') {
+        component = new (ModuleClass as ECSDebugComponentConstructor)(
+          this.scene,
+          this.eventBus,
+          this.ecsManager,
+        );
+      } else {
+        component = new (ModuleClass as DebugComponentConstructor)(this.scene, this.eventBus);
+      }
+
       component.onInit();
       this.debugComponentsApi.set(name, component);
     });

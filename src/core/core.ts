@@ -41,7 +41,7 @@ export class Core {
       this.phaser?.events.once('ready', () => {
         const scene = this.phaser!.scene.getScene('main_scene') as MainScene;
         scene.init(this.eventBus, this.tickManager);
-        this.moduleManager = new ModuleManager(scene, this.eventBus);
+        this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager);
         this.moduleManager.init();
         scene.setModuleManager(this.moduleManager);
         res();
@@ -62,7 +62,7 @@ export class Core {
   }
 
   private async startSimulation(): Promise<void> {
-    const entrySimulation = new EntrySimulation();
+    const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
     entrySimulation.start();
   }
 }

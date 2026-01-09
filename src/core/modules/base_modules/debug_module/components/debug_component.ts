@@ -1,13 +1,16 @@
 import { EventBus } from '@/core/event_bus/event_bus';
+import { ECSManager } from '@/core/ecs/ecs_manager';
 
 export abstract class DebugComponent {
   protected contentContainer!: HTMLElement;
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  protected ecsManager?: ECSManager;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager?: ECSManager) {
     this.scene = scene;
     this.eventBus = eventBus;
+    this.ecsManager = ecsManager;
   }
 
   // инициализация компонента
