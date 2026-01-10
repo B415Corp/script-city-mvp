@@ -23,6 +23,7 @@ import { Logger } from '../utils/logger';
 export class ECSManager {
   private world: World;
   private scheduleManager: ScheduleManager;
+  private eventSystemMap: Map<string, SystemFunction[]> = new Map();
   private logger: Logger;
 
   constructor(
@@ -30,9 +31,12 @@ export class ECSManager {
     private tickManager: TickManager,
   ) {
     this.logger = Logger.create('ECSManager');
-    this.logger.info('ECSManager initialized (Phase 2 - with ScheduleManager)');
+    this.logger.info('ECSManager initialized (Phase 3 - with Event system)');
     this.world = createWorld();
     this.scheduleManager = new ScheduleManager(this.world, this.eventBus);
+
+    // Подписываемся на события для event-driven систем
+    this.setupEventSubscriptions();
   }
 
   /**
@@ -51,6 +55,12 @@ export class ECSManager {
     const systemRegistry = SystemRegistry.getInstance();
     const clusterRegistry = ClusterRegistry.getInstance();
 
+    // Собираем информацию об event-driven системах
+    const eventSystems: Record<string, string[]> = {};
+    for (const [eventName, systems] of this.eventSystemMap) {
+      eventSystems[eventName] = systems.map(() => 'event-driven'); // Пока просто помечаем как event-driven
+    }
+
     return {
       totalSystemsCount: this.scheduleManager.getSystems().length + this.scheduleManager.getIntervalSystems().length,
       clustersCount: clusterRegistry.size(),
@@ -63,6 +73,7 @@ export class ECSManager {
       totalEntities: 0,
       components: Array.from(componentRegistry.getAll().keys()),
       intervalSystems: this.scheduleManager.getIntervalSystems().map(s => s.name),
+      eventSystems,
     };
   }
 
@@ -94,12 +105,20 @@ export class ECSManager {
     const { SystemRegistry } = require('./registry/system_registry');
     const registry = SystemRegistry.getInstance();
 
-    // Регистрируем все системы в ScheduleManager
+    // Регистрируем все системы в ScheduleManager или как event-driven
     for (const [name, registeredSystem] of registry.getAll()) {
       const { system, metadata } = registeredSystem;
 
-      // Регистрируем систему в зависимости от наличия интервала
-      if (metadata.interval && metadata.interval > 0) {
+      // Проверяем eventTriggers для event-driven систем
+      if (metadata.eventTriggers && metadata.eventTriggers.length > 0) {
+        // Event-driven система - регистрируем для каждого события
+        for (const eventName of metadata.eventTriggers) {
+          this.registerEventSystem(eventName, system);
+        }
+        this.logger.info(`Auto-registered event-driven system: ${name} (events: ${metadata.eventTriggers.join(', ')})`);
+      }
+      // Проверяем интервал для интервальных систем
+      else if (metadata.interval && metadata.interval > 0) {
         // Система с интервалом
         this.scheduleManager.registerIntervalSystem(name, system, metadata.interval);
         this.logger.info(`Auto-registered interval system: ${name} (${metadata.interval}ms, cluster: ${metadata.cluster || 'none'})`);
@@ -131,6 +150,91 @@ export class ECSManager {
     }
 
     this.logger.info(`Auto-registered ${clusterRegistry.size()} clusters`);
+  }
+
+  /**
+   * Настройка подписок на события для event-driven систем
+   */
+  private setupEventSubscriptions(): void {
+    // Подписываемся на Events.CallSystem для ручного вызова систем
+    this.eventBus.on('CallSystem', (payload) => {
+      if (payload && payload.systemName) {
+        this.handleCallSystem(payload.systemName, payload.data);
+      }
+    });
+
+    this.logger.info('Event subscriptions setup for event-driven systems');
+  }
+
+  /**
+   * Обработчик для вызова системы по имени (Events.CallSystem)
+   */
+  private handleCallSystem(systemName: string, data?: any): void {
+    // Находим систему в реестре и выполняем её
+    const { SystemRegistry } = require('./registry/system_registry');
+    const registry = SystemRegistry.getInstance();
+    const registeredSystem = registry.get(systemName);
+
+    if (registeredSystem) {
+      try {
+        registeredSystem.system(this.world, 0); // delta = 0 для вызова по событию
+        this.logger.debug(`Executed system "${systemName}" via CallSystem event`);
+      } catch (error) {
+        this.logger.error(`Error executing system "${systemName}":`, error);
+      }
+    } else {
+      this.logger.warn(`System "${systemName}" not found for CallSystem event`);
+    }
+  }
+
+  /**
+   * Обработчик для event-driven систем
+   * Выполняет все системы, подписанные на данное событие
+   */
+  private handleEventSystem(eventName: string, payload?: any): void {
+    const systems = this.eventSystemMap.get(eventName);
+    if (!systems || systems.length === 0) {
+      return; // Нет систем, подписанных на это событие
+    }
+
+    for (const system of systems) {
+      try {
+        system(this.world, 0); // delta = 0 для вызова по событию
+        this.logger.debug(`Executed event-driven system for event "${eventName}"`);
+      } catch (error) {
+        this.logger.error(`Error in event-driven system for "${eventName}":`, error);
+      }
+    }
+  }
+
+  /**
+   * Регистрация системы для event-driven выполнения
+   */
+  registerEventSystem(eventName: string, system: SystemFunction): void {
+    if (!this.eventSystemMap.has(eventName)) {
+      this.eventSystemMap.set(eventName, []);
+      // Подписываемся на событие только при первой регистрации
+      this.eventBus.on(eventName, (payload) => {
+        this.handleEventSystem(eventName, payload);
+      });
+    }
+    this.eventSystemMap.get(eventName)!.push(system);
+    this.logger.info(`Registered event-driven system for event "${eventName}"`);
+  }
+
+  /**
+   * Метод для тестирования event-driven систем (Phase 3)
+   * Отправляет тестовые события для проверки работы систем
+   */
+  testEventSystems(): void {
+    this.logger.info('Testing event-driven systems...');
+
+    // Отправляем тестовые события
+    setTimeout(() => this.eventBus.emit('test:event', { testData: 'from test' }), 1000);
+    setTimeout(() => this.eventBus.emit('custom:action', { action: 'test_action' }), 2000);
+    setTimeout(() => this.eventBus.emit('nonexistent:event', {}), 3000); // Это событие не должно вызвать системы
+
+    this.logger.info('Test events scheduled (1s: test:event, 2s: custom:action, 3s: nonexistent:event)');
   }
 
   /**

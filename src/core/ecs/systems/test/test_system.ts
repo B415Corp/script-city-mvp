@@ -34,3 +34,19 @@ export const IntervalTestSystem = createSystem(
     enabled: true,
   },
 );
+
+/**
+ * Тестовая event-driven система
+ */
+export const EventTestSystem = createSystem(
+  'event_test',
+  ['TestComponent'],
+  (world, entities, delta) => {
+    console.log(`EventTestSystem triggered: entities=${entities.length}, time: ${Date.now()}`);
+  },
+  {
+    cluster: 'test',
+    eventTriggers: ['test:event', 'custom:action'], // Реагирует на эти события
+    enabled: true,
+  },
+);

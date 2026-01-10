@@ -19,6 +19,7 @@ interface SimDebugMethods {
   getECSStats: () => ECSStats;
   checkRegistries: () => void;
   testScheduleManager: (duration?: number) => void;
+  testEventSystems: () => void;
 }
 
 // Глобальный объект для отладки
@@ -97,7 +98,9 @@ async function startGame(): Promise<void> {
         logger.info('=== System Registry ===');
         logger.info(`Systems: ${systemRegistry.size()}`);
         for (const [name, system] of systemRegistry.getAll()) {
-          logger.info(`  - ${name} (cluster: ${system.metadata.cluster || 'none'}, interval: ${system.metadata.interval || 'every tick'})`);
+          logger.info(
+            `  - ${name} (cluster: ${system.metadata.cluster || 'none'}, interval: ${system.metadata.interval || 'every tick'})`,
+          );
         }
 
         logger.info('=== Cluster Registry ===');
@@ -108,10 +111,28 @@ async function startGame(): Promise<void> {
 
         logger.info('=== Entity Factory Registry ===');
         logger.info(`Factories: ${entityFactoryRegistry.size()}`);
+
+        // Показываем event-driven системы если ECSManager доступен
+        if (core.ecsManager) {
+          const stats = core.ecsManager.getStats();
+          if (stats.eventSystems && Object.keys(stats.eventSystems).length > 0) {
+            logger.info('=== Event-Driven Systems ===');
+            for (const [eventName, systems] of Object.entries(stats.eventSystems)) {
+              logger.info(`  Event "${eventName}": ${systems.length} systems`);
+            }
+          }
+        }
       },
       testScheduleManager: (duration?: number) => {
         if (core.ecsManager) {
           core.ecsManager.testScheduleManager(duration);
+        } else {
+          logger.warn('ECSManager not available');
+        }
+      },
+      testEventSystems: () => {
+        if (core.ecsManager) {
+          core.ecsManager.testEventSystems();
         } else {
           logger.warn('ECSManager not available');
         }
@@ -123,6 +144,7 @@ async function startGame(): Promise<void> {
     logger.info('  sim.listenTime() - listen to time updates');
     logger.info('  sim.checkRegistries() - show registered ECS components/systems');
     logger.info('  sim.testScheduleManager(5000) - test ScheduleManager for 5 seconds');
+    logger.info('  sim.testEventSystems() - test event-driven systems');
   }
 }
 

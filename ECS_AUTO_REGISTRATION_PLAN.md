@@ -207,6 +207,7 @@
 ### 2.4 Реализация Phase 2 - интеграция и тестирование ✅
 
 **Задачи:**
+
 - ✅ Интегрировать авто-создание кластеров в ECSManager
 - ✅ Реализовать интервальную систему обновления
 - ✅ Протестировать работу с интервалами и кластерами
@@ -226,30 +227,30 @@
 
 ---
 
-## Phase 3: Event-driven системы
+## Phase 3: Event-driven системы ✅ ЗАВЕРШЕН
 
-### 3.1 Event система в ECSManager
-
-**Файлы:**
-
-- `src/core/ecs/ecs_manager.ts` (расширение)
-
-**Задачи:**
-
-- Добавить `eventSystemMap` для маршрутизации событий к системам
-- Реализовать `handleEventSystem()` и `handleCallSystem()`
-- Подписаться на `Events.CallSystem` и кастомные события
-
-### 3.2 Расширение умных конструкторов
+### 3.1 Event система в ECSManager ✅
 
 **Файлы:**
 
-- `src/core/ecs/core/smart_constructors.ts` (расширение)
+- ✅ `src/core/ecs/ecs_manager.ts` (расширение)
 
 **Задачи:**
 
-- Добавить поддержку `eventTriggers` в `createSystem()`
-- Автоматическая подписка на события при регистрации системы
+- ✅ Добавить `eventSystemMap` для маршрутизации событий к системам
+- ✅ Реализовать `handleEventSystem()` и `handleCallSystem()`
+- ✅ Подписаться на `Events.CallSystem` и кастомные события
+
+### 3.2 Расширение умных конструкторов ✅
+
+**Файлы:**
+
+- ✅ `src/core/ecs/core/smart_constructors.ts` (расширение)
+
+**Задачи:**
+
+- ✅ Добавить поддержку `eventTriggers` в `createSystem()`
+- ✅ Автоматическая подписка на события при регистрации системы
 
 ### 3.3 Интеграция с существующими event-системами
 
@@ -262,6 +263,14 @@
 - Перевести существующие event-driven системы на новый API
 - Заменить ручной `eventBus.emit()` на декларативные `eventTriggers`
 
+### 3.4 Тестирование и отладка Phase 3 ✅
+
+**Задачи:**
+- ✅ Создать тестовые event-driven системы
+- ✅ Добавить `testEventSystems()` для тестирования
+- ✅ Добавить `sim.testEventSystems()` в браузерную консоль
+- ✅ Расширить `checkRegistries()` для показа event-систем
+
 **Результат Phase 3:**
 
 ```
@@ -270,6 +279,7 @@
 ✅ Кластеры: createSystem(..., {cluster: 'population'}) → автоматически в кластер
 ✅ Интервалы: createSystem(..., {interval: 300}) → автоматически с интервалом
 ✅ Events: createSystem(..., {eventTriggers: ['work:start']}) → автоматически на события
+✅ Тестирование: sim.testEventSystems() для проверки event-driven систем
 ```
 
 ---
