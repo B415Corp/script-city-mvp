@@ -142,17 +142,18 @@ export function money(defaultValue: number = 0): FieldBuilder<number> {
 /**
  * Автоматически определяет BitECS тип на основе значения по умолчанию
  */
-function inferBitECSType(value: number): FieldType {
+export function inferBitECSType(value: number): FieldType {
+  // Числа с плавающей точкой → float (проверяем первым!)
+  // Проверяем, является ли число результатом деления или содержит десятичную точку
+  if (value % 1 !== 0 || /\./.test(value.toString())) {
+    return 'f32'; // float32 для большинства случаев
+  }
+
   // Отрицательные числа → signed integers
   if (value < 0) {
     if (value >= -128) return 'i8';
     if (value >= -32768) return 'i16';
     return 'i32';
-  }
-
-  // Числа с плавающей точкой → float
-  if (value % 1 !== 0) {
-    return 'f32'; // float32 для большинства случаев
   }
 
   // Целые положительные числа
