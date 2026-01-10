@@ -59,7 +59,7 @@ export class EntrySimulation {
     this.isSimulationRunning = false;
 
     if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
+      window.cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
 
@@ -119,8 +119,8 @@ export class EntrySimulation {
           {
             age,
             gender: Math.random() < 0.5 ? Gender.MALE : Gender.FEMALE,
-            name: `Citizen ${houseIndex}-${citizenInHouse}`,
-            education,
+            firstName: houseIndex * 10 + citizenInHouse, // Simple numeric ID for first name
+            lastName: Math.floor(Math.random() * 100), // Random last name index
           },
           {
             happiness: 50,
@@ -131,10 +131,16 @@ export class EntrySimulation {
             housingType: HousingType.OWNED, // Все имеют собственное жилье
             minimumExpenses: 0, // Нет расходов в упрощенной симуляции
             salary: 100, // Фиксированная зарплата
-            isLookingForJob: false, // Уже имеет работу
+            lastWorkDay: 0,
+            isLookingForJob: 0, // Уже имеет работу
             jobSearchAttempts: 0,
             lastJobSearchDay: 0,
             lastExpenseDay: 0,
+            isHomeless: 0, // Все имеют жилье
+            age,
+            education,
+            experience: 0,
+            skills: 0,
           },
           houses[houseIndex],
         );

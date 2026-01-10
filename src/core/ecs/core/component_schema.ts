@@ -3,6 +3,7 @@ import {
   ComponentSchema,
   FieldType,
   EnhancedComponent,
+  NumberFieldConfig,
 } from './component_builder';
 import { addComponent, removeComponent } from 'bitecs';
 import type { World } from 'bitecs';
@@ -16,13 +17,13 @@ import type { World } from 'bitecs';
  * Базовый билдер для полей компонента
  */
 export class FieldBuilder<T = number> {
-  protected config: { type: string; default: T };
+  protected config: NumberFieldConfig;
 
   constructor(
-    protected type: string,
+    protected type: FieldType,
     defaultValue: T,
   ) {
-    this.config = { type, default: defaultValue };
+    this.config = { type, default: defaultValue as number };
   }
 
   /**
@@ -53,7 +54,7 @@ export class FieldBuilder<T = number> {
   /**
    * Получить конфиг поля
    */
-  getConfig(): { type: string; default: T } {
+  getConfig(): NumberFieldConfig {
     return this.config;
   }
 }
