@@ -1,8 +1,23 @@
 # 🚀 План реализации автоматической системы регистрации ECS
 
+## 🚨 КРИТИЧНО: Начать с Phase 0!
+
+**ПРЕЖДЕ ЧЕМ ДЕЛАТЬ ЧТО-ЛИБО ДРУГОЕ:**
+
+1. ✅ **ВЫПОЛНИТЬ Phase 0: Очистка и подготовка**
+2. ✅ **УБЕДИТЬСЯ** что проект запускается без симуляции
+3. ✅ **ПРОВЕРИТЬ** что нет ошибок компиляции
+4. ✅ **ТОЛЬКО ПОСЛЕ ЭТОГО** переходить к Phase 1
+
+**Phase 0 - это основа всего! Без нее ничего работать не будет.**
+
+**Отслеживание прогресса:** Используйте TODO список в IDE для контроля выполнения задач.
+
 ## 📋 Обзор
 
 Этот план описывает внедрение **автоматической системы регистрации** для ECS компонентов, систем, кластеров и фабрик сущностей. Основная цель - создать единый флоу разработки, где создание компонента/системы в одном месте автоматически приводит к их регистрации во всех необходимых местах.
+
+**Мы начинаем с чистого листа** - все существующие компоненты, системы и сущности удалены.
 
 ## 🎯 Ключевые преимущества
 
@@ -32,7 +47,59 @@
 
 ## 📅 План реализации (Phase-based)
 
-## Phase 1: Базовые реестры и компоненты ✅
+## Phase 0: Очистка и подготовка (КРИТИЧНО!) 🧹
+
+### 0.1 Отключение существующей симуляции
+
+**Файлы:**
+
+- `src/core/simulations/entry_simulation.ts`
+- `src/core/core.ts`
+- `src/main.ts`
+- `src/core/modules/module_manager.ts`
+
+**Задачи:**
+
+- **ЗАКОММЕНТИРОВАТЬ** `EntrySimulation` в `Core.startSimulation()`
+- **ВЫКЛЮЧИТЬ** все ECS модули в `ModuleManager.init()`
+- **ЗАКОММЕНТИРОВАТЬ** `this.initECSManager()` в `Core.init()`
+- **УБРАТЬ** `this.ecsManager` из зависимостей модулей
+- Проверить что приложение запускается только с Phaser (без ECS)
+
+**Пример в Core.ts:**
+
+```typescript
+// Временно отключено для Phase 0
+// await this.initECSManager();
+// const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
+// entrySimulation.start();
+```
+
+### 0.2 Очистка существующих компонентов и систем
+
+**Удалить файлы:**
+
+- `src/core/ecs/components/` - все существующие компоненты
+- `src/core/ecs/systems/` - все существующие системы
+- `src/core/ecs/entities/` - существующие фабрики сущностей
+
+**Оставить:**
+
+- `src/core/ecs/core/` - базовую инфраструктуру
+- `src/core/ecs/ecs_manager.ts` - базовый менеджер
+- `src/core/ecs/types.ts` - определения типов
+
+**Результат Phase 0:**
+
+```
+🧹 Проект очищен от существующего кода
+🚫 Симуляция отключена
+✅ Готовность к новой архитектуре
+```
+
+---
+
+## Phase 1: Базовые реестры и компоненты 🏗️
 
 ### 1.1 Создание базовых реестров
 
@@ -59,7 +126,7 @@
 
 - `createComponent(name, schema)` - создает компонент через `defineComponent()` + регистрирует в `ComponentRegistry`
 - `createSystem(name, components, updateFn, metadata)` - создает систему + регистрирует в `SystemRegistry` с метаданными
-- Интеграция с существующими `defineComponent` и фабриками систем
+- Интеграция с BitECS 0.4.0
 
 ### 1.3 Автоматическая регистрация в ECSManager
 
@@ -70,8 +137,8 @@
 **Задачи:**
 
 - Добавить методы `autoRegisterComponents()`, `autoRegisterSystems()`
-- Заменить ручную регистрацию на автоматическую через реестры
-- Сохранить обратную совместимость для существующих компонентов
+- Настроить автоматическую регистрацию через реестры
+- Настроить ScheduleManager для работы с реестрами
 
 **Результат Phase 1:**
 
@@ -251,49 +318,45 @@ src/core/ecs/
 
 ---
 
-## 🔄 Миграция существующего кода
+## 🔄 Примеры использования нового API
 
-### Компоненты
+### Создание компонента
 
 ```typescript
-// Было:
-export const Person = defineComponent('Person', {
-  /* schema */
-});
-
-// Стало:
-export const Person = createComponent('Person', {
-  /* schema */
+// src/core/ecs/components/player_component.ts
+export const Player = createComponent('Player', {
+  health: 100,
+  mana: 50,
+  experience: 0,
 });
 ```
 
-### Системы
+### Создание системы с метаданными
 
 ```typescript
-// Было: ручная регистрация в ECSManager
-const workSystem = createWorkSystem(timeService);
-this.scheduleManager.registerSystem(workSystem);
-
-// Стало:
-export const WorkSystem = createSystem('work', [...], updateFn, {
-  cluster: 'population',
-  dependencies: { timeService: true }
-});
+// src/core/ecs/systems/player_system.ts
+export const PlayerSystem = createSystem(
+  'player',
+  ['Player', 'Position'],
+  (world, entities, delta) => {
+    // Логика обновления игроков
+  },
+  {
+    cluster: 'gameplay', // Автоматически добавляется в кластер
+    interval: undefined, // Каждый тик (по умолчанию)
+    eventTriggers: ['level_up'], // Реагирует на события
+    enabled: true,
+  },
+);
 ```
 
-### Кластеры
+### Создание кластера
 
 ```typescript
-// Было: ручная настройка в clustersRegistry
-const clustersRegistry = {
-  population: { systemNames: ['Work', 'Movement'], enabled: true },
-};
-
-// Стало: автоматическое создание из метаданных систем
-// Или явное:
-export const PopulationCluster = createCluster('population', ['work', 'movement'], {
+// src/core/ecs/clusters/gameplay_cluster.ts
+export const GameplayCluster = createCluster('gameplay', ['player', 'enemy', 'physics'], {
   enabled: true,
-  description: 'Population simulation systems',
+  description: 'Core gameplay systems',
 });
 ```
 
@@ -367,11 +430,12 @@ export const PopulationCluster = createCluster('population', ['work', 'movement'
 
 ## 🎯 Следующие шаги
 
-1. **Начать с Phase 1** - базовые реестры и компоненты
-2. **Тестировать каждую фазу** перед переходом к следующей
-3. **Документировать API** по мере реализации
-4. **Мигрировать существующий код** постепенно
-5. **Собрать обратную связь** от команды разработки
+1. **НАЧАТЬ С Phase 0** - очистка и подготовка (КРИТИЧНО!)
+2. **Выполнить Phase 1** - базовые реестры и компоненты
+3. **Тестировать каждую фазу** перед переходом к следующей
+4. **Документировать API** по мере реализации
+5. **Создавать новые компоненты/системы** используя новый API
+6. **Собрать обратную связь** и скорректировать архитектуру
 
 ---
 
