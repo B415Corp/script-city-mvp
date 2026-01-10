@@ -1,7 +1,12 @@
 import { createWorld, World } from 'bitecs';
 import { EventBus } from '../event_bus/event_bus';
+import { Events } from '../event_bus/events';
 import { TickManager } from '../tick/tick_manager';
 import { Logger } from '../utils/logger';
+import { ComponentRegistry } from './registry/component_registry';
+import { SystemRegistry } from './registry/system_registry';
+import { ClusterRegistry } from './registry/cluster_registry';
+import { EntityFactoryRegistry } from './registry/entity_factory_registry';
 
 // Временно закомментированы импорты удаленных модулей для Phase 0
 // import { EntityFactory } from './entities';
@@ -50,7 +55,6 @@ export class ECSManager {
    * Возвращает статистику ECS (расширенная для Phase 2)
    */
   getStats(): any {
-    const { ComponentRegistry, SystemRegistry, ClusterRegistry } = require('./registry');
     const componentRegistry = ComponentRegistry.getInstance();
     const systemRegistry = SystemRegistry.getInstance();
     const clusterRegistry = ClusterRegistry.getInstance();
@@ -84,7 +88,6 @@ export class ECSManager {
    * Вызывается в initECSManager() для автоматической настройки
    */
   private autoRegisterComponents(): void {
-    const { ComponentRegistry } = require('./registry/component_registry');
     const registry = ComponentRegistry.getInstance();
 
     // Регистрируем все компоненты в BitECS мире
@@ -102,7 +105,6 @@ export class ECSManager {
    * Вызывается в initECSManager() для автоматической настройки
    */
   private autoRegisterSystems(): void {
-    const { SystemRegistry } = require('./registry/system_registry');
     const registry = SystemRegistry.getInstance();
 
     // Регистрируем все системы в ScheduleManager или как event-driven
@@ -137,7 +139,6 @@ export class ECSManager {
    * Вызывается в initECSManager() для автоматической настройки
    */
   private autoRegisterClusters(): void {
-    const { ClusterRegistry, SystemRegistry } = require('./registry/cluster_registry');
     const clusterRegistry = ClusterRegistry.getInstance();
     const systemRegistry = SystemRegistry.getInstance();
 
@@ -157,9 +158,9 @@ export class ECSManager {
    */
   private setupEventSubscriptions(): void {
     // Подписываемся на Events.CallSystem для ручного вызова систем
-    this.eventBus.on('CallSystem', (payload) => {
-      if (payload && payload.systemName) {
-        this.handleCallSystem(payload.systemName, payload.data);
+    this.eventBus.on(Events.CallSystem, (payload) => {
+      if (payload && 'systemName' in payload) {
+        this.handleCallSystem(payload);
       }
     });
 
@@ -169,9 +170,11 @@ export class ECSManager {
   /**
    * Обработчик для вызова системы по имени (Events.CallSystem)
    */
-  private handleCallSystem(systemName: string, data?: any): void {
+  private handleCallSystem(payload: any): void {
+    const systemName = payload?.systemName;
+    if (!systemName) return;
+
     // Находим систему в реестре и выполняем её
-    const { SystemRegistry } = require('./registry/system_registry');
     const registry = SystemRegistry.getInstance();
     const registeredSystem = registry.get(systemName);
 
@@ -180,7 +183,7 @@ export class ECSManager {
         registeredSystem.system(this.world, 0); // delta = 0 для вызова по событию
         this.logger.debug(`Executed system "${systemName}" via CallSystem event`);
       } catch (error) {
-        this.logger.error(`Error executing system "${systemName}":`, error);
+        this.logger.error(`Error executing system "${systemName}":`, error as Error);
       }
     } else {
       this.logger.warn(`System "${systemName}" not found for CallSystem event`);
@@ -202,7 +205,7 @@ export class ECSManager {
         system(this.world, 0); // delta = 0 для вызова по событию
         this.logger.debug(`Executed event-driven system for event "${eventName}"`);
       } catch (error) {
-        this.logger.error(`Error in event-driven system for "${eventName}":`, error);
+        this.logger.error(`Error in event-driven system for "${eventName}":`, error as Error);
       }
     }
   }
@@ -214,7 +217,7 @@ export class ECSManager {
     if (!this.eventSystemMap.has(eventName)) {
       this.eventSystemMap.set(eventName, []);
       // Подписываемся на событие только при первой регистрации
-      this.eventBus.on(eventName, (payload) => {
+      this.eventBus.on(eventName as any, (payload) => {
         this.handleEventSystem(eventName, payload);
       });
     }
@@ -230,9 +233,9 @@ export class ECSManager {
     this.logger.info('Testing event-driven systems...');
 
     // Отправляем тестовые события
-    setTimeout(() => this.eventBus.emit('test:event', { testData: 'from test' }), 1000);
-    setTimeout(() => this.eventBus.emit('custom:action', { action: 'test_action' }), 2000);
-    setTimeout(() => this.eventBus.emit('nonexistent:event', {}), 3000); // Это событие не должно вызвать системы
+    setTimeout(() => this.eventBus.emit('test:event' as any, { testData: 'from test' }), 1000);
+    setTimeout(() => this.eventBus.emit('custom:action' as any, { action: 'test_action' }), 2000);
+    setTimeout(() => this.eventBus.emit('nonexistent:event' as any, {}), 3000); // Это событие не должно вызвать системы
 
     this.logger.info('Test events scheduled (1s: test:event, 2s: custom:action, 3s: nonexistent:event)');
   }
@@ -242,7 +245,6 @@ export class ECSManager {
    * Создает тестовые сущности через зарегистрированные фабрики
    */
   testEntityFactories(): void {
-    const { EntityFactoryRegistry } = require('./registry/entity_factory_registry');
     const registry = EntityFactoryRegistry.getInstance();
 
     this.logger.info('Testing entity factories...');
@@ -253,7 +255,7 @@ export class ECSManager {
         const entityId = factory.factory();
         this.logger.info(`Created entity via factory "${name}": entityId = ${entityId}`);
       } catch (error) {
-        this.logger.error(`Error creating entity via factory "${name}":`, error);
+        this.logger.error(`Error creating entity via factory "${name}":`, error as Error);
       }
     }
 
@@ -328,14 +330,14 @@ export class ScheduleManager {
   /**
    * Обновление кластерной системы с интервалом
    */
-  updateCluster(clusterName: string, systems: SystemFunction[], interval?: number, deltaTime: number): void {
+  updateCluster(clusterName: string, systems: SystemFunction[], deltaTime: number, interval?: number): void {
     if (!interval) {
       // Выполнять каждый тик
       for (const system of systems) {
         try {
           system(this.world, deltaTime);
         } catch (error) {
-          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error);
+          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error as Error);
         }
       }
       return;
@@ -350,7 +352,7 @@ export class ScheduleManager {
         try {
           system(this.world, deltaTime);
         } catch (error) {
-          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error);
+          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error as Error);
         }
       }
       this.clusterTimers.set(clusterName, 0); // Сброс таймера

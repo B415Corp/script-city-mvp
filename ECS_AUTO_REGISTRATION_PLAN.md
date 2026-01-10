@@ -323,6 +323,7 @@
 ### 4.4 Тестирование и документирование ✅
 
 **Задачи:**
+
 - ✅ Создать тестовые фабрики сущностей (test_entity, player_entity, npc_entity)
 - ✅ Добавить testEntityFactories() для тестирования
 - ✅ Добавить sim.testEntityFactories() в браузерную консоль

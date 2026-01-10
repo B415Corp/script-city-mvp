@@ -6,6 +6,9 @@ import { GameTimeUpdateData } from './core/ecs/types';
 import { ECSStats } from './core/modules/base_modules/debug_module/components/ecs_debug';
 import { TimeService } from './core/tick/time_service';
 import { Logger } from './core/utils/logger';
+import { ComponentRegistry } from './core/ecs/registry/component_registry';
+import { SystemRegistry } from './core/ecs/registry/system_registry';
+import { ClusterRegistry } from './core/ecs/registry/cluster_registry';
 
 // Импорт тестовых компонентов, систем и фабрик для проверки автоматической регистрации
 import './core/ecs/components/test/test_component';
@@ -66,7 +69,7 @@ async function startGame(): Promise<void> {
     // Используем TimeService из TickManager
     const timeService = core.tickManager.getTimeService();
 
-    window.sim = {
+    (window as any).sim = {
       stats: () =>
         logger.info('ECS Stats:', core.ecsManager?.getStats() || { message: 'ECS disabled' }),
       time: () => {
@@ -81,14 +84,10 @@ async function startGame(): Promise<void> {
       },
       getECSStats: () => core.ecsManager?.getStats() || { message: 'ECS disabled in Phase 0' },
       checkRegistries: () => {
-        const { ComponentRegistry } = require('./core/ecs/registry/component_registry');
-        const { SystemRegistry } = require('./core/ecs/registry/system_registry');
-        const { ClusterRegistry } = require('./core/ecs/registry/cluster_registry');
-        const { EntityFactoryRegistry } = require('./core/ecs/registry/entity_factory_registry');
-
         const componentRegistry = ComponentRegistry.getInstance();
         const systemRegistry = SystemRegistry.getInstance();
         const clusterRegistry = ClusterRegistry.getInstance();
+        const { EntityFactoryRegistry } = require('./core/ecs/registry/entity_factory_registry');
         const entityFactoryRegistry = EntityFactoryRegistry.getInstance();
 
         logger.info('=== Component Registry ===');
@@ -120,18 +119,17 @@ async function startGame(): Promise<void> {
           if (stats.eventSystems && Object.keys(stats.eventSystems).length > 0) {
             logger.info('=== Event-Driven Systems ===');
             for (const [eventName, systems] of Object.entries(stats.eventSystems)) {
-              logger.info(`  Event "${eventName}": ${systems.length} systems`);
+              logger.info(`  Event "${eventName}": ${(systems as any[]).length} systems`);
             }
           }
         }
 
         // Показываем фабрики сущностей
-        const { EntityFactoryRegistry } = require('./core/ecs/registry/entity_factory_registry');
-        const entityFactoryRegistry = EntityFactoryRegistry.getInstance();
-        if (entityFactoryRegistry.size() > 0) {
+        const efRegistry = (core as any).ecsRegistries.entityFactories();
+        if (efRegistry.size() > 0) {
           logger.info('=== Entity Factories ===');
-          logger.info(`Factories: ${entityFactoryRegistry.size()}`);
-          for (const [name, factory] of entityFactoryRegistry.getAll()) {
+          logger.info(`Factories: ${efRegistry.size()}`);
+          for (const [name, factory] of efRegistry.getAll()) {
             logger.info(`  - ${name}: ${factory.description || 'No description'}`);
           }
         }

@@ -5,6 +5,10 @@ import { EventBus } from './event_bus/event_bus';
 import { ECSManager } from './ecs/ecs_manager';
 import { TickManager } from './tick/tick_manager';
 import { EntrySimulation } from './simulations/entry_simulation';
+import { ComponentRegistry } from './ecs/registry/component_registry';
+import { SystemRegistry } from './ecs/registry/system_registry';
+import { ClusterRegistry } from './ecs/registry/cluster_registry';
+import { EntityFactoryRegistry } from './ecs/registry/entity_factory_registry';
 
 export class Core {
   private phaserConfig: Phaser.Types.Core.GameConfig;
@@ -54,22 +58,10 @@ export class Core {
    */
   get ecsRegistries() {
     return {
-      components: () => {
-        const { ComponentRegistry } = require('./ecs/registry/component_registry');
-        return ComponentRegistry.getInstance();
-      },
-      systems: () => {
-        const { SystemRegistry } = require('./ecs/registry/system_registry');
-        return SystemRegistry.getInstance();
-      },
-      clusters: () => {
-        const { ClusterRegistry } = require('./ecs/registry/cluster_registry');
-        return ClusterRegistry.getInstance();
-      },
-      entityFactories: () => {
-        const { EntityFactoryRegistry } = require('./ecs/registry/entity_factory_registry');
-        return EntityFactoryRegistry.getInstance();
-      },
+      components: () => ComponentRegistry.getInstance(),
+      systems: () => SystemRegistry.getInstance(),
+      clusters: () => ClusterRegistry.getInstance(),
+      entityFactories: () => EntityFactoryRegistry.getInstance(),
     };
   }
 

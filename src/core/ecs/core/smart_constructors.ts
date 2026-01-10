@@ -1,5 +1,7 @@
 import { ComponentRegistry } from '../registry/component_registry';
 import { SystemRegistry, SystemMetadata } from '../registry/system_registry';
+import { ClusterRegistry } from '../registry/cluster_registry';
+import { EntityFactoryRegistry } from '../registry/entity_factory_registry';
 import { createSimpleComponent, EnhancedComponent, ComponentSchema } from './component_schema';
 
 /**
@@ -107,9 +109,6 @@ export function createCluster(
   systemNames: string[],
   metadata: { enabled: boolean; description?: string; interval?: number }
 ): void {
-  // Импорт здесь во избежание циклических зависимостей
-  const { ClusterRegistry } = require('../registry/cluster_registry');
-
   ClusterRegistry.getInstance().register(name, systemNames, metadata);
 }
 
@@ -140,9 +139,6 @@ export function createEntityFactory(
   factoryFn: () => number,
   description?: string
 ): () => number {
-  // Импорт здесь во избежание циклических зависимостей
-  const { EntityFactoryRegistry } = require('../registry/entity_factory_registry');
-
   EntityFactoryRegistry.getInstance().register(name, factoryFn, description);
 
   return factoryFn;
