@@ -6,15 +6,15 @@ import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
 import { TickDebug } from './components/tick_debug';
 import { ECSDebug } from './components/ecs_debug';
-// import { SimulationDebug } from './components/simulation_debug'; // TODO: Re-enable when simulation_debug is fixed
+import { SimulationDebug } from './components/simulation_debug';
 import { Logger } from '@/core/utils/logger';
 
 // названия базовых модулей с их классами
 const debugComponentsRegister = {
   events: EventsDebug,
   tick: TickDebug,
-  // ecs: ECSDebug,
-  // simulation: SimulationDebug,
+  ecs: ECSDebug,
+  simulation: SimulationDebug,
 } as const;
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
@@ -77,18 +77,21 @@ export class DebugModule extends BaseModule {
 
     // Активируем начальный компонент
     const initialComponent = this.debugComponentsApi.get(this.currentTab);
-    initialComponent?.onActivate();
+    if (initialComponent) {
+      // Создаем контент для начального компонента
+      const initialTabContent = this.tabContents.get(this.currentTab);
+      if (initialTabContent) {
+        initialComponent.createContent(initialTabContent);
+      }
+      // Активируем компонент
+      initialComponent.onActivate();
+    }
   }
 
-  // регистрация компонентов
+    // регистрация компонентов
   private registerComponents(): void {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
       let component: DebugComponent;
-
-      // Для Phase 0 пропускаем компоненты, требующие ECSManager
-      if (name === 'ecs' || name === 'simulation') {
-        return;
-      }
 
       // TickDebug получает TimeService из TickManager
       if (name === 'tick') {
@@ -96,6 +99,24 @@ export class DebugModule extends BaseModule {
           this.scene,
           this.eventBus,
           this.tickManager.getTimeService(),
+        );
+      }
+      // ECSDebug получает ECSManager
+      else if (name === 'ecs') {
+        component = new (ModuleClass as ECSDebugComponentConstructor)(
+          this.scene,
+          this.eventBus,
+          this.ecsManager,
+        );
+      }
+      // SimulationDebug получает ECSManager
+      else if (name === 'simulation') {
+        // Пока пропускаем simulation, так как симуляция отключена
+        if (!this.ecsManager) return;
+        component = new (ModuleClass as SimulationDebugComponentConstructor)(
+          this.scene,
+          this.eventBus,
+          this.ecsManager,
         );
       } else {
         component = new (ModuleClass as DebugComponentConstructor)(this.scene, this.eventBus);
@@ -177,7 +198,15 @@ export class DebugModule extends BaseModule {
 
     // Активируем новый компонент
     const newComponent = this.debugComponentsApi.get(this.currentTab);
-    newComponent?.onActivate();
+    if (newComponent) {
+      // Создаем контент для компонента
+      const tabContent = this.tabContents.get(this.currentTab);
+      if (tabContent) {
+        newComponent.createContent(tabContent);
+      }
+      // Активируем компонент
+      newComponent.onActivate();
+    }
   }
 
   // обновление активного таба

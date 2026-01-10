@@ -1,62 +1,41 @@
 import { beforeEach, afterEach } from 'vitest';
+import { ComponentRegistry } from '../core/ecs/registry/component_registry';
 
-// TODO: Re-enable component cleanup when ECS components are implemented
-// import {
-//   Person,
-//   Citizen,
-//   Needs,
-//   Position,
-//   ID,
-//   Render,
-//   Schedule,
-//   Workplace,
-// } from '../core/ecs/components';
-
-// // Импортируем для очистки компонентов из managers
-// const COMPONENT_REGISTRY = {
-//   Person,
-//   Citizen,
-//   Needs,
-//   Position,
-//   ID,
-//   Render,
-//   Schedule,
-//   Workplace,
-// } as const;
-
-// // Список всех компонентов для очистки
-// const COMPONENTS_TO_RESET = [
-//   Person,
-//   Citizen,
-//   Needs,
-//   Position,
-//   ID,
-//   Render,
-//   Schedule,
-//   Workplace,
-// ] as const;
+// Глобальный mock для Phaser
+(globalThis as any).Phaser = {
+  Scene: class MockScene {},
+  GameObjects: {
+    Container: class MockContainer {
+      setDepth() { return this; }
+    },
+  },
+};
 
 /**
  * Очищает все массивы компонентов между тестами
  * Это предотвращает загрязнение состояния между тестами
- * TODO: Re-enable when ECS components are implemented
  */
 function resetComponentArrays(): void {
-  // for (const component of COMPONENTS_TO_RESET) {
-  //   // Очистить все массивы в компоненте
-  //   for (const key in component) {
-  //     if (Array.isArray(component[key as keyof typeof component])) {
-  //       (component[key as keyof typeof component] as any[]).length = 0;
-  //     }
-  //   }
-  // }
+  const registry = ComponentRegistry.getInstance();
+  const components = registry.getAll();
+
+  // Очищаем массивы всех зарегистрированных компонентов
+  for (const [name, component] of components) {
+    // Очистить все массивы в компоненте
+    for (const key in component) {
+      const value = component[key];
+      if (Array.isArray(value)) {
+        // Очищаем массив, устанавливая его длину в 0
+        (value as any[]).length = 0;
+      }
+    }
+  }
 }
 
-// TODO: Re-enable component cleanup when ECS components are implemented
 beforeEach(() => {
-  // resetComponentArrays();
+  resetComponentArrays();
 });
 
 afterEach(() => {
-  // resetComponentArrays();
+  resetComponentArrays();
 });

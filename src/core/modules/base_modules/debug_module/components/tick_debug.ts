@@ -14,7 +14,6 @@ export class TickDebug extends DebugComponent {
   private tickElement!: HTMLElement;
   private deltaTimeElement!: HTMLElement;
   private fpsElement!: HTMLElement;
-  private timeElement!: HTMLElement;
 
   constructor(scene: Phaser.Scene, eventBus: EventBus, timeService: TimeService) {
     super(scene, eventBus);
@@ -23,7 +22,7 @@ export class TickDebug extends DebugComponent {
     this.eventBus.on(Events.TickStarted, (payload) => {
       if (payload) {
         // Используем данные из события для кадра
-        this.tick = payload.time;
+        this.tick = this.timeService.getTick();
         this.deltaTime = Math.round(payload.delta);
         this.fps = Math.round(1000 / payload.delta);
 
@@ -36,7 +35,6 @@ export class TickDebug extends DebugComponent {
     this.tickElement = document.getElementById('current-tick')!;
     this.deltaTimeElement = document.getElementById('delta-time')!;
     this.fpsElement = document.getElementById('fps')!;
-    this.timeElement = document.getElementById('game-time')!;
   }
 
   public onActivate(): void {
@@ -51,17 +49,13 @@ export class TickDebug extends DebugComponent {
   }
 
   private updateContent(): void {
-    if (!this.tickElement || !this.deltaTimeElement || !this.fpsElement || !this.timeElement) {
+    if (!this.tickElement || !this.deltaTimeElement || !this.fpsElement) {
       return;
     }
 
-    // Информация о тиках
-    this.tickElement.textContent = `• Current tick: ${this.tick}`;
-    this.deltaTimeElement.textContent = `• Delta time: ${this.deltaTime}ms`;
+    // Информация о тиках (на русском языке как в HTML)
+    this.tickElement.textContent = `• Текущий тик: ${this.tick}`;
+    this.deltaTimeElement.textContent = `• Время кадра: ${this.deltaTime}мс`;
     this.fpsElement.textContent = `• FPS: ${this.fps}`;
-
-    // Информация о игровом времени через TimeService
-    const timeInfo = this.timeService.getDebugInfo();
-    this.timeElement.textContent = `• Game time: ${timeInfo.timeOfDay} Day ${timeInfo.day} (${timeInfo.condition})`;
   }
 }

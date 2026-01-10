@@ -84,8 +84,16 @@ async function startGame(): Promise<void> {
         logger.info('Listening to time updates... (check console)');
         return () => core.eventBus!.off(Events.GameTimeUpdated, handler);
       },
-      getECSStats: (): unknown =>
-        core.ecsManager?.getStats() || { message: 'ECS disabled in Phase 0' },
+      getECSStats: (): ECSDebugStats =>
+        core.ecsManager?.getStats() || {
+          message: 'ECS disabled',
+          totalSystemsCount: 0,
+          clustersCount: 0,
+          systems: [],
+          totalEntities: 0,
+          entityCounts: {},
+          clusters: {},
+        },
       checkRegistries: (): void => {
         const componentRegistry = ComponentRegistry.getInstance();
         const systemRegistry = SystemRegistry.getInstance();

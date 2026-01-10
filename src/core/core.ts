@@ -74,7 +74,7 @@ export class Core {
     await this.initPhaser();
     await this.initEventBus();
     this.initTickManager();
-    // this.initECSManager(); // Временно отключено для Phase 0
+    await this.initECSManager(); // Включено для работы дебаг панели ECS
     await this.initModules();
     this.startSimulation();
   }

@@ -59,6 +59,9 @@ export class ECSManager {
 
     // Подписываемся на события для event-driven систем
     this.setupEventSubscriptions();
+
+    // Автоматическая регистрация компонентов, систем и кластеров
+    this.initECSManager();
   }
 
   /**
@@ -69,17 +72,22 @@ export class ECSManager {
   }
 
   /**
-   * Возвращает статистику ECS (расширенная для Phase 2)
+   * Возвращает статистику ECS для дебаг панели
    */
-  getStats(): ECSStats {
+  getStats(): any {
     const componentRegistry = ComponentRegistry.getInstance();
     const systemRegistry = SystemRegistry.getInstance();
     const clusterRegistry = ClusterRegistry.getInstance();
 
-    // Собираем информацию об event-driven системах
-    const eventSystems: Record<string, string[]> = {};
-    for (const [eventName, systems] of this.eventSystemMap) {
-      eventSystems[eventName] = systems.map(() => 'event-driven'); // Пока просто помечаем как event-driven
+    // Преобразуем кластеры в формат для дебаг панели
+    const clusters: Record<string, { systemsCount: number; systems: string[]; enabled: boolean; interval?: number }> = {};
+    for (const [clusterName, cluster] of clusterRegistry.getAll()) {
+      clusters[clusterName] = {
+        systemsCount: cluster.systemNames.length,
+        systems: cluster.systemNames,
+        enabled: cluster.enabled,
+        interval: cluster.interval,
+      };
     }
 
     return {
@@ -87,15 +95,9 @@ export class ECSManager {
         this.scheduleManager.getSystems().length + this.scheduleManager.getIntervalSystems().length,
       clustersCount: clusterRegistry.size(),
       systems: Array.from(systemRegistry.getAll().keys()),
-      clusters: Object.fromEntries(clusterRegistry.getAll()),
-      entityCount: 0,
-      entityCounts: {},
-      gameTime: 0,
-      timeData: null,
-      totalEntities: 0,
-      components: Array.from(componentRegistry.getAll().keys()),
-      intervalSystems: this.scheduleManager.getIntervalSystems().map((s) => s.name),
-      eventSystems,
+      totalEntities: 0, // Пока нет сущностей
+      entityCounts: {}, // Пока нет сущностей по типам
+      clusters,
     };
   }
 
@@ -189,6 +191,25 @@ export class ECSManager {
     });
 
     this.logger.info('Event subscriptions setup for event-driven systems');
+  }
+
+  /**
+   * Инициализация ECS менеджера с автоматической регистрацией
+   * Вызывается в конструкторе для полной настройки
+   */
+  private initECSManager(): void {
+    this.logger.info('Initializing ECS Manager with auto-registration...');
+
+    // Автоматическая регистрация всех компонентов из реестра
+    this.autoRegisterComponents();
+
+    // Автоматическая регистрация всех систем из реестра
+    this.autoRegisterSystems();
+
+    // Автоматическая регистрация кластеров
+    this.autoRegisterClusters();
+
+    this.logger.info('ECS Manager initialization completed');
   }
 
   /**

@@ -1,6 +1,7 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './debug_component';
+import { ComponentRegistry } from '@/core/ecs/registry/component_registry';
 
 // Глобальный интерфейс для отладки (объявлен в main.ts)
 declare global {
@@ -44,15 +45,20 @@ export class ECSDebug extends DebugComponent {
   }
 
   private initDOM(): void {
-    this.systemsList = document.getElementById('systems-list')!;
-    this.componentsList = document.getElementById('components-list')!;
-    this.entitiesList = document.getElementById('entities-list')!;
+    this.systemsList = document.getElementById('systems-list');
+    this.componentsList = document.getElementById('components-list');
+    this.entitiesList = document.getElementById('entities-list');
+
+    if (!this.systemsList || !this.componentsList || !this.entitiesList) {
+      console.error('ECS Debug DOM elements not found');
+      return;
+    }
   }
 
   // создание контента
   public createContent(contentContainer: HTMLElement): void {
     this.contentContainer = contentContainer;
-    this.initDOM();
+    // DOM элементы уже существуют в HTML, инициализация происходит в onActivate
   }
 
   // активация компонента
@@ -60,6 +66,12 @@ export class ECSDebug extends DebugComponent {
     // Убедимся, что DOM элементы инициализированы
     if (!this.systemsList) {
       this.initDOM();
+    }
+
+    // Если инициализация не удалась, выходим
+    if (!this.systemsList || !this.componentsList || !this.entitiesList) {
+      console.error('Cannot activate ECS Debug - DOM elements not available');
+      return;
     }
 
     // Запустим периодическое обновление
@@ -184,10 +196,26 @@ export class ECSDebug extends DebugComponent {
 
     this.componentsList.innerHTML = '';
 
-    // Список доступных компонентов
-    const components = ['Person', 'Citizen', 'Needs', 'Schedule', 'Shop', 'Factory'];
+    // Получаем все зарегистрированные компоненты из реестра
+    const componentRegistry = ComponentRegistry.getInstance();
+    const registeredComponents = componentRegistry.getAll();
 
-    components.forEach((componentName) => {
+    if (registeredComponents.size === 0) {
+      const noComponentsDiv = document.createElement('div');
+      noComponentsDiv.className = 'debug-no-data';
+      noComponentsDiv.textContent = '• Нет зарегистрированных компонентов';
+      this.componentsList.appendChild(noComponentsDiv);
+      return;
+    }
+
+    // Заголовок с количеством
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'debug-ecs-item debug-ecs-summary';
+    headerDiv.textContent = `🧩 Компоненты (${registeredComponents.size}):`;
+    this.componentsList.appendChild(headerDiv);
+
+    // Отображаем все зарегистрированные компоненты
+    Array.from(registeredComponents.keys()).sort().forEach((componentName) => {
       const componentDiv = document.createElement('div');
       componentDiv.className = 'debug-ecs-item debug-ecs-component';
       componentDiv.textContent = `• ${componentName}`;
