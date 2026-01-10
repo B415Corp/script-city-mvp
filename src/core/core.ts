@@ -40,9 +40,37 @@ export class Core {
     // Очищаем moduleManager
     this.moduleManager = null;
 
+    // Уничтожаем ECSManager если он существует
+    this.ecsManager = null;
+
     // Уничтожаем Phaser
     this.phaser?.destroy(true);
     this.phaser = null;
+  }
+
+  /**
+   * Высокоуровневый API для доступа к реестрам ECS (Phase 4)
+   * Предоставляет доступ к компонентам, системам, кластерам и фабрикам для отладки
+   */
+  get ecsRegistries() {
+    return {
+      components: () => {
+        const { ComponentRegistry } = require('./ecs/registry/component_registry');
+        return ComponentRegistry.getInstance();
+      },
+      systems: () => {
+        const { SystemRegistry } = require('./ecs/registry/system_registry');
+        return SystemRegistry.getInstance();
+      },
+      clusters: () => {
+        const { ClusterRegistry } = require('./ecs/registry/cluster_registry');
+        return ClusterRegistry.getInstance();
+      },
+      entityFactories: () => {
+        const { EntityFactoryRegistry } = require('./ecs/registry/entity_factory_registry');
+        return EntityFactoryRegistry.getInstance();
+      },
+    };
   }
 
   public async init(): Promise<void> {

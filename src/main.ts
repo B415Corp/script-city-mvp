@@ -7,9 +7,10 @@ import { ECSStats } from './core/modules/base_modules/debug_module/components/ec
 import { TimeService } from './core/tick/time_service';
 import { Logger } from './core/utils/logger';
 
-// Импорт тестовых компонентов и систем для проверки автоматической регистрации
+// Импорт тестовых компонентов, систем и фабрик для проверки автоматической регистрации
 import './core/ecs/components/test/test_component';
 import './core/ecs/systems/test/test_system';
+import './core/ecs/entities/test/test_entity_factory';
 
 // Глобальный интерфейс для отладки
 interface SimDebugMethods {
@@ -20,6 +21,7 @@ interface SimDebugMethods {
   checkRegistries: () => void;
   testScheduleManager: (duration?: number) => void;
   testEventSystems: () => void;
+  testEntityFactories: () => void;
 }
 
 // Глобальный объект для отладки
@@ -112,7 +114,7 @@ async function startGame(): Promise<void> {
         logger.info('=== Entity Factory Registry ===');
         logger.info(`Factories: ${entityFactoryRegistry.size()}`);
 
-        // Показываем event-driven системы если ECSManager доступен
+        // Показываем event-driven системы и фабрики сущностей если ECSManager доступен
         if (core.ecsManager) {
           const stats = core.ecsManager.getStats();
           if (stats.eventSystems && Object.keys(stats.eventSystems).length > 0) {
@@ -120,6 +122,17 @@ async function startGame(): Promise<void> {
             for (const [eventName, systems] of Object.entries(stats.eventSystems)) {
               logger.info(`  Event "${eventName}": ${systems.length} systems`);
             }
+          }
+        }
+
+        // Показываем фабрики сущностей
+        const { EntityFactoryRegistry } = require('./core/ecs/registry/entity_factory_registry');
+        const entityFactoryRegistry = EntityFactoryRegistry.getInstance();
+        if (entityFactoryRegistry.size() > 0) {
+          logger.info('=== Entity Factories ===');
+          logger.info(`Factories: ${entityFactoryRegistry.size()}`);
+          for (const [name, factory] of entityFactoryRegistry.getAll()) {
+            logger.info(`  - ${name}: ${factory.description || 'No description'}`);
           }
         }
       },
@@ -137,6 +150,13 @@ async function startGame(): Promise<void> {
           logger.warn('ECSManager not available');
         }
       },
+      testEntityFactories: () => {
+        if (core.ecsManager) {
+          core.ecsManager.testEntityFactories();
+        } else {
+          logger.warn('ECSManager not available');
+        }
+      },
     };
     logger.info('🎮 Simulation debug available in console:');
     logger.info('  sim.stats() - show simulation stats');
@@ -145,6 +165,7 @@ async function startGame(): Promise<void> {
     logger.info('  sim.checkRegistries() - show registered ECS components/systems');
     logger.info('  sim.testScheduleManager(5000) - test ScheduleManager for 5 seconds');
     logger.info('  sim.testEventSystems() - test event-driven systems');
+    logger.info('  sim.testEntityFactories() - test entity factories');
   }
 }
 

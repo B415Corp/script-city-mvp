@@ -266,6 +266,7 @@
 ### 3.4 Тестирование и отладка Phase 3 ✅
 
 **Задачи:**
+
 - ✅ Создать тестовые event-driven системы
 - ✅ Добавить `testEventSystems()` для тестирования
 - ✅ Добавить `sim.testEventSystems()` в браузерную консоль
@@ -284,40 +285,49 @@
 
 ---
 
-## Phase 4: Фабрики сущностей и завершение
+## Phase 4: Фабрики сущностей и завершение ✅ ЗАВЕРШЕН
 
-### 4.1 Entity Factory Registry
-
-**Файлы:**
-
-- `src/core/ecs/registry/entity_factory_registry.ts`
-
-**Задачи:**
-
-- Реестр фабрик сущностей с автоматической регистрацией
-- Интеграция с `EntityFactory` в `ECSManager`
-
-### 4.2 Умный конструктор фабрик
+### 4.1 Entity Factory Registry ✅
 
 **Файлы:**
 
-- `src/core/ecs/core/smart_constructors.ts` (расширение)
+- ✅ `src/core/ecs/registry/entity_factory_registry.ts`
 
 **Задачи:**
 
-- `createEntityFactory(name, definition)` - создает фабрику + регистрирует
-- Поддержка builder pattern для сложных сущностей
+- ✅ Реестр фабрик сущностей с автоматической регистрацией
+- ✅ Интеграция с `EntityFactory` в `ECSManager`
 
-### 4.3 Финальная интеграция
+### 4.2 Умный конструктор фабрик ✅
 
 **Файлы:**
 
-- `src/core/core.ts` (расширение)
+- ✅ `src/core/ecs/core/smart_constructors.ts` (расширение)
 
 **Задачи:**
 
-- Добавить высокоуровневый API в `Core` класс
-- Обеспечить доступ к реестрам для отладки и статистики
+- ✅ `createEntityFactory(name, definition)` - создает фабрику + регистрирует
+- ✅ Поддержка builder pattern для сложных сущностей
+
+### 4.3 Финальная интеграция ✅
+
+**Файлы:**
+
+- ✅ `src/core/core.ts` (расширение)
+
+**Задачи:**
+
+- ✅ Добавить высокоуровневый API в `Core` класс
+- ✅ Обеспечить доступ к реестрам для отладки и статистики
+
+### 4.4 Тестирование и документирование ✅
+
+**Задачи:**
+- ✅ Создать тестовые фабрики сущностей (test_entity, player_entity, npc_entity)
+- ✅ Добавить testEntityFactories() для тестирования
+- ✅ Добавить sim.testEntityFactories() в браузерную консоль
+- ✅ Расширить checkRegistries() для показа фабрик сущностей
+- ✅ Добавить ecsRegistries API в Core класс
 
 ---
 

@@ -238,6 +238,29 @@ export class ECSManager {
   }
 
   /**
+   * Метод для тестирования фабрик сущностей (Phase 4)
+   * Создает тестовые сущности через зарегистрированные фабрики
+   */
+  testEntityFactories(): void {
+    const { EntityFactoryRegistry } = require('./registry/entity_factory_registry');
+    const registry = EntityFactoryRegistry.getInstance();
+
+    this.logger.info('Testing entity factories...');
+
+    // Тестируем все зарегистрированные фабрики
+    for (const [name, factory] of registry.getAll()) {
+      try {
+        const entityId = factory.factory();
+        this.logger.info(`Created entity via factory "${name}": entityId = ${entityId}`);
+      } catch (error) {
+        this.logger.error(`Error creating entity via factory "${name}":`, error);
+      }
+    }
+
+    this.logger.info(`Tested ${registry.size()} entity factories`);
+  }
+
+  /**
    * Метод для тестирования ScheduleManager (Phase 2)
    * Запускает тестовый цикл обновления систем
    */
