@@ -18,6 +18,7 @@ interface SimDebugMethods {
   listenTime: () => () => void;
   getECSStats: () => ECSStats;
   checkRegistries: () => void;
+  testScheduleManager: (duration?: number) => void;
 }
 
 // Глобальный объект для отладки
@@ -63,7 +64,8 @@ async function startGame(): Promise<void> {
     const timeService = core.tickManager.getTimeService();
 
     window.sim = {
-      stats: () => logger.info('ECS Stats:', core.ecsManager?.getStats() || { message: 'ECS disabled' }),
+      stats: () =>
+        logger.info('ECS Stats:', core.ecsManager?.getStats() || { message: 'ECS disabled' }),
       time: () => {
         const timeData = timeService.getTimeData();
         logger.info(`Date: ${timeData.date}, Time: ${timeData.timeOfDay}, Day ${timeData.day}`);
@@ -95,7 +97,7 @@ async function startGame(): Promise<void> {
         logger.info('=== System Registry ===');
         logger.info(`Systems: ${systemRegistry.size()}`);
         for (const [name, system] of systemRegistry.getAll()) {
-          logger.info(`  - ${name} (cluster: ${system.metadata.cluster || 'none'})`);
+          logger.info(`  - ${name} (cluster: ${system.metadata.cluster || 'none'}, interval: ${system.metadata.interval || 'every tick'})`);
         }
 
         logger.info('=== Cluster Registry ===');
@@ -107,12 +109,20 @@ async function startGame(): Promise<void> {
         logger.info('=== Entity Factory Registry ===');
         logger.info(`Factories: ${entityFactoryRegistry.size()}`);
       },
+      testScheduleManager: (duration?: number) => {
+        if (core.ecsManager) {
+          core.ecsManager.testScheduleManager(duration);
+        } else {
+          logger.warn('ECSManager not available');
+        }
+      },
     };
     logger.info('🎮 Simulation debug available in console:');
     logger.info('  sim.stats() - show simulation stats');
     logger.info('  sim.time() - show current game time');
     logger.info('  sim.listenTime() - listen to time updates');
     logger.info('  sim.checkRegistries() - show registered ECS components/systems');
+    logger.info('  sim.testScheduleManager(5000) - test ScheduleManager for 5 seconds');
   }
 }
 

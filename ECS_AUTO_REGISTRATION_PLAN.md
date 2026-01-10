@@ -47,9 +47,9 @@
 
 ## 📅 План реализации (Phase-based)
 
-## Phase 0: Очистка и подготовка (КРИТИЧНО!) 🧹
+## Phase 0: Очистка и подготовка (КРИТИЧНО!) ✅ ЗАВЕРШЕН
 
-### 0.1 Отключение существующей симуляции
+### 0.1 Отключение существующей симуляции ✅
 
 **Файлы:**
 
@@ -60,11 +60,11 @@
 
 **Задачи:**
 
-- **ЗАКОММЕНТИРОВАТЬ** `EntrySimulation` в `Core.startSimulation()`
-- **ВЫКЛЮЧИТЬ** в `DebugModule` компоненты `ecs` и `simulation`
-- **ЗАКОММЕНТИРОВАТЬ** `this.initECSManager()` в `Core.init()`
-- **УБРАТЬ** `this.ecsManager` из зависимостей модулей
-- Проверить что приложение запускается только с Phaser (без ECS)
+- ✅ **ЗАКОММЕНТИРОВАТЬ** `EntrySimulation` в `Core.startSimulation()`
+- ✅ **ВЫКЛЮЧИТЬ** в `DebugModule` компоненты `ecs` и `simulation`
+- ✅ **ЗАКОММЕНТИРОВАТЬ** `this.initECSManager()` в `Core.init()`
+- ✅ **УБРАТЬ** `this.ecsManager` из зависимостей модулей
+- ✅ Проверить что приложение запускается только с Phaser (без ECS)
 
 **Пример в Core.ts:**
 
@@ -75,19 +75,19 @@
 // entrySimulation.start();
 ```
 
-### 0.2 Очистка существующих компонентов и систем
+### 0.2 Очистка существующих компонентов и систем ✅
 
 **Удалить файлы:**
 
-- `src/core/ecs/components/` - все существующие компоненты
-- `src/core/ecs/systems/` - все существующие системы
-- `src/core/ecs/entities/` - существующие фабрики сущностей
+- ✅ `src/core/ecs/components/` - все существующие компоненты
+- ✅ `src/core/ecs/systems/` - все существующие системы
+- ✅ `src/core/ecs/entities/` - существующие фабрики сущностей
 
 **Оставить:**
 
-- `src/core/ecs/core/` - базовую инфраструктуру
-- `src/core/ecs/ecs_manager.ts` - базовый менеджер
-- `src/core/ecs/types.ts` - определения типов
+- ✅ `src/core/ecs/core/` - базовую инфраструктуру
+- ✅ `src/core/ecs/ecs_manager.ts` - базовый менеджер
+- ✅ `src/core/ecs/types.ts` - определения типов
 
 **Результат Phase 0:**
 
@@ -99,70 +99,71 @@
 
 ---
 
-## Phase 1: Базовые реестры и компоненты 🏗️
+## Phase 1: Базовые реестры и компоненты ✅ ЗАВЕРШЕН
 
-### 1.1 Создание базовых реестров
-
-**Файлы:**
-
-- `src/core/ecs/registry/component_registry.ts`
-- `src/core/ecs/registry/system_registry.ts`
-- `src/core/ecs/registry/cluster_registry.ts`
-- `src/core/ecs/registry/entity_factory_registry.ts`
-
-**Задачи:**
-
-- Создать классы реестров с методами `register()`, `get()`, `getAll()`
-- Добавить типы для метаданных систем и кластеров
-- Реализовать паттерн Singleton для глобального доступа
-
-### 1.2 Умные конструкторы
+### 1.1 Создание базовых реестров ✅
 
 **Файлы:**
 
-- `src/core/ecs/core/smart_constructors.ts`
+- ✅ `src/core/ecs/registry/component_registry.ts`
+- ✅ `src/core/ecs/registry/system_registry.ts`
+- ✅ `src/core/ecs/registry/cluster_registry.ts`
+- ✅ `src/core/ecs/registry/entity_factory_registry.ts`
 
 **Задачи:**
 
-- `createComponent(name, schema)` - создает компонент через `defineComponent()` + регистрирует в `ComponentRegistry`
-- `createSystem(name, components, updateFn, metadata)` - создает систему + регистрирует в `SystemRegistry` с метаданными
-- Интеграция с BitECS 0.4.0
+- ✅ Создать классы реестров с методами `register()`, `get()`, `getAll()`
+- ✅ Добавить типы для метаданных систем и кластеров
+- ✅ Реализовать паттерн Singleton для глобального доступа
 
-### 1.3 Автоматическая регистрация в ECSManager
+### 1.2 Умные конструкторы ✅
 
 **Файлы:**
 
-- `src/core/ecs/ecs_manager.ts` (модификация)
+- ✅ `src/core/ecs/core/smart_constructors.ts`
 
 **Задачи:**
 
-- Добавить методы `autoRegisterComponents()`, `autoRegisterSystems()`
-- Настроить автоматическую регистрацию через реестры
-- Настроить ScheduleManager для работы с реестрами
+- ✅ `createComponent(name, schema)` - создает компонент через `createSimpleComponent()` + регистрирует в `ComponentRegistry`
+- ✅ `createSystem(name, components, updateFn, metadata)` - создает систему + регистрирует в `SystemRegistry` с метаданными
+- ✅ Интеграция с BitECS 0.4.0
+
+### 1.3 Автоматическая регистрация в ECSManager ✅
+
+**Файлы:**
+
+- ✅ `src/core/ecs/ecs_manager.ts` (модификация)
+
+**Задачи:**
+
+- ✅ Добавить методы `autoRegisterComponents()`, `autoRegisterSystems()`
+- ✅ Настроить автоматическую регистрацию через реестры
+- ✅ Настроить ScheduleManager для работы с реестрами
 
 **Результат Phase 1:**
 
 ```
 ✅ Компоненты: createComponent() → автоматически зарегистрирован
 ✅ Системы: createSystem() → автоматически зарегистрирована
-❌ Кластеры: еще ручная настройка
-❌ Интервалы: еще ручная настройка
-❌ Events: еще ручная настройка
+✅ Кластеры: createCluster() → автоматически зарегистрирован
+✅ Интервалы: поддержка в метаданных систем
+✅ Events: поддержка в метаданных систем
+✅ Тестирование: созданы тестовые компоненты и системы
 ```
 
 ---
 
-## Phase 2: Расширенные метаданные систем
+## Phase 2: Расширенные метаданные систем 🔄 В РАБОТЕ
 
-### 2.1 Метаданные для систем
+### 2.1 Метаданные для систем ✅
 
 **Файлы:**
 
-- `src/core/ecs/registry/system_registry.ts` (расширение)
+- ✅ `src/core/ecs/registry/system_registry.ts` (расширение)
 
 **Задачи:**
 
-- Добавить интерфейс `SystemMetadata`:
+- ✅ Добавить интерфейс `SystemMetadata`:
 
   ```typescript
   interface SystemMetadata {
@@ -175,32 +176,42 @@
   }
   ```
 
-- Расширить `SystemRegistry` методами:
+- ✅ Расширить `SystemRegistry` методами:
   - `getSystemsByCluster(clusterName)`
   - `getIntervalSystems()`
   - `getEventDrivenSystems()`
 
-### 2.2 Автоматическое создание кластеров
+### 2.2 Автоматическое создание кластеров ✅
 
 **Файлы:**
 
-- `src/core/ecs/registry/cluster_registry.ts`
+- ✅ `src/core/ecs/registry/cluster_registry.ts`
 
 **Задачи:**
 
-- Метод `autoCreateFromSystemMetadata()` - создает кластеры на основе метаданных систем
-- Интеграция с `ECSManager.initializeClusters()`
+- ✅ Метод `autoCreateFromSystemMetadata()` - создает кластеры на основе метаданных систем
+- ✅ Интеграция с `ECSManager.initializeClusters()`
 
-### 2.3 Интервальные системы
+### 2.3 Интервальные системы ✅
 
 **Файлы:**
 
-- `src/core/ecs/ecs_manager.ts` (расширение)
+- ✅ `src/core/ecs/ecs_manager.ts` (расширение)
 
 **Задачи:**
 
-- Поддержка интервалов в `updateSystems()` для индивидуальных систем
-- Интеграция с существующими кластерными интервалами
+- ✅ Поддержка интервалов в `updateSystems()` для индивидуальных систем
+- ✅ Интеграция с существующими кластерными интервалами
+- ✅ Расширенный ScheduleManager с поддержкой интервалов
+
+### 2.4 Реализация Phase 2 - интеграция и тестирование ✅
+
+**Задачи:**
+- ✅ Интегрировать авто-создание кластеров в ECSManager
+- ✅ Реализовать интервальную систему обновления
+- ✅ Протестировать работу с интервалами и кластерами
+- ✅ Добавить отладочные методы для проверки
+- ✅ Добавить testScheduleManager() для тестирования
 
 **Результат Phase 2:**
 
@@ -208,7 +219,8 @@
 ✅ Компоненты: createComponent() → автоматически зарегистрирован
 ✅ Системы: createSystem() → автоматически зарегистрирована
 ✅ Кластеры: createSystem(..., {cluster: 'population'}) → автоматически в кластер
-✅ Интервалы: createSystem(..., {interval: 300}) → автоматически с интервалом
+✅ Интервалы: createSystem(..., {interval: 2000}) → автоматически с интервалом
+✅ Тестирование: sim.testScheduleManager() для проверки интервалов
 ❌ Events: еще ручная настройка
 ```
 

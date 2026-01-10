@@ -26,11 +26,11 @@ export const IntervalTestSystem = createSystem(
   'interval_test',
   ['AnotherTestComponent'],
   (world, entities, delta) => {
-    console.log(`IntervalTestSystem update: ${delta}ms passed`);
+    console.log(`IntervalTestSystem update: ${delta}ms passed, time: ${Date.now()}`);
   },
   {
     cluster: 'test',
-    interval: 1000, // Каждые 1000 тиков
+    interval: 2000, // Каждые 2000 мс (2 секунды)
     enabled: true,
   },
 );

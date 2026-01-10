@@ -22,6 +22,7 @@ import { Logger } from '../utils/logger';
 
 export class ECSManager {
   private world: World;
+  private scheduleManager: ScheduleManager;
   private logger: Logger;
 
   constructor(
@@ -29,9 +30,9 @@ export class ECSManager {
     private tickManager: TickManager,
   ) {
     this.logger = Logger.create('ECSManager');
-    this.logger.info('ECSManager initialized (Phase 0 - minimal mode)');
+    this.logger.info('ECSManager initialized (Phase 2 - with ScheduleManager)');
     this.world = createWorld();
-    // В Phase 0 ECSManager создает только пустой world
+    this.scheduleManager = new ScheduleManager(this.world, this.eventBus);
   }
 
   /**
@@ -42,19 +43,26 @@ export class ECSManager {
   }
 
   /**
-   * Возвращает статистику ECS (для Phase 0 - пустая)
+   * Возвращает статистику ECS (расширенная для Phase 2)
    */
   getStats(): any {
+    const { ComponentRegistry, SystemRegistry, ClusterRegistry } = require('./registry');
+    const componentRegistry = ComponentRegistry.getInstance();
+    const systemRegistry = SystemRegistry.getInstance();
+    const clusterRegistry = ClusterRegistry.getInstance();
+
     return {
-      totalSystemsCount: 0,
-      clustersCount: 0,
-      systems: [],
-      clusters: {},
+      totalSystemsCount: this.scheduleManager.getSystems().length + this.scheduleManager.getIntervalSystems().length,
+      clustersCount: clusterRegistry.size(),
+      systems: Array.from(systemRegistry.getAll().keys()),
+      clusters: Object.fromEntries(clusterRegistry.getAll()),
       entityCount: 0,
       entityCountsByType: {},
       gameTime: 0,
       timeData: null,
       totalEntities: 0,
+      components: Array.from(componentRegistry.getAll().keys()),
+      intervalSystems: this.scheduleManager.getIntervalSystems().map(s => s.name),
     };
   }
 
@@ -88,9 +96,18 @@ export class ECSManager {
 
     // Регистрируем все системы в ScheduleManager
     for (const [name, registeredSystem] of registry.getAll()) {
-      // TODO: Интегрировать с ScheduleManager
-      // this.scheduleManager.registerSystem(registeredSystem.system);
-      this.logger.info(`Auto-registered system: ${name} (${registeredSystem.metadata.cluster || 'no cluster'})`);
+      const { system, metadata } = registeredSystem;
+
+      // Регистрируем систему в зависимости от наличия интервала
+      if (metadata.interval && metadata.interval > 0) {
+        // Система с интервалом
+        this.scheduleManager.registerIntervalSystem(name, system, metadata.interval);
+        this.logger.info(`Auto-registered interval system: ${name} (${metadata.interval}ms, cluster: ${metadata.cluster || 'none'})`);
+      } else {
+        // Обычная система (каждый тик)
+        this.scheduleManager.registerSystem(system);
+        this.logger.info(`Auto-registered system: ${name} (every tick, cluster: ${metadata.cluster || 'none'})`);
+      }
     }
 
     this.logger.info(`Auto-registered ${registry.size()} systems`);
@@ -101,14 +118,152 @@ export class ECSManager {
    * Вызывается в initECSManager() для автоматической настройки
    */
   private autoRegisterClusters(): void {
-    const { ClusterRegistry } = require('./registry/cluster_registry');
-    const registry = ClusterRegistry.getInstance();
+    const { ClusterRegistry, SystemRegistry } = require('./registry/cluster_registry');
+    const clusterRegistry = ClusterRegistry.getInstance();
+    const systemRegistry = SystemRegistry.getInstance();
 
-    // TODO: Интегрировать с кластерной системой
-    for (const [name, cluster] of registry.getAll()) {
+    // Автоматически создать кластеры на основе метаданных систем
+    clusterRegistry.autoCreateFromSystemMetadata(systemRegistry.getAll());
+
+    // Зарегистрировать все кластеры
+    for (const [name, cluster] of clusterRegistry.getAll()) {
       this.logger.info(`Auto-registered cluster: ${name} (${cluster.systemNames.length} systems)`);
     }
 
-    this.logger.info(`Auto-registered ${registry.size()} clusters`);
+    this.logger.info(`Auto-registered ${clusterRegistry.size()} clusters`);
+  }
+
+  /**
+   * Метод для тестирования ScheduleManager (Phase 2)
+   * Запускает тестовый цикл обновления систем
+   */
+  testScheduleManager(duration = 5000): void {
+    this.logger.info(`Starting ScheduleManager test for ${duration}ms...`);
+
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += 100;
+      this.scheduleManager.update(100); // 100ms delta
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        this.logger.info('ScheduleManager test completed');
+      }
+    }, 100);
+  }
+}
+
+// ✅ Расширенный ScheduleManager для Phase 2 с поддержкой интервалов
+export type SystemFunction = (world: any, delta?: number) => void;
+
+interface IntervalSystem {
+  system: SystemFunction;
+  name: string;
+  interval: number;
+  lastExecuted: number;
+}
+
+export class ScheduleManager {
+  private systems: SystemFunction[] = [];
+  private intervalSystems: IntervalSystem[] = [];
+  private clusterTimers: Map<string, number> = new Map();
+
+  constructor(
+    private world: World,
+    private eventBus: EventBus,
+  ) {}
+
+  registerSystem(system: SystemFunction): void {
+    this.systems.push(system);
+    console.log('[ScheduleManager] Registered system');
+  }
+
+  /**
+   * Регистрация системы с интервалом выполнения
+   */
+  registerIntervalSystem(name: string, system: SystemFunction, interval: number): void {
+    this.intervalSystems.push({
+      system,
+      name,
+      interval,
+      lastExecuted: 0,
+    });
+    console.log(`[ScheduleManager] Registered interval system: ${name} (interval: ${interval}ms)`);
+  }
+
+  /**
+   * Инициализация таймера для кластера
+   */
+  initClusterTimer(clusterName: string): void {
+    this.clusterTimers.set(clusterName, 0);
+  }
+
+  /**
+   * Обновление кластерной системы с интервалом
+   */
+  updateCluster(clusterName: string, systems: SystemFunction[], interval?: number, deltaTime: number): void {
+    if (!interval) {
+      // Выполнять каждый тик
+      for (const system of systems) {
+        try {
+          system(this.world, deltaTime);
+        } catch (error) {
+          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error);
+        }
+      }
+      return;
+    }
+
+    // Обновление с интервалом
+    const currentTimer = this.clusterTimers.get(clusterName) || 0;
+    const newTimer = currentTimer + deltaTime;
+
+    if (newTimer >= interval) {
+      for (const system of systems) {
+        try {
+          system(this.world, deltaTime);
+        } catch (error) {
+          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error);
+        }
+      }
+      this.clusterTimers.set(clusterName, 0); // Сброс таймера
+    } else {
+      this.clusterTimers.set(clusterName, newTimer);
+    }
+  }
+
+  /**
+   * Основное обновление - выполняет обычные системы и интервальные системы
+   */
+  update(deltaTime: number): void {
+    // Обновить обычные системы
+    for (const system of this.systems) {
+      try {
+        system(this.world, deltaTime);
+      } catch (error) {
+        console.error('[ScheduleManager] Error in system:', error);
+      }
+    }
+
+    // Обновить интервальные системы
+    const currentTime = Date.now();
+    for (const intervalSystem of this.intervalSystems) {
+      if (currentTime - intervalSystem.lastExecuted >= intervalSystem.interval) {
+        try {
+          intervalSystem.system(this.world, deltaTime);
+          intervalSystem.lastExecuted = currentTime;
+        } catch (error) {
+          console.error(`[ScheduleManager] Error in interval system ${intervalSystem.name}:`, error);
+        }
+      }
+    }
+  }
+
+  getSystems(): readonly SystemFunction[] {
+    return this.systems;
+  }
+
+  getIntervalSystems(): readonly IntervalSystem[] {
+    return this.intervalSystems;
   }
 }
