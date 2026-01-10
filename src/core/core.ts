@@ -85,9 +85,10 @@ export class Core {
             throw new Error('TickManager not initialized');
           }
 
-          if (!this.ecsManager) {
-            throw new Error('ECSManager not initialized');
-          }
+          // В Phase 0 ECSManager может быть null
+          // if (!this.ecsManager) {
+          //   throw new Error('ECSManager not initialized');
+          // }
 
           scene.init(this.eventBus, this.tickManager);
           this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager, this.tickManager);

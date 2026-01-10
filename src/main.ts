@@ -7,12 +7,17 @@ import { ECSStats } from './core/modules/base_modules/debug_module/components/ec
 import { TimeService } from './core/tick/time_service';
 import { Logger } from './core/utils/logger';
 
+// Импорт тестовых компонентов и систем для проверки автоматической регистрации
+import './core/ecs/components/test/test_component';
+import './core/ecs/systems/test/test_system';
+
 // Глобальный интерфейс для отладки
 interface SimDebugMethods {
   stats: () => void;
   time: () => void;
   listenTime: () => () => void;
   getECSStats: () => ECSStats;
+  checkRegistries: () => void;
 }
 
 // Глобальный объект для отладки
@@ -53,12 +58,12 @@ async function startGame(): Promise<void> {
   await core.init();
 
   // Глобальные методы для отладки в браузерной консоли
-  if (typeof window !== 'undefined' && core.eventBus && core.ecsManager && core.tickManager) {
+  if (typeof window !== 'undefined' && core.eventBus && core.tickManager) {
     // Используем TimeService из TickManager
     const timeService = core.tickManager.getTimeService();
 
     window.sim = {
-      stats: () => logger.info('ECS Stats:', core.ecsManager!.getStats()),
+      stats: () => logger.info('ECS Stats:', core.ecsManager?.getStats() || { message: 'ECS disabled' }),
       time: () => {
         const timeData = timeService.getTimeData();
         logger.info(`Date: ${timeData.date}, Time: ${timeData.timeOfDay}, Day ${timeData.day}`);
@@ -70,11 +75,44 @@ async function startGame(): Promise<void> {
         return () => core.eventBus!.off(Events.GameTimeUpdated, handler);
       },
       getECSStats: () => core.ecsManager?.getStats() || { message: 'ECS disabled in Phase 0' },
+      checkRegistries: () => {
+        const { ComponentRegistry } = require('./core/ecs/registry/component_registry');
+        const { SystemRegistry } = require('./core/ecs/registry/system_registry');
+        const { ClusterRegistry } = require('./core/ecs/registry/cluster_registry');
+        const { EntityFactoryRegistry } = require('./core/ecs/registry/entity_factory_registry');
+
+        const componentRegistry = ComponentRegistry.getInstance();
+        const systemRegistry = SystemRegistry.getInstance();
+        const clusterRegistry = ClusterRegistry.getInstance();
+        const entityFactoryRegistry = EntityFactoryRegistry.getInstance();
+
+        logger.info('=== Component Registry ===');
+        logger.info(`Components: ${componentRegistry.size()}`);
+        for (const [name] of componentRegistry.getAll()) {
+          logger.info(`  - ${name}`);
+        }
+
+        logger.info('=== System Registry ===');
+        logger.info(`Systems: ${systemRegistry.size()}`);
+        for (const [name, system] of systemRegistry.getAll()) {
+          logger.info(`  - ${name} (cluster: ${system.metadata.cluster || 'none'})`);
+        }
+
+        logger.info('=== Cluster Registry ===');
+        logger.info(`Clusters: ${clusterRegistry.size()}`);
+        for (const [name] of clusterRegistry.getAll()) {
+          logger.info(`  - ${name}`);
+        }
+
+        logger.info('=== Entity Factory Registry ===');
+        logger.info(`Factories: ${entityFactoryRegistry.size()}`);
+      },
     };
     logger.info('🎮 Simulation debug available in console:');
     logger.info('  sim.stats() - show simulation stats');
     logger.info('  sim.time() - show current game time');
     logger.info('  sim.listenTime() - listen to time updates');
+    logger.info('  sim.checkRegistries() - show registered ECS components/systems');
   }
 }
 

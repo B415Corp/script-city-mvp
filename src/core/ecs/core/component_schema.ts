@@ -5,6 +5,9 @@ import {
   EnhancedComponent,
   NumberFieldConfig,
 } from './component_builder';
+
+// Экспортируем типы для использования в других модулях
+export type { ComponentSchema, EnhancedComponent, FieldType, NumberFieldConfig };
 import { addComponent, removeComponent } from 'bitecs';
 import type { World } from 'bitecs';
 
