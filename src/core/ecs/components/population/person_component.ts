@@ -1,18 +1,18 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Базовые данные человека
  * Содержит фундаментальную информацию о жителе
  */
-export const Person = defineComponent('Person', {
+export const Person = createSimpleComponent('Person', {
   /** Возраст в годах */
-  age: { type: 'ui8', default: 25, min: 0, max: 120 },
+  age: 25,
   /** Пол: 0 = мужской, 1 = женский */
-  gender: { type: 'ui8', default: 0 },
+  gender: 0,
   /** Имя человека (индекс в массиве имен) */
-  firstName: { type: 'ui16', default: 0 },
+  firstName: 0,
   /** Фамилия человека (индекс в массиве фамилий) */
-  lastName: { type: 'ui16', default: 0 },
+  lastName: 0,
 });
 
 /**

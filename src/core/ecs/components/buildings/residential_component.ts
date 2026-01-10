@@ -1,20 +1,20 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Жилое здание (дом)
  * Предоставляет жилье для граждан
  */
-export const Residential = defineComponent('Residential', {
+export const Residential = createSimpleComponent('Residential', {
   /** Максимальная вместимость (количество жителей) */
-  capacity: { type: 'ui8', default: 4, min: 1 },
+  capacity: 4,
   /** Текущие жители (количество) */
-  occupied: { type: 'ui8', default: 0, min: 0 },
+  occupied: 0,
   /** Качество жилья (0-100, влияет на счастье жителей) */
-  quality: { type: 'ui8', default: 50, min: 0, max: 100 },
+  quality: 50,
   /** ID здания */
-  buildingId: { type: 'ui32', default: 0 },
+  buildingId: 0,
   /** Стоимость аренды */
-  rent: { type: 'f32', default: 100, min: 0 },
+  rent: 100.0,
 });
 
 /**

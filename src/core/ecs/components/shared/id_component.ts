@@ -1,12 +1,12 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Уникальный идентификатор сущности
  * Используется для связи с внешними системами и отладки
  */
-export const ID = defineComponent('ID', {
+export const ID = createSimpleComponent('ID', {
   /** Уникальный числовой ID */
-  value: { type: 'ui32', default: 0 },
+  value: 0,
 });
 
 /**

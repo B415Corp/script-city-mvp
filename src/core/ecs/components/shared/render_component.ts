@@ -1,18 +1,18 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Данные для рендеринга сущности
  * Используется для отображения объектов на карте
  */
-export const Render = defineComponent('Render', {
+export const Render = createSimpleComponent('Render', {
   /** Видимость объекта (0 = скрыт, 1 = виден) */
-  visible: { type: 'ui8', default: 1 },
+  visible: 1,
   /** Z-index для слоев отображения */
-  layer: { type: 'ui8', default: 1 },
+  layer: 1,
   /** Тип спрайта или текстуры (индекс) */
-  spriteType: { type: 'ui16', default: 0 },
+  spriteType: 0,
   /** Цвет/тема для отображения (индекс) */
-  color: { type: 'ui16', default: 0 },
+  color: 0,
 });
 
 /**

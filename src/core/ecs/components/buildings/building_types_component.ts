@@ -1,4 +1,4 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Компоненты для разных типов зданий
@@ -7,31 +7,31 @@ import { defineComponent } from '@/core/ecs/core/component_builder';
 /**
  * Компонент магазина
  */
-export const Shop = defineComponent('Shop', {
+export const Shop = createSimpleComponent('Shop', {
   /** Тип магазина (индекс) */
-  type: { type: 'ui8', default: 0 },
+  type: 0,
   /** Размер (индекс) */
-  size: { type: 'ui8', default: 0 },
-  /** Текущий спрос (0-100) */
-  demand: { type: 'ui8', default: 50, min: 0, max: 100 },
-  /** Запасы (0-100) */
-  stock: { type: 'ui8', default: 100, min: 0, max: 100 },
+  size: 0,
+  /** Текущий спрос (0-100%) */
+  demand: 50,
+  /** Запасы (0-100%) */
+  stock: 100,
   /** Цена товаров */
-  price: { type: 'f32', default: 10, min: 0 },
+  price: 10.0,
 });
 
 /**
  * Компонент фабрики (работы)
  */
-export const Factory = defineComponent('Factory', {
+export const Factory = createSimpleComponent('Factory', {
   /** Тип производства (индекс) */
-  type: { type: 'ui8', default: 0 },
+  type: 0,
   /** Производственная мощность */
-  capacity: { type: 'ui16', default: 100, min: 0 },
-  /** Эффективность (0-100) */
-  efficiency: { type: 'ui8', default: 80, min: 0, max: 100 },
+  capacity: 100,
+  /** Эффективность (0-100%) */
+  efficiency: 80,
   /** Количество рабочих */
-  workers: { type: 'ui16', default: 0, min: 0 },
+  workers: 0,
 });
 
 /**

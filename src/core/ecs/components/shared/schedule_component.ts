@@ -1,4 +1,4 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Компонент расписания для управления поведением сущностей по времени суток
@@ -48,17 +48,17 @@ export const ACTIVITIES = {
 export type DayPhaseIndex = (typeof DAY_PHASES)[keyof typeof DAY_PHASES];
 export type ActivityIndex = (typeof ACTIVITIES)[keyof typeof ACTIVITIES];
 
-export const Schedule = defineComponent('Schedule', {
+export const Schedule = createSimpleComponent('Schedule', {
   /** Текущая фаза дня (индекс из DAY_PHASES) */
-  currentPhase: { type: 'ui8', default: 0 },
+  currentPhase: 0,
   /** Текущая активность (индекс из ACTIVITIES) */
-  currentActivity: { type: 'ui8', default: 0 },
+  currentActivity: 0,
   /** Флаг, показывающий, была ли активность выполнена в текущей фазе */
-  activityExecuted: { type: 'ui8', default: 0 },
+  activityExecuted: 0,
   /** Время следующей активности (минуты от начала дня) */
-  nextActivityTime: { type: 'ui16', default: 0 },
+  nextActivityTime: 0,
   /** Тип сущности для выбора подходящего расписания */
-  entityType: { type: 'ui8', default: 0 },
+  entityType: 0,
 });
 
 /**

@@ -1,4 +1,4 @@
-import { registerComponent, addComponent, removeComponent } from 'bitecs';
+import { addComponent, removeComponent, registerComponent } from 'bitecs';
 import type { World } from 'bitecs';
 
 // ============================================================================
@@ -140,83 +140,88 @@ export function defineComponent<T extends ComponentSchema>(
   name: string,
   schema: T,
 ): EnhancedComponent<T> {
-  // Создаем объект компонента с TypedArrays
-  const component = {} as any;
+  // Создаем компонент как объект с TypedArrays (BitECS 0.4.0 стиль)
+  const component = {} as Record<string, unknown>;
 
-  // Создаем TypedArray для каждого поля
-  for (const [key, config] of Object.entries(schema)) {
-    component[key] = createTypedArray(config.type);
-  }
-
-  // ✅ ОПТИМИЗАЦИЯ: Кешируем при создании (один раз!)
+  // Кешируем ключи и дефолты для оптимизации
   const keys = Object.keys(schema);
   const defaults: Record<string, number> = {};
+
+  // Создаем TypedArray для каждого поля
+  for (const key of keys) {
+    const config = schema[key];
+    component[key] = createTypedArray(config.type);
+    defaults[key] = getDefaultValue(config);
+  }
 
   for (const key of keys) {
     defaults[key] = getDefaultValue(schema[key]);
   }
 
-  // Метод для регистрации компонента в мире BitECS
-  component.register = function (world: World): void {
-    registerComponent(world, component);
-  };
+  // Переопределяем create метод
+  (component as Record<string, unknown>).create = function (
+    world: World,
+    eid: number,
+    data?: Partial<ComponentData<T>>,
+  ): void {
+    // Регистрируем компонент в мире, если еще не зарегистрирован
+    if (!(component as Record<string, unknown>).__registered) {
+      registerComponent(world, component);
+      (component as Record<string, unknown>).__registered = true;
+    }
 
-  // ============================================================================
-  // HELPER: CREATE (только для фабрик!)
-  // ============================================================================
-
-  component.create = function (world: World, eid: number, data?: Partial<ComponentData<T>>): void {
-    // ✅ Добавляем компонент к сущности через BitECS
     addComponent(world, eid, component);
 
-    // ✅ ОПТИМИЗИРОВАНО: используем кешированные данные
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       const value = data?.[key] ?? defaults[key];
 
-      // Валидация только в dev mode (tree-shakable)
       if (import.meta.env.DEV) {
         validateField(value, schema[key], key);
       }
-
-      // ✅ ПРЯМАЯ запись в TypedArray
-      component[key][eid] = value;
+      (component[key] as unknown[])[eid] = value;
     }
   };
 
-  // ============================================================================
-  // HELPER: REMOVE
-  // ============================================================================
-
-  component.remove = function (world: World, eid: number): void {
-    // ✅ Удаляем компонент через BitECS
+  // Переопределяем remove метод
+  (component as Record<string, unknown>).remove = function (world: World, eid: number): void {
     removeComponent(world, eid, component);
 
-    // Очищаем данные (устанавливаем defaults)
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
-      component[key][eid] = defaults[key];
+      ((component as Record<string, unknown>)[key] as unknown[])[eid] = defaults[key];
     }
   };
 
-  // ============================================================================
-  // HELPER: INSPECT (только для отладки!)
-  // ============================================================================
+  // Переопределяем inspect метод
+  (component as Record<string, unknown>).inspect = function (
+    world: World,
+    eid: number,
+  ): ComponentData<T> {
+    const result = {} as ComponentData<T>;
 
-  component.inspect = function (world: World, eid: number): Record<string, number> {
-    const result: Record<string, number> = {};
-
-    // ✅ Используем кешированные ключи
     for (const key of keys) {
-      result[key] = component[key][eid];
+      result[key] = ((component as Record<string, unknown>)[key] as unknown[])[eid] as number;
     }
 
     return result;
   };
 
+  // Добавляем register метод
+  (component as Record<string, unknown>).register = function (world: World): void {
+    if (!(component as Record<string, unknown>).__registered) {
+      registerComponent(world, component);
+      (component as Record<string, unknown>).__registered = true;
+
+      if (import.meta.env.DEV) {
+        console.log(`[ComponentBuilder] Registered component: ${name}`);
+      }
+    }
+  };
+
   // Метаданные
-  component.name = name;
-  component.schema = schema;
+  (component as Record<string, unknown>).name = name;
+  (component as Record<string, unknown>).schema = schema;
 
   return component as EnhancedComponent<T>;
 }
@@ -226,35 +231,34 @@ export function defineComponent<T extends ComponentSchema>(
 // ============================================================================
 
 /*
-// 1. Определение компонента
-export const Citizen = defineComponent('Citizen', {
-  money: { type: 'f32', default: 100, min: 0 },
-  happiness: { type: 'ui8', default: 70, min: 0, max: 100 },
-  salary: { type: 'f32', default: 50, min: 0 },
-  workplace: { type: 'ui32', default: 0 },
-  home: { type: 'ui32', default: 0 },
-  lastWorkDay: { type: 'ui32', default: 0 },
+// С новым createSimpleComponent API:
+//
+// 1. Определение компонента (ультра-просто!)
+export const Citizen = createSimpleComponent('Citizen', {
+  money: 100.0,      // → автоматически float32
+  happiness: 70,     // → автоматически uint8 (0-255)
+  salary: 50.0,      // → автоматически float32
+  workplace: 0,      // → автоматически uint32
+  home: 0,           // → автоматически uint32
+  lastWorkDay: 0,    // → автоматически uint32
 });
 
 // 2. В фабриках - используем .create()
 export class PersonFactory {
   createCitizen(world: World, eid: number): void {
-    // ✅ Helper с валидацией и defaults
     Citizen.create(world, eid, {
-      money: 100,
+      money: 100.0,
       happiness: 70,
-      salary: 50
+      salary: 50.0
     });
   }
 }
 
 // 3. В системах - ПРЯМОЙ доступ к TypedArrays!
 export const WorkSystem = (world: World) => {
-  const query = defineQuery([Citizen, Person]);
+  const entities = query(world, [Citizen, Person]);
 
   return (delta: number) => {
-    const entities = query(world);
-
     // ✅ ПРЯМОЙ доступ - максимальная производительность!
     for (let i = 0; i < entities.length; i++) {
       const eid = entities[i];

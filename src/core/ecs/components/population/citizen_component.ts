@@ -1,4 +1,4 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Тип собственности жилья
@@ -12,43 +12,43 @@ export enum HousingType {
  * Гражданин города
  * Содержит социальные и экономические характеристики
  */
-export const Citizen = defineComponent('Citizen', {
+export const Citizen = createSimpleComponent('Citizen', {
   /** Уровень счастья (0-100) */
-  happiness: { type: 'ui8', default: 70, min: 0, max: 100 },
+  happiness: 70,
   /** Дом, где живет гражданин */
-  home: { type: 'ui32', default: 0 },
+  home: 0,
   /** Место работы */
-  workplace: { type: 'ui32', default: 0 },
+  workplace: 0,
   /** Количество денег */
-  money: { type: 'f32', default: 100, min: 0 },
+  money: 100.0,
   /** Уровень энергии/усталости (0-100) */
-  energy: { type: 'ui8', default: 100, min: 0, max: 100 },
+  energy: 100,
   /** Тип собственности жилья */
-  housingType: { type: 'ui8', default: 0 },
+  housingType: 0,
   /** Минимальные месячные расходы (аренда + еда) */
-  minimumExpenses: { type: 'f32', default: 50, min: 0 },
+  minimumExpenses: 50.0,
   /** Зарплата за последний месяц */
-  salary: { type: 'f32', default: 50, min: 0 },
+  salary: 50.0,
   /** День последнего получения зарплаты */
-  lastWorkDay: { type: 'ui32', default: 0 },
+  lastWorkDay: 0,
   /** Ищет ли работу в данный момент (boolean as 0/1) */
-  isLookingForJob: { type: 'ui8', default: 0 },
+  isLookingForJob: 0,
   /** Количество попыток поиска работы с момента последней работы */
-  jobSearchAttempts: { type: 'ui16', default: 0, min: 0 },
+  jobSearchAttempts: 0,
   /** День последней попытки поиска работы */
-  lastJobSearchDay: { type: 'ui32', default: 0 },
+  lastJobSearchDay: 0,
   /** День последнего списания месячных расходов */
-  lastExpenseDay: { type: 'ui32', default: 0 },
+  lastExpenseDay: 0,
   /** Живет ли бездомным (boolean as 0/1) */
-  isHomeless: { type: 'ui8', default: 1 },
+  isHomeless: 1,
   /** Возраст гражданина */
-  age: { type: 'ui8', default: 25, min: 0, max: 120 },
+  age: 25,
   /** Уровень образования (1-5) */
-  education: { type: 'ui8', default: 0, min: 0, max: 5 },
+  education: 0,
   /** Опыт работы */
-  experience: { type: 'ui16', default: 0, min: 0 },
+  experience: 0,
   /** Навыки (bitfield) */
-  skills: { type: 'ui32', default: 0 },
+  skills: 0,
 });
 
 /**

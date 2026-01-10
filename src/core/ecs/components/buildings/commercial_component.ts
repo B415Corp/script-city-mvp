@@ -1,22 +1,22 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Коммерческое здание
  * Магазины, офисы, производства
  */
-export const Commercial = defineComponent('Commercial', {
+export const Commercial = createSimpleComponent('Commercial', {
   /** Тип здания */
-  type: { type: 'ui8', default: 0 },
+  type: 0,
   /** ID здания */
-  buildingId: { type: 'ui32', default: 0 },
+  buildingId: 0,
   /** Количество товаров в инвентаре */
-  inventorySize: { type: 'ui16', default: 0 },
+  inventorySize: 0,
   /** Количество сотрудников */
-  employeeCount: { type: 'ui16', default: 0 },
+  employeeCount: 0,
   /** Количество клиентов */
-  customerCount: { type: 'ui16', default: 0 },
+  customerCount: 0,
   /** Доход за день */
-  dailyRevenue: { type: 'f32', default: 0 },
+  dailyRevenue: 0.0,
 });
 
 /**

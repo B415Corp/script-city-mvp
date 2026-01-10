@@ -1,22 +1,22 @@
-import { defineComponent } from '@/core/ecs/core/component_builder';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 
 /**
  * Рабочее место
  * Определяет доступные вакансии и условия работы
  */
-export const Workplace = defineComponent('Workplace', {
+export const Workplace = createSimpleComponent('Workplace', {
   /** Максимальная вместимость (количество работников) */
-  capacity: { type: 'ui16', default: 10, min: 1 },
+  capacity: 10,
   /** Текущие работники (количество) */
-  occupied: { type: 'ui16', default: 0, min: 0 },
+  occupied: 0,
   /** ID здания */
-  buildingId: { type: 'ui32', default: 0 },
+  buildingId: 0,
   /** Зарплата за рабочий день */
-  salary: { type: 'f32', default: 50, min: 0 },
+  salary: 50.0,
   /** Тип работы (индекс) */
-  type: { type: 'ui8', default: 0 },
+  type: 0,
   /** Минимальный уровень образования для работы */
-  minEducationLevel: { type: 'ui8', default: 0, min: 0, max: 5 },
+  minEducationLevel: 0,
 });
 
 /**
