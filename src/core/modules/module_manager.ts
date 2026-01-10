@@ -28,7 +28,7 @@ type CustomModuleName = keyof typeof customModuleRegistry;
 export class ModuleManager {
   private scene!: Phaser.Scene;
   private eventBus!: EventBus;
-  private ecsManager!: ECSManager;
+  private ecsManager: ECSManager | null;
   private tickManager!: TickManager;
 
   // api модулей
@@ -42,7 +42,7 @@ export class ModuleManager {
   constructor(
     scene: Phaser.Scene,
     eventBus: EventBus,
-    ecsManager: ECSManager,
+    ecsManager: ECSManager | null, // Временно null для Phase 0
     tickManager: TickManager,
   ) {
     this.scene = scene;
@@ -62,10 +62,11 @@ export class ModuleManager {
       // DebugModule получает ECSManager и TickManager для доступа к статистике
       let module: BaseModule;
       if (name === 'DebugModule') {
+        // Для Phase 0 передаем null вместо ECSManager
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
-          ecsManager: ECSManager,
+          ecsManager: ECSManager | null,
           tickManager: TickManager,
         ) => DebugModule)(this.scene, this.eventBus, this.ecsManager, this.tickManager);
       } else {

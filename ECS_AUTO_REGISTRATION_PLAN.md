@@ -61,7 +61,7 @@
 **Задачи:**
 
 - **ЗАКОММЕНТИРОВАТЬ** `EntrySimulation` в `Core.startSimulation()`
-- **ВЫКЛЮЧИТЬ** все ECS модули в `ModuleManager.init()`
+- **ВЫКЛЮЧИТЬ** в `DebugModule` компоненты `ecs` и `simulation`
 - **ЗАКОММЕНТИРОВАТЬ** `this.initECSManager()` в `Core.init()`
 - **УБРАТЬ** `this.ecsManager` из зависимостей модулей
 - Проверить что приложение запускается только с Phaser (без ECS)

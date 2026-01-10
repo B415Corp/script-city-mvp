@@ -49,7 +49,7 @@ export class Core {
     await this.initPhaser();
     await this.initEventBus();
     this.initTickManager();
-    this.initECSManager();
+    // this.initECSManager(); // Временно отключено для Phase 0
     await this.initModules();
     this.startSimulation();
   }
@@ -123,10 +123,11 @@ export class Core {
   }
 
   private async startSimulation(): Promise<void> {
-    if (!this.ecsManager || !this.eventBus || !this.tickManager) {
-      throw new Error('All managers must be initialized before starting simulation');
-    }
-    const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
-    entrySimulation.start();
+    // Временно отключено для Phase 0
+    // if (!this.ecsManager || !this.eventBus || !this.tickManager) {
+    //   throw new Error('All managers must be initialized before starting simulation');
+    // }
+    // const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
+    // entrySimulation.start();
   }
 }

@@ -13,8 +13,8 @@ import { Logger } from '@/core/utils/logger';
 const debugComponentsRegister = {
   events: EventsDebug,
   tick: TickDebug,
-  ecs: ECSDebug,
-  simulation: SimulationDebug,
+  // ecs: ECSDebug,
+  // simulation: SimulationDebug,
 } as const;
 
 type ComponentsRegister = keyof typeof debugComponentsRegister;
@@ -29,7 +29,7 @@ type TickDebugComponentConstructor = new (
 type ECSDebugComponentConstructor = new (
   scene: Phaser.Scene,
   eventBus: EventBus,
-  ecsManager: ECSManager,
+  ecsManager: ECSManager | null,
 ) => DebugComponent;
 type SimulationDebugComponentConstructor = new (
   scene: Phaser.Scene,
@@ -40,7 +40,7 @@ type SimulationDebugComponentConstructor = new (
 export class DebugModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
-  protected ecsManager!: ECSManager;
+  protected ecsManager: ECSManager | null;
   protected tickManager!: TickManager;
   private logger: Logger;
 
@@ -57,7 +57,12 @@ export class DebugModule extends BaseModule {
   private tabButtons: Map<string, HTMLElement> = new Map();
   private tabContents: Map<string, HTMLElement> = new Map();
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager, tickManager: TickManager) {
+  constructor(
+    scene: Phaser.Scene,
+    eventBus: EventBus,
+    ecsManager: ECSManager | null,
+    tickManager: TickManager,
+  ) {
     super(scene, eventBus);
     this.logger = Logger.create('DebugModule');
     this.logger.info('DebugModule initialized');
@@ -80,20 +85,17 @@ export class DebugModule extends BaseModule {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
       let component: DebugComponent;
 
+      // Для Phase 0 пропускаем компоненты, требующие ECSManager
+      if (name === 'ecs' || name === 'simulation') {
+        return;
+      }
+
       // TickDebug получает TimeService из TickManager
       if (name === 'tick') {
         component = new (ModuleClass as TickDebugComponentConstructor)(
           this.scene,
           this.eventBus,
           this.tickManager.getTimeService(),
-        );
-      }
-      // ECSDebug и SimulationDebug получают ECSManager для доступа к статистике entities
-      else if (name === 'ecs' || name === 'simulation') {
-        component = new (ModuleClass as ECSDebugComponentConstructor)(
-          this.scene,
-          this.eventBus,
-          this.ecsManager,
         );
       } else {
         component = new (ModuleClass as DebugComponentConstructor)(this.scene, this.eventBus);
@@ -107,8 +109,8 @@ export class DebugModule extends BaseModule {
   // обновление компонентов
   public update(): void {
     const currentComponent = this.debugComponentsApi.get(this.currentTab);
-    // ECS и Simulation компоненты обновляются самостоятельно через setInterval
-    if (currentComponent && this.currentTab !== 'ecs' && this.currentTab !== 'simulation') {
+    // Для Phase 0 все компоненты обновляются вручную
+    if (currentComponent) {
       currentComponent.onUpdate();
     }
   }

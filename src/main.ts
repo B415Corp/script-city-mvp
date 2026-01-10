@@ -69,7 +69,7 @@ async function startGame(): Promise<void> {
         logger.info('Listening to time updates... (check console)');
         return () => core.eventBus!.off(Events.GameTimeUpdated, handler);
       },
-      getECSStats: () => core.ecsManager!.getStats(),
+      getECSStats: () => core.ecsManager?.getStats() || { message: 'ECS disabled in Phase 0' },
     };
     logger.info('🎮 Simulation debug available in console:');
     logger.info('  sim.stats() - show simulation stats');

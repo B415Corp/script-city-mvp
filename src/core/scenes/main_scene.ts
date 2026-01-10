@@ -43,7 +43,7 @@ export class MainScene extends Phaser.Scene {
     // Emit SceneReady event on first update if not already emitted
     if (!this.sceneReadyEmitted && this.eventBus && typeof this.eventBus.emit === 'function') {
       this.logger.debug('Emitting SceneReady event from update');
-      this.eventBus.emit(Events.SceneReady);
+      this.eventBus.emit(Events.SceneReady, undefined);
       this.sceneReadyEmitted = true;
     }
 
