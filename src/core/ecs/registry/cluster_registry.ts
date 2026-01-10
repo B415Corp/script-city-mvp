@@ -81,8 +81,14 @@ export class ClusterRegistry {
     // Создаем кластеры
     for (const [clusterName, systemNames] of clusterMap) {
       if (!this.clusters.has(clusterName)) {
+        // Проверить, есть ли хотя бы одна включенная система в кластере
+        const hasEnabledSystem = systemNames.some(systemName => {
+          const registeredSystem = registeredSystems.get(systemName);
+          return registeredSystem && registeredSystem.metadata.enabled !== false;
+        });
+
         this.register(clusterName, systemNames, {
-          enabled: true,
+          enabled: hasEnabledSystem,
           description: `Auto-created cluster for systems: ${systemNames.join(', ')}`,
         });
       }

@@ -9,7 +9,7 @@ export const TestSystem = createSystem(
   ['TestComponent'],
   (world, entities, delta) => {
     // Простая логика для тестирования
-    console.log(`TestSystem update: ${entities.length} entities, delta: ${delta}`);
+    // console.log(`TestSystem update: ${entities.length} entities, delta: ${delta}`);
   },
   {
     cluster: 'test', // Автоматически добавляется в кластер
@@ -31,7 +31,7 @@ export const IntervalTestSystem = createSystem(
   {
     cluster: 'test',
     interval: 2000, // Каждые 2000 мс (2 секунды)
-    enabled: true,
+    enabled: false,
   },
 );
 
@@ -42,11 +42,11 @@ export const EventTestSystem = createSystem(
   'event_test',
   ['TestComponent'],
   (world, entities, delta) => {
-    console.log(`EventTestSystem triggered: entities=${entities.length}, time: ${Date.now()}`);
+    // console.log(`EventTestSystem triggered: entities=${entities.length}, time: ${Date.now()}`);
   },
   {
     cluster: 'test',
     eventTriggers: ['test:event', 'custom:action'], // Реагирует на эти события
-    enabled: true,
+    enabled: false,
   },
 );

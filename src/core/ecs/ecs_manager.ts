@@ -7,8 +7,13 @@ import { ComponentRegistry } from './registry/component_registry';
 import { SystemRegistry } from './registry/system_registry';
 import { ClusterRegistry } from './registry/cluster_registry';
 import { EntityFactoryRegistry } from './registry/entity_factory_registry';
-import { CallSystemPayload } from '../event_bus/types';
 import { SystemFunction } from './core/smart_constructors';
+import { CallSystemPayload } from '../event_bus/types';
+import { LogicTickData } from '../tick/types';
+import { ECSDebugStats } from '../modules/base_modules/debug_module/components/ecs_debug';
+
+// Игровое время за один тик (независимо от скорости игры)
+const GAME_TIME_PER_TICK = 100; // ms
 
 interface ECSStats {
   totalSystemsCount: number;
@@ -55,10 +60,18 @@ export class ECSManager {
     this.logger = Logger.create('ECSManager');
     this.logger.info('ECSManager initialized (Phase 3 - with Event system)');
     this.world = createWorld();
-    this.scheduleManager = new ScheduleManager(this.world, this.eventBus);
+    this.scheduleManager = new ScheduleManager(
+      this.world,
+      this.eventBus,
+      SystemRegistry.getInstance(),
+      ClusterRegistry.getInstance(),
+    );
 
     // Подписываемся на события для event-driven систем
     this.setupEventSubscriptions();
+
+    // Подписываемся на LogicTick для обновления систем каждый тик
+    this.setupTickSubscription();
 
     // Автоматическая регистрация компонентов, систем и кластеров
     this.initECSManager();
@@ -74,19 +87,22 @@ export class ECSManager {
   /**
    * Возвращает статистику ECS для дебаг панели
    */
-  getStats(): any {
+  getStats(): ECSDebugStats {
     const componentRegistry = ComponentRegistry.getInstance();
     const systemRegistry = SystemRegistry.getInstance();
     const clusterRegistry = ClusterRegistry.getInstance();
 
     // Преобразуем кластеры в формат для дебаг панели
-    const clusters: Record<string, { systemsCount: number; systems: string[]; enabled: boolean; interval?: number }> = {};
+    const clusters: Record<
+      string,
+      { systemsCount: number; systems: string[]; enabled: boolean; interval?: number }
+    > = {};
     for (const [clusterName, cluster] of clusterRegistry.getAll()) {
       clusters[clusterName] = {
         systemsCount: cluster.systemNames.length,
         systems: cluster.systemNames,
-        enabled: cluster.enabled,
-        interval: cluster.interval,
+        enabled: cluster.metadata.enabled,
+        interval: cluster.metadata.interval,
       };
     }
 
@@ -191,6 +207,21 @@ export class ECSManager {
     });
 
     this.logger.info('Event subscriptions setup for event-driven systems');
+  }
+
+  /**
+   * Настройка подписки на LogicTick для автоматического обновления систем
+   */
+  private setupTickSubscription(): void {
+    // Подписываемся на LogicTick события от TickManager
+    this.eventBus.on(Events.LogicTick, (data) => {
+      if (data && 'delta' in data) {
+        // Обновляем системы каждый игровой тик
+        this.scheduleManager.update(data.delta);
+      }
+    });
+
+    this.logger.info('Tick subscription setup for automatic system updates');
   }
 
   /**
@@ -314,19 +345,21 @@ export class ECSManager {
    * Метод для тестирования ScheduleManager (Phase 2)
    * Запускает тестовый цикл обновления систем
    */
-  testScheduleManager(duration = 5000): void {
-    this.logger.info(`Starting ScheduleManager test for ${duration}ms...`);
+  testScheduleManager(duration = 5000, deltaTime = 100): void {
+    this.logger.info(
+      `Starting ScheduleManager test for ${duration}ms with deltaTime=${deltaTime}ms...`,
+    );
 
     let elapsed = 0;
     const interval = setInterval(() => {
-      elapsed += 100;
-      this.scheduleManager.update(100); // 100ms delta
+      elapsed += deltaTime;
+      this.scheduleManager.update(deltaTime);
 
       if (elapsed >= duration) {
         clearInterval(interval);
         this.logger.info('ScheduleManager test completed');
       }
-    }, 100);
+    }, deltaTime);
   }
 }
 
@@ -343,10 +376,13 @@ export class ScheduleManager {
   private systems: SystemFunction[] = [];
   private intervalSystems: IntervalSystem[] = [];
   private clusterTimers: Map<string, number> = new Map();
+  private gameTime: number = 0; // Накопленное игровое время для кластеров
 
   constructor(
     private world: World,
     private eventBus: EventBus,
+    private systemRegistry: SystemRegistry,
+    private clusterRegistry: ClusterRegistry,
   ) {}
 
   registerSystem(system: SystemFunction): void {
@@ -362,7 +398,7 @@ export class ScheduleManager {
       system,
       name,
       interval,
-      lastExecuted: 0,
+      lastExecuted: this.gameTime, // Начать с текущего игрового времени
     });
     console.log(`[ScheduleManager] Registered interval system: ${name} (interval: ${interval}ms)`);
   }
@@ -414,25 +450,84 @@ export class ScheduleManager {
   }
 
   /**
-   * Основное обновление - выполняет обычные системы и интервальные системы
+   * Обновление кластеров систем
    */
-  update(deltaTime: number): void {
-    // Обновить обычные системы
-    for (const system of this.systems) {
-      try {
-        system(this.world, deltaTime);
-      } catch (error) {
-        console.error('[ScheduleManager] Error in system:', error);
+  private updateClusters(deltaTime: number, gameTime: number): void {
+    // Получить все кластеры
+    for (const [clusterName, cluster] of this.clusterRegistry.getAll()) {
+      if (!cluster.metadata.enabled) {
+        continue; // Пропустить отключенные кластеры
+      }
+
+      // Выполнить каждую систему в кластере
+      for (const systemName of cluster.systemNames) {
+        const registeredSystem = this.systemRegistry.get(systemName);
+        if (!registeredSystem) {
+          console.warn(
+            `[ScheduleManager] System "${systemName}" not found for cluster "${clusterName}"`,
+          );
+          continue;
+        }
+
+        const { system, metadata } = registeredSystem;
+
+        // Проверить, включена ли система
+        if (metadata.enabled === false) {
+          continue; // Пропустить отключенную систему
+        }
+
+        // Проверить, является ли система интервальной
+        if (metadata.interval && metadata.interval > 0) {
+          // Интервальная система - проверить, пора ли выполнять
+          const intervalSystem = this.intervalSystems.find((is) => is.name === systemName);
+          if (intervalSystem && gameTime - intervalSystem.lastExecuted >= intervalSystem.interval) {
+            try {
+              system(this.world, deltaTime);
+              intervalSystem.lastExecuted = gameTime;
+            } catch (error) {
+              console.error(
+                `[ScheduleManager] Error in interval system "${systemName}" of cluster "${clusterName}":`,
+                error,
+              );
+            }
+          }
+        } else {
+          // Обычная система - выполнить каждый тик
+          try {
+            system(this.world, deltaTime);
+          } catch (error) {
+            console.error(
+              `[ScheduleManager] Error in system "${systemName}" of cluster "${clusterName}":`,
+              error,
+            );
+          }
+        }
       }
     }
+  }
 
-    // Обновить интервальные системы
-    const currentTime = Date.now();
+  /**
+   * Основное обновление - выполняет кластеры и интервальные системы
+   */
+  update(deltaTime: number): void {
+    // Обновить игровое время (фиксированная величина за тик, независимо от скорости)
+    this.gameTime += GAME_TIME_PER_TICK;
+
+    // 1. Обновить кластеры (групповое выполнение обычных систем)
+    this.updateClusters(deltaTime, this.gameTime);
+
+    // 2. Обновить интервальные системы (централизованно)
     for (const intervalSystem of this.intervalSystems) {
-      if (currentTime - intervalSystem.lastExecuted >= intervalSystem.interval) {
+      // Проверить, включена ли система
+      const registeredSystem = this.systemRegistry.get(intervalSystem.name);
+      if (registeredSystem && registeredSystem.metadata.enabled === false) {
+        continue; // Пропустить отключенную систему
+      }
+
+      if (this.gameTime - intervalSystem.lastExecuted >= intervalSystem.interval) {
         try {
           intervalSystem.system(this.world, deltaTime);
-          intervalSystem.lastExecuted = currentTime;
+          intervalSystem.lastExecuted = this.gameTime;
         } catch (error) {
           console.error(
             `[ScheduleManager] Error in interval system ${intervalSystem.name}:`,
