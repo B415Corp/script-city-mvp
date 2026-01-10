@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createWorld, addEntity } from 'bitecs';
+import { createWorld, addEntity, query, registerComponent } from 'bitecs';
 import { defineComponent } from '../component_builder';
 
 describe('Component Builder (BitECS 0.4.0)', () => {
@@ -170,5 +170,82 @@ describe('Component Builder (BitECS 0.4.0)', () => {
     expect(Position.y[eid1]).toBe(20);
     expect(Position.x[eid2]).toBe(30);
     expect(Position.y[eid2]).toBe(40);
+  });
+
+  it('should register component in BitECS world', () => {
+    const Position = defineComponent('Position', {
+      x: { type: 'f32', default: 0 },
+      y: { type: 'f32', default: 0 },
+    });
+
+    // Регистрируем компонент
+    Position.register(world);
+
+    const eid = addEntity(world);
+    Position.create(world, eid, { x: 10, y: 20 });
+
+    // Проверяем, что query находит сущность
+    const entities = query(world, [Position]);
+    expect(entities).toContain(eid);
+  });
+
+  it('should work with BitECS query after registration', () => {
+    const Citizen = defineComponent('Citizen', {
+      money: { type: 'f32', default: 100 },
+      happiness: { type: 'ui8', default: 70 },
+    });
+
+    const Position = defineComponent('Position', {
+      x: { type: 'f32', default: 0 },
+      y: { type: 'f32', default: 0 },
+    });
+
+    // Регистрируем компоненты
+    Citizen.register(world);
+    Position.register(world);
+
+    // Создаем сущности
+    const eid1 = addEntity(world);
+    const eid2 = addEntity(world);
+
+    Citizen.create(world, eid1, { money: 1000, happiness: 90 });
+    Position.create(world, eid1, { x: 10, y: 20 });
+
+    Citizen.create(world, eid2, { money: 500, happiness: 60 });
+    Position.create(world, eid2, { x: 30, y: 40 });
+
+    // Тестируем query
+    const citizens = query(world, [Citizen]);
+    expect(citizens).toHaveLength(2);
+    expect(citizens).toContain(eid1);
+    expect(citizens).toContain(eid2);
+
+    const positions = query(world, [Position]);
+    expect(positions).toHaveLength(2);
+
+    const both = query(world, [Citizen, Position]);
+    expect(both).toHaveLength(2);
+
+    // Проверяем данные
+    expect(Citizen.money[eid1]).toBe(1000);
+    expect(Citizen.happiness[eid1]).toBe(90);
+    expect(Position.x[eid1]).toBe(10);
+    expect(Position.y[eid1]).toBe(20);
+  });
+
+  it('should support registration via method', () => {
+    const TestComponent = defineComponent('TestComponent', {
+      value: { type: 'ui32', default: 42 },
+    });
+
+    // Регистрация через метод компонента
+    TestComponent.register(world);
+
+    const eid = addEntity(world);
+    TestComponent.create(world, eid);
+
+    const entities = query(world, [TestComponent]);
+    expect(entities).toContain(eid);
+    expect(TestComponent.value[eid]).toBe(42);
   });
 });

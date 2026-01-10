@@ -15,8 +15,12 @@ import {
 } from './systems/clusters/schedule_activity_systems';
 import { SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
-import { Person } from './components/population';
-import { Residential, Workplace } from './components/buildings';
+import { Person, Citizen, Needs } from './components/population';
+import { Residential, Workplace, Commercial } from './components/buildings';
+import { Position } from './components/shared/position_component';
+import { ID } from './components/shared/id_component';
+import { Render } from './components/shared/render_component';
+import { Schedule } from './components/shared/schedule_component';
 
 // Временно отключен COMPONENT_REGISTRY - новые компоненты имеют другой формат
 // TODO: Адаптировать для новых компонентов с TypedArrays
@@ -113,6 +117,10 @@ export class ECSManager {
     this.logger = Logger.create('ECSManager');
     this.logger.info('ECSManager initialized');
     this.world = createWorld();
+
+    // Регистрируем все компоненты в BitECS мире
+    this.registerComponents();
+
     this.entityFactory = new EntityFactory(this.world);
     this.scheduleManager = new ScheduleManager(this.world, this.eventBus);
 
@@ -130,6 +138,29 @@ export class ECSManager {
       const tickData = payload as LogicTickData;
       this.updateSystems(tickData);
     });
+  }
+
+  /**
+   * Регистрирует все компоненты в BitECS мире
+   */
+  private registerComponents(): void {
+    // Регистрируем компоненты населения
+    Person.register(this.world);
+    Citizen.register(this.world);
+    Needs.register(this.world);
+    Schedule.register(this.world);
+
+    // Регистрируем компоненты позиционирования
+    Position.register(this.world);
+    ID.register(this.world);
+    Render.register(this.world);
+
+    // Регистрируем компоненты зданий
+    Residential.register(this.world);
+    Workplace.register(this.world);
+    Commercial.register(this.world);
+
+    this.logger.info('All components registered in BitECS world');
   }
 
   /**

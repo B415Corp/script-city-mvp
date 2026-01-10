@@ -1,4 +1,4 @@
-import { addComponent, removeComponent } from 'bitecs';
+import { registerComponent, addComponent, removeComponent } from 'bitecs';
 import type { World } from 'bitecs';
 
 // ============================================================================
@@ -54,10 +54,13 @@ export type EnhancedComponent<T extends ComponentSchema> = {
   name: string;
   schema: T;
 
+  // Регистрация в BitECS мире
+  register(world: World): void;
+
   // Helper методы (НЕ использовать в системах!)
   create(world: World, eid: number, data?: Partial<ComponentData<T>>): void;
   remove(world: World, eid: number): void;
-  inspect(world: World, eid: number): ComponentData<T>;
+  inspect(world: World, eid: number): Record<string, number>;
 };
 
 // ============================================================================
@@ -94,7 +97,7 @@ function getDefaultValue(field: FieldConfig): number {
   return 0;
 }
 
-// Создаем TypedArray нужного типа
+// Create TypedArray for field type
 function createTypedArray(
   type: FieldType,
   initialSize = 10000,
@@ -153,13 +156,18 @@ export function defineComponent<T extends ComponentSchema>(
     defaults[key] = getDefaultValue(schema[key]);
   }
 
+  // Метод для регистрации компонента в мире BitECS
+  component.register = function (world: World): void {
+    registerComponent(world, component);
+  };
+
   // ============================================================================
   // HELPER: CREATE (только для фабрик!)
   // ============================================================================
 
   component.create = function (world: World, eid: number, data?: Partial<ComponentData<T>>): void {
-    // Добавляем компонент через BitECS (если нужно для queries)
-    // Note: В текущей версии это может не требоваться
+    // ✅ Добавляем компонент к сущности через BitECS
+    addComponent(world, eid, component);
 
     // ✅ ОПТИМИЗИРОВАНО: используем кешированные данные
     for (let i = 0; i < keys.length; i++) {
@@ -181,6 +189,9 @@ export function defineComponent<T extends ComponentSchema>(
   // ============================================================================
 
   component.remove = function (world: World, eid: number): void {
+    // ✅ Удаляем компонент через BitECS
+    removeComponent(world, eid, component);
+
     // Очищаем данные (устанавливаем defaults)
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
@@ -192,8 +203,8 @@ export function defineComponent<T extends ComponentSchema>(
   // HELPER: INSPECT (только для отладки!)
   // ============================================================================
 
-  component.inspect = function (world: World, eid: number): ComponentData<T> {
-    const result = {} as ComponentData<T>;
+  component.inspect = function (world: World, eid: number): Record<string, number> {
+    const result: Record<string, number> = {};
 
     // ✅ Используем кешированные ключи
     for (const key of keys) {
