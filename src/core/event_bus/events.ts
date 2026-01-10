@@ -14,6 +14,10 @@ export enum Events {
   SetGameSpeed = 'SetGameSpeed',
   GameTimeUpdated = 'GameTimeUpdated',
 
+  // Legacy time events for tests
+  TimeTick = 'time:tick',
+  TimeDay = 'time:day',
+
   // Состояние карты
   TileUnhovered = 'TileUnhovered',
   TileHovered = 'TileHovered',
@@ -35,4 +39,7 @@ export enum Events {
   // ECS системы
   CallSystem = 'CallSystem',
   SystemError = 'SystemError',
+
+  // Citizen events
+  CitizenHired = 'citizen:hired',
 }

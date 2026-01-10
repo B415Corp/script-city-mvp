@@ -7,6 +7,23 @@ import { ComponentRegistry } from './registry/component_registry';
 import { SystemRegistry } from './registry/system_registry';
 import { ClusterRegistry } from './registry/cluster_registry';
 import { EntityFactoryRegistry } from './registry/entity_factory_registry';
+import { CallSystemPayload } from '../event_bus/types';
+import { SystemFunction } from './core/smart_constructors';
+
+interface ECSStats {
+  totalSystemsCount: number;
+  clustersCount: number;
+  systems: string[];
+  clusters: Record<string, unknown>;
+  entityCount: number;
+  entityCounts: Record<string, number>;
+  gameTime: number;
+  timeData: unknown;
+  totalEntities: number;
+  components: string[];
+  intervalSystems: string[];
+  eventSystems: Record<string, string[]>;
+}
 
 // Временно закомментированы импорты удаленных модулей для Phase 0
 // import { EntityFactory } from './entities';
@@ -54,7 +71,7 @@ export class ECSManager {
   /**
    * Возвращает статистику ECS (расширенная для Phase 2)
    */
-  getStats(): any {
+  getStats(): ECSStats {
     const componentRegistry = ComponentRegistry.getInstance();
     const systemRegistry = SystemRegistry.getInstance();
     const clusterRegistry = ClusterRegistry.getInstance();
@@ -66,17 +83,18 @@ export class ECSManager {
     }
 
     return {
-      totalSystemsCount: this.scheduleManager.getSystems().length + this.scheduleManager.getIntervalSystems().length,
+      totalSystemsCount:
+        this.scheduleManager.getSystems().length + this.scheduleManager.getIntervalSystems().length,
       clustersCount: clusterRegistry.size(),
       systems: Array.from(systemRegistry.getAll().keys()),
       clusters: Object.fromEntries(clusterRegistry.getAll()),
       entityCount: 0,
-      entityCountsByType: {},
+      entityCounts: {},
       gameTime: 0,
       timeData: null,
       totalEntities: 0,
       components: Array.from(componentRegistry.getAll().keys()),
-      intervalSystems: this.scheduleManager.getIntervalSystems().map(s => s.name),
+      intervalSystems: this.scheduleManager.getIntervalSystems().map((s) => s.name),
       eventSystems,
     };
   }
@@ -117,17 +135,23 @@ export class ECSManager {
         for (const eventName of metadata.eventTriggers) {
           this.registerEventSystem(eventName, system);
         }
-        this.logger.info(`Auto-registered event-driven system: ${name} (events: ${metadata.eventTriggers.join(', ')})`);
+        this.logger.info(
+          `Auto-registered event-driven system: ${name} (events: ${metadata.eventTriggers.join(', ')})`,
+        );
       }
       // Проверяем интервал для интервальных систем
       else if (metadata.interval && metadata.interval > 0) {
         // Система с интервалом
         this.scheduleManager.registerIntervalSystem(name, system, metadata.interval);
-        this.logger.info(`Auto-registered interval system: ${name} (${metadata.interval}ms, cluster: ${metadata.cluster || 'none'})`);
+        this.logger.info(
+          `Auto-registered interval system: ${name} (${metadata.interval}ms, cluster: ${metadata.cluster || 'none'})`,
+        );
       } else {
         // Обычная система (каждый тик)
         this.scheduleManager.registerSystem(system);
-        this.logger.info(`Auto-registered system: ${name} (every tick, cluster: ${metadata.cluster || 'none'})`);
+        this.logger.info(
+          `Auto-registered system: ${name} (every tick, cluster: ${metadata.cluster || 'none'})`,
+        );
       }
     }
 
@@ -170,7 +194,7 @@ export class ECSManager {
   /**
    * Обработчик для вызова системы по имени (Events.CallSystem)
    */
-  private handleCallSystem(payload: any): void {
+  private handleCallSystem(payload: CallSystemPayload): void {
     const systemName = payload?.systemName;
     if (!systemName) return;
 
@@ -194,7 +218,7 @@ export class ECSManager {
    * Обработчик для event-driven систем
    * Выполняет все системы, подписанные на данное событие
    */
-  private handleEventSystem(eventName: string, payload?: any): void {
+  private handleEventSystem(eventName: string, payload?: unknown): void {
     const systems = this.eventSystemMap.get(eventName);
     if (!systems || systems.length === 0) {
       return; // Нет систем, подписанных на это событие
@@ -217,7 +241,7 @@ export class ECSManager {
     if (!this.eventSystemMap.has(eventName)) {
       this.eventSystemMap.set(eventName, []);
       // Подписываемся на событие только при первой регистрации
-      this.eventBus.on(eventName as any, (payload) => {
+      this.eventBus.on(eventName, (payload) => {
         this.handleEventSystem(eventName, payload);
       });
     }
@@ -233,11 +257,14 @@ export class ECSManager {
     this.logger.info('Testing event-driven systems...');
 
     // Отправляем тестовые события
-    setTimeout(() => this.eventBus.emit('test:event' as any, { testData: 'from test' }), 1000);
-    setTimeout(() => this.eventBus.emit('custom:action' as any, { action: 'test_action' }), 2000);
-    setTimeout(() => this.eventBus.emit('nonexistent:event' as any, {}), 3000); // Это событие не должно вызвать системы
+    // Test events (using emitLegacy for backward compatibility with test events)
+    setTimeout(() => this.eventBus.emitLegacy('test:event', { testData: 'from test' }), 1000);
+    setTimeout(() => this.eventBus.emitLegacy('custom:action', { action: 'test_action' }), 2000);
+    setTimeout(() => this.eventBus.emitLegacy('nonexistent:event', {}), 3000); // Это событие не должно вызвать системы
 
-    this.logger.info('Test events scheduled (1s: test:event, 2s: custom:action, 3s: nonexistent:event)');
+    this.logger.info(
+      'Test events scheduled (1s: test:event, 2s: custom:action, 3s: nonexistent:event)',
+    );
   }
 
   /**
@@ -283,7 +310,6 @@ export class ECSManager {
 }
 
 // ✅ Расширенный ScheduleManager для Phase 2 с поддержкой интервалов
-export type SystemFunction = (world: any, delta?: number) => void;
 
 interface IntervalSystem {
   system: SystemFunction;
@@ -330,7 +356,12 @@ export class ScheduleManager {
   /**
    * Обновление кластерной системы с интервалом
    */
-  updateCluster(clusterName: string, systems: SystemFunction[], deltaTime: number, interval?: number): void {
+  updateCluster(
+    clusterName: string,
+    systems: SystemFunction[],
+    deltaTime: number,
+    interval?: number,
+  ): void {
     if (!interval) {
       // Выполнять каждый тик
       for (const system of systems) {
@@ -382,7 +413,10 @@ export class ScheduleManager {
           intervalSystem.system(this.world, deltaTime);
           intervalSystem.lastExecuted = currentTime;
         } catch (error) {
-          console.error(`[ScheduleManager] Error in interval system ${intervalSystem.name}:`, error);
+          console.error(
+            `[ScheduleManager] Error in interval system ${intervalSystem.name}:`,
+            error,
+          );
         }
       }
     }

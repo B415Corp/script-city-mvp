@@ -231,12 +231,21 @@ describe('EventBus (Type-Safe)', () => {
     it('should enforce correct payload types at compile time', () => {
       // These should compile without errors
       eventBus.on('time:tick', (payload) => {
-        expect(typeof payload.tick).toBe('number');
-        expect(typeof payload.time).toBe('number');
+        expect(payload).toBeDefined();
+        if (payload) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expect(typeof (payload as any).tick).toBe('number');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expect(typeof (payload as any).time).toBe('number');
+        }
       });
 
       eventBus.on('time:day', (payload) => {
-        expect(typeof payload.day).toBe('number');
+        expect(payload).toBeDefined();
+        if (payload) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expect(typeof (payload as any).day).toBe('number');
+        }
       });
 
       // Emit correct payloads
@@ -246,9 +255,15 @@ describe('EventBus (Type-Safe)', () => {
 
     it('should handle complex event payloads', () => {
       eventBus.on('citizen:hired', (payload) => {
-        expect(typeof payload.entityId).toBe('number');
-        expect(typeof payload.workplaceId).toBe('number');
-        expect(typeof payload.salary).toBe('number');
+        expect(payload).toBeDefined();
+        if (payload) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expect(typeof (payload as any).entityId).toBe('number');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expect(typeof (payload as any).workplaceId).toBe('number');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expect(typeof (payload as any).salary).toBe('number');
+        }
       });
 
       eventBus.emit('citizen:hired', {

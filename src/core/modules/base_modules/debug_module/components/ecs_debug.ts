@@ -9,12 +9,12 @@ declare global {
       stats: () => void;
       time: () => void;
       listenTime: () => () => void;
-      getECSStats: () => ECSStats;
+      getECSStats: () => ECSDebugStats;
     };
   }
 }
 
-export interface ECSStats {
+export interface ECSDebugStats {
   totalSystemsCount: number;
   clustersCount: number;
   systems: string[]; // Список всех зарегистрированных систем
@@ -103,7 +103,7 @@ export class ECSDebug extends DebugComponent {
         return;
       }
 
-      const stats = this.ecsManager.getStats() as ECSStats;
+      const stats = this.ecsManager.getStats() as unknown as ECSDebugStats;
       if (!stats) {
         this.showError('No ECS data');
         return;
@@ -118,7 +118,7 @@ export class ECSDebug extends DebugComponent {
     }
   }
 
-  private updateSystemsList(stats: ECSStats): void {
+  private updateSystemsList(stats: ECSDebugStats): void {
     if (!this.systemsList) return;
 
     this.systemsList.innerHTML = '';
@@ -195,7 +195,7 @@ export class ECSDebug extends DebugComponent {
     });
   }
 
-  private updateEntitiesList(stats: ECSStats): void {
+  private updateEntitiesList(stats: ECSDebugStats): void {
     if (!this.entitiesList) return;
 
     this.entitiesList.innerHTML = '';

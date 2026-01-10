@@ -6,7 +6,7 @@ import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
 import { TickDebug } from './components/tick_debug';
 import { ECSDebug } from './components/ecs_debug';
-import { SimulationDebug } from './components/simulation_debug';
+// import { SimulationDebug } from './components/simulation_debug'; // TODO: Re-enable when simulation_debug is fixed
 import { Logger } from '@/core/utils/logger';
 
 // названия базовых модулей с их классами

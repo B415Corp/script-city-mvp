@@ -56,12 +56,17 @@ export class Core {
    * Высокоуровневый API для доступа к реестрам ECS (Phase 4)
    * Предоставляет доступ к компонентам, системам, кластерам и фабрикам для отладки
    */
-  get ecsRegistries() {
+  get ecsRegistries(): {
+    components: () => ComponentRegistry;
+    systems: () => SystemRegistry;
+    clusters: () => ClusterRegistry;
+    entityFactories: () => EntityFactoryRegistry;
+  } {
     return {
-      components: () => ComponentRegistry.getInstance(),
-      systems: () => SystemRegistry.getInstance(),
-      clusters: () => ClusterRegistry.getInstance(),
-      entityFactories: () => EntityFactoryRegistry.getInstance(),
+      components: (): ComponentRegistry => ComponentRegistry.getInstance(),
+      systems: (): SystemRegistry => SystemRegistry.getInstance(),
+      clusters: (): ClusterRegistry => ClusterRegistry.getInstance(),
+      entityFactories: (): EntityFactoryRegistry => EntityFactoryRegistry.getInstance(),
     };
   }
 
@@ -111,7 +116,12 @@ export class Core {
           // }
 
           scene.init(this.eventBus, this.tickManager);
-          this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager, this.tickManager);
+          this.moduleManager = new ModuleManager(
+            scene,
+            this.eventBus,
+            this.ecsManager,
+            this.tickManager,
+          );
           this.moduleManager.init();
           scene.setModuleManager(this.moduleManager);
 

@@ -198,13 +198,13 @@ export function defineComponent<T extends ComponentSchema>(
     world: World,
     eid: number,
   ): ComponentData<T> {
-    const result = {} as ComponentData<T>;
+    const result: Record<string, number> = {};
 
     for (const key of keys) {
       result[key] = ((component as Record<string, unknown>)[key] as unknown[])[eid] as number;
     }
 
-    return result;
+    return result as ComponentData<T>;
   };
 
   // Добавляем register метод

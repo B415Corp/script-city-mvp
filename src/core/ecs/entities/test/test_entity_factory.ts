@@ -17,7 +17,7 @@ export const createTestEntity = createEntityFactory(
     console.log('TestEntity created via factory');
     return Math.floor(Math.random() * 1000000); // Имитация entityId
   },
-  'Создает тестовую сущность с компонентами TestComponent и AnotherTestComponent'
+  'Создает тестовую сущность с компонентами TestComponent и AnotherTestComponent',
 );
 
 // Фабрика для создания игрока
@@ -28,7 +28,7 @@ export const createPlayerEntity = createEntityFactory(
     console.log('Player entity created with health, position, and inventory');
     return Math.floor(Math.random() * 1000000);
   },
-  'Создает сущность игрока с полным набором компонентов'
+  'Создает сущность игрока с полным набором компонентов',
 );
 
 // Фабрика для создания NPC
@@ -39,5 +39,5 @@ export const createNpcEntity = createEntityFactory(
     console.log('NPC entity created with AI, dialogue, and quest components');
     return Math.floor(Math.random() * 1000000);
   },
-  'Создает сущность NPC с компонентами поведения и взаимодействия'
+  'Создает сущность NPC с компонентами поведения и взаимодействия',
 );

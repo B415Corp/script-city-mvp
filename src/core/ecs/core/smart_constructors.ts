@@ -3,11 +3,12 @@ import { SystemRegistry, SystemMetadata } from '../registry/system_registry';
 import { ClusterRegistry } from '../registry/cluster_registry';
 import { EntityFactoryRegistry } from '../registry/entity_factory_registry';
 import { createSimpleComponent, EnhancedComponent, ComponentSchema } from './component_schema';
+import type { World, EntityId } from 'bitecs';
 
 /**
  * Тип функции системы
  */
-export type SystemFunction = (world: any, delta?: number) => void;
+export type SystemFunction = (world: World, delta?: number) => void;
 
 /**
  * Умный конструктор компонентов
@@ -28,7 +29,7 @@ export type SystemFunction = (world: any, delta?: number) => void;
  */
 export function createComponent<T extends Record<string, number>>(
   name: string,
-  defaults: T
+  defaults: T,
 ): EnhancedComponent<ComponentSchema> {
   // Создаем компонент через существующую инфраструктуру
   const component = createSimpleComponent(name, defaults);
@@ -69,8 +70,8 @@ export function createComponent<T extends Record<string, number>>(
 export function createSystem(
   name: string,
   components: string[],
-  updateFn: (world: any, entities: any, delta: number) => void,
-  metadata: SystemMetadata
+  updateFn: (world: World, entities: EntityId[], delta: number) => void,
+  metadata: SystemMetadata,
 ): SystemFunction {
   // Создаем функцию системы
   const system: SystemFunction = (world, delta) => {
@@ -107,7 +108,7 @@ export function createSystem(
 export function createCluster(
   name: string,
   systemNames: string[],
-  metadata: { enabled: boolean; description?: string; interval?: number }
+  metadata: { enabled: boolean; description?: string; interval?: number },
 ): void {
   ClusterRegistry.getInstance().register(name, systemNames, metadata);
 }
@@ -137,7 +138,7 @@ export function createCluster(
 export function createEntityFactory(
   name: string,
   factoryFn: () => number,
-  description?: string
+  description?: string,
 ): () => number {
   EntityFactoryRegistry.getInstance().register(name, factoryFn, description);
 

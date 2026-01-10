@@ -3,12 +3,13 @@ import { EventBus } from './core/event_bus/event_bus';
 import { Events } from './core/event_bus/events';
 import { MainScene } from './core/scenes';
 import { GameTimeUpdateData } from './core/ecs/types';
-import { ECSStats } from './core/modules/base_modules/debug_module/components/ecs_debug';
+import { ECSDebugStats } from './core/modules/base_modules/debug_module/components/ecs_debug';
 import { TimeService } from './core/tick/time_service';
 import { Logger } from './core/utils/logger';
 import { ComponentRegistry } from './core/ecs/registry/component_registry';
 import { SystemRegistry } from './core/ecs/registry/system_registry';
 import { ClusterRegistry } from './core/ecs/registry/cluster_registry';
+import { EntityFactoryRegistry } from './core/ecs/registry/entity_factory_registry';
 
 // Импорт тестовых компонентов, систем и фабрик для проверки автоматической регистрации
 import './core/ecs/components/test/test_component';
@@ -20,7 +21,7 @@ interface SimDebugMethods {
   stats: () => void;
   time: () => void;
   listenTime: () => () => void;
-  getECSStats: () => ECSStats;
+  getECSStats: () => ECSDebugStats;
   checkRegistries: () => void;
   testScheduleManager: (duration?: number) => void;
   testEventSystems: () => void;
@@ -34,7 +35,7 @@ declare global {
       stats: () => void;
       time: () => void;
       listenTime: () => () => void;
-      getECSStats: () => ECSStats;
+      getECSStats: () => ECSDebugStats;
     };
   }
 }
@@ -69,25 +70,26 @@ async function startGame(): Promise<void> {
     // Используем TimeService из TickManager
     const timeService = core.tickManager.getTimeService();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).sim = {
-      stats: () =>
+      stats: (): void =>
         logger.info('ECS Stats:', core.ecsManager?.getStats() || { message: 'ECS disabled' }),
-      time: () => {
+      time: (): void => {
         const timeData = timeService.getTimeData();
         logger.info(`Date: ${timeData.date}, Time: ${timeData.timeOfDay}, Day ${timeData.day}`);
       },
-      listenTime: () => {
-        const handler = (data?: GameTimeUpdateData) => logger.debug('Time update:', data);
+      listenTime: (): (() => void) => {
+        const handler = (data?: GameTimeUpdateData): void => logger.debug('Time update:', data);
         core.eventBus!.on(Events.GameTimeUpdated, handler);
         logger.info('Listening to time updates... (check console)');
         return () => core.eventBus!.off(Events.GameTimeUpdated, handler);
       },
-      getECSStats: () => core.ecsManager?.getStats() || { message: 'ECS disabled in Phase 0' },
-      checkRegistries: () => {
+      getECSStats: (): unknown =>
+        core.ecsManager?.getStats() || { message: 'ECS disabled in Phase 0' },
+      checkRegistries: (): void => {
         const componentRegistry = ComponentRegistry.getInstance();
         const systemRegistry = SystemRegistry.getInstance();
         const clusterRegistry = ClusterRegistry.getInstance();
-        const { EntityFactoryRegistry } = require('./core/ecs/registry/entity_factory_registry');
         const entityFactoryRegistry = EntityFactoryRegistry.getInstance();
 
         logger.info('=== Component Registry ===');
@@ -119,12 +121,14 @@ async function startGame(): Promise<void> {
           if (stats.eventSystems && Object.keys(stats.eventSystems).length > 0) {
             logger.info('=== Event-Driven Systems ===');
             for (const [eventName, systems] of Object.entries(stats.eventSystems)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               logger.info(`  Event "${eventName}": ${(systems as any[]).length} systems`);
             }
           }
         }
 
         // Показываем фабрики сущностей
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const efRegistry = (core as any).ecsRegistries.entityFactories();
         if (efRegistry.size() > 0) {
           logger.info('=== Entity Factories ===');
@@ -134,21 +138,21 @@ async function startGame(): Promise<void> {
           }
         }
       },
-      testScheduleManager: (duration?: number) => {
+      testScheduleManager: (duration?: number): void => {
         if (core.ecsManager) {
           core.ecsManager.testScheduleManager(duration);
         } else {
           logger.warn('ECSManager not available');
         }
       },
-      testEventSystems: () => {
+      testEventSystems: (): void => {
         if (core.ecsManager) {
           core.ecsManager.testEventSystems();
         } else {
           logger.warn('ECSManager not available');
         }
       },
-      testEntityFactories: () => {
+      testEntityFactories: (): void => {
         if (core.ecsManager) {
           core.ecsManager.testEntityFactories();
         } else {

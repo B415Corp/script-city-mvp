@@ -9,7 +9,7 @@ export interface SystemMetadata {
   interval?: number; // Интервал выполнения (в тиках)
   eventTriggers?: string[]; // События-триггеры
   enabled?: boolean; // Включена по умолчанию
-  dependencies?: any; // Зависимости для создания
+  dependencies?: Record<string, unknown>; // Зависимости для создания
 }
 
 /**
@@ -112,7 +112,10 @@ export class SystemRegistry {
   getEventDrivenSystems(): RegisteredSystem[] {
     const result: RegisteredSystem[] = [];
     for (const registeredSystem of this.systems.values()) {
-      if (registeredSystem.metadata.eventTriggers && registeredSystem.metadata.eventTriggers.length > 0) {
+      if (
+        registeredSystem.metadata.eventTriggers &&
+        registeredSystem.metadata.eventTriggers.length > 0
+      ) {
         result.push(registeredSystem);
       }
     }

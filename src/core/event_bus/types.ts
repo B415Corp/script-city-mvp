@@ -17,6 +17,25 @@ import { ModuleStatePayload, ModuleErrorPayload } from '../modules/extends/types
 import { EntityId } from 'bitecs';
 
 // ============================================================================
+// LEGACY EVENT PAYLOAD TYPES
+// ============================================================================
+
+export interface TimeTickPayload {
+  tick: number;
+  time: number;
+}
+
+export interface TimeDayPayload {
+  day: number;
+}
+
+export interface CitizenHiredPayload {
+  entityId: number;
+  workplaceId: number;
+  salary: number;
+}
+
+// ============================================================================
 // EVENT PAYLOAD MAP (типобезопасный маппинг)
 // ============================================================================
 
@@ -49,7 +68,7 @@ export interface EventPayloadMap {
   // Tool events
   [Events.SelectTool]: SelectToolPayload;
   [Events.ToolActivated]: ToolActivatedPayload;
-  [Events.ResetToolToDefault]: null;
+  [Events.ResetToolToDefault]: undefined;
 
   // Module events
   [Events.ModuleEnabled]: ModuleStatePayload;
@@ -59,13 +78,20 @@ export interface EventPayloadMap {
   // System events
   [Events.CallSystem]: CallSystemPayload;
   [Events.SystemError]: { systemName: string; error: Error };
+
+  // Legacy time events for tests (using string literals for backward compatibility)
+  'time:tick': TimeTickPayload;
+  'time:day': TimeDayPayload;
+
+  // Citizen events
+  'citizen:hired': CitizenHiredPayload;
 }
 
 // ============================================================================
 // TYPE-SAFE EVENT BUS TYPES
 // ============================================================================
 
-export type EventCallback<T> = (payload: T) => void;
+export type EventCallback<T = unknown> = (payload?: T) => void;
 
 export interface Subscription {
   unsubscribe(): void;

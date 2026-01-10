@@ -64,6 +64,7 @@ describe('TickManager', () => {
       tickManager.update(1000, 200);
 
       expect(mockHandler).toHaveBeenCalledTimes(2);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockHandler.mock.calls.forEach((call: any[], index: number) => {
         const data = call[0] as LogicTickData;
         expect(data.delta).toBe(100);

@@ -79,12 +79,15 @@ export class TestLogger {
 }
 
 export class TestEventBus {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   events: Array<{ event: string; payload?: any }> = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, payload?: any): void {
     this.events.push({ event, payload });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   on(event: string, handler: (payload?: any) => void) {
     return { unsubscribe: () => {} };
   }
