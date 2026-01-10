@@ -8,37 +8,71 @@ import { Events } from '../event_bus/events';
  * TimeService - централизованный сервис для работы с игровым временем
  * Обеспечивает единый интерфейс для всех систем и компонентов
  *
- * Использование с eventBus:
- * ```typescript
- * // Для компонентов, которые получают время через события
- * const timeService = TimeService.createFromEventBus(eventBus);
+ * Новая версия: эмитит события напрямую через типобезопасный EventBus
  *
- * // Для прямого доступа к TimeController
- * const timeService = TimeService.fromTimeController(timeController);
+ * Использование:
+ * ```typescript
+ * // Для компонентов с прямым доступом к EventBus
+ * const timeService = new TimeService(eventBus);
  *
  * // Для тестирования
  * const timeService = TimeService.createTestInstance(9 * 60); // 9:00
  * ```
  */
 export class TimeService {
-  constructor(private dependencies: ITimeServiceDependencies) {}
+  private currentTick = 0;
+  private currentTime = 0;
+  private currentDay = 1;
+  private currentWeek = 1;
+
+  constructor(
+    private eventBus: EventBus,
+    private ticksPerMinute = 10,
+    initialTime = 8 * 60, // 8:00
+  ) {
+    this.currentTime = initialTime;
+  }
+
+  /**
+   * Эмитить обновление времени (основной метод для тиков)
+   */
+  tick(): void {
+    this.currentTick++;
+    this.currentTime += 1 / this.ticksPerMinute;
+
+    // Эмитим обновление игрового времени (аналогично TimeController)
+    const timeData = this.getTimeData();
+    this.eventBus.emit(Events.GameTimeUpdated, timeData);
+  }
 
   /**
    * Получить полные данные времени
    */
   getTimeData(): GameTimeUpdateData {
-    return this.dependencies.getTimeData();
+    const minutesOfDay = this.currentTime % 1440;
+    const day = Math.floor(this.currentTime / 1440) + 1;
+    const hours = Math.floor(minutesOfDay / 60);
+    const minutes = Math.floor(minutesOfDay % 60);
+
+    return {
+      totalMinutes: this.currentTime,
+      minutesOfDay,
+      timeOfDay: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
+      date: this.formatDate(day),
+      day,
+      year: 2000, // Упрощаем для базовой версии
+      month: 1,
+      dayOfMonth: day,
+      hour: hours,
+      minute: minutes,
+    };
   }
 
   /**
    * Установить время (для тестов)
    */
   setTime(minutes: number): void {
-    if (this.dependencies.setTime) {
-      this.dependencies.setTime(minutes);
-    } else {
-      throw new Error('TimeService: setTime not supported in this context');
-    }
+    this.currentTime = Math.max(0, Math.min(1440 * 365, minutes)); // Ограничиваем разумными пределами
   }
 
   /**
@@ -59,7 +93,7 @@ export class TimeService {
    * Получить номер дня
    */
   getDay(): number {
-    return this.getTimeData().day;
+    return Math.floor(this.currentTime / 1440) + 1;
   }
 
   /**
@@ -187,91 +221,52 @@ export class TimeService {
   }
 
   /**
-   * Создать TimeService из TimeController (для совместимости)
+   * Форматировать дату в DD.MM.YYYY
    */
-  static fromTimeController(timeController: TimeController): TimeService {
-    return new TimeService({
-      getTimeData: () => timeController.getTimeUpdateData(),
-      setTime: (minutes: number) => timeController.setGameTime(minutes),
-    });
+  private formatDate(day: number): string {
+    // Упрощенная версия для базовой реализации
+    const dayOfMonth = ((day - 1) % 31) + 1;
+    const month = 1; // Фиксируем январь для простоты
+    const year = 2000;
+
+    const dayStr = dayOfMonth.toString().padStart(2, '0');
+    const monthStr = month.toString().padStart(2, '0');
+    return `${dayStr}.${monthStr}.${year}`;
   }
 
   /**
-   * Создать TimeService, который работает с eventBus
-   * Автоматически подписывается на GameTimeUpdated события
+   * Геттеры для прямого доступа к внутреннему состоянию
    */
-  static createFromEventBus(eventBus: EventBus): TimeService {
-    let currentTimeData: GameTimeUpdateData | null = null;
+  getTick(): number {
+    return this.currentTick;
+  }
 
-    // Подписываемся на обновления времени
-    eventBus.on(Events.GameTimeUpdated, (data) => {
-      if (data) {
-        currentTimeData = data as GameTimeUpdateData;
-      }
-    });
+  getTime(): number {
+    return this.currentTime;
+  }
 
-    return new TimeService({
-      getTimeData: () => {
-        if (!currentTimeData) {
-          // Возвращаем данные по умолчанию, если время еще не было получено
-          return {
-            totalMinutes: 8 * 60, // 8:00
-            timeOfDay: '08:00',
-            date: '01.01.2000',
-            day: 1,
-            year: 2000,
-            month: 1,
-            dayOfMonth: 1,
-            hour: 8,
-            minute: 0,
-            minutesOfDay: 8 * 60,
-          };
-        }
-        return currentTimeData;
-      },
-      setTime: undefined, // EventBus версия не поддерживает установку времени
-    });
+  getWeek(): number {
+    return this.currentWeek;
   }
 
   /**
-   * Создать тестовый TimeService
+   * Создать тестовый TimeService (без EventBus)
    */
   static createTestInstance(initialTime = 8 * 60): TimeService {
-    let currentTime = initialTime;
+    // Создаем mock EventBus для тестов
+    const mockEventBus = {
+      emit: () => {}, // No-op для тестов
+      on: (): (() => void) => () => {},
+      off: (): void => {},
+      once: (): (() => void) => () => {},
+      clear: (): void => {},
+      getListenerCount: (): number => 0,
+      emitLegacy: (): void => {},
+      onLegacy: (): { unsubscribe: () => void } => ({ unsubscribe: (): void => {} }),
+      clearEvents: (): void => {},
+    } as unknown as EventBus;
 
-    return new TimeService({
-      getTimeData: () => {
-        const totalMinutes = currentTime;
-        const minutesOfDay = totalMinutes % (24 * 60);
-        const day = Math.floor(totalMinutes / (24 * 60)) + 1;
-        const hours = Math.floor(minutesOfDay / 60);
-        const minutes = Math.floor(minutesOfDay % 60);
-
-        // Простой расчет даты (для тестов)
-        const startYear = 2000;
-        const startMonth = 1;
-        const startDay = 1;
-        const totalDays = Math.floor(totalMinutes / (24 * 60));
-        const year = startYear;
-        const month = 1;
-        const dayOfMonth = startDay + totalDays;
-
-        return {
-          totalMinutes,
-          timeOfDay: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-          date: `${dayOfMonth.toString().padStart(2, '0')}.01.${year}`,
-          day,
-          year,
-          month,
-          dayOfMonth,
-          hour: hours,
-          minute: minutes,
-          minutesOfDay,
-        };
-      },
-      setTime: (minutes: number) => {
-        currentTime = minutes;
-      },
-    });
+    const service = new TimeService(mockEventBus, 10, initialTime);
+    return service;
   }
 }

@@ -69,7 +69,7 @@ export class SimulationDebug extends DebugComponent {
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus, ecsManager);
     // Создаем TimeService для получения данных времени
-    this.timeService = TimeService.createFromEventBus(eventBus);
+    this.timeService = new TimeService(eventBus);
   }
 
   private initDOM(): void {
@@ -432,7 +432,7 @@ export class SimulationDebug extends DebugComponent {
             work: Needs.work[eid],
             sleep: Needs.sleep[eid],
           },
-          currentActivity: Schedule.currentActivity[eid] || 'idle',
+          currentActivity: String(Schedule.currentActivity[eid] ?? 'idle'),
           position: {
             x: Position.x[eid],
             y: Position.y[eid],
@@ -465,36 +465,52 @@ export class SimulationDebug extends DebugComponent {
       // Получить жилые дома
       const residentialEntities = query(world, [Residential, Position, ID]);
       residentialEntities.forEach((eid: number) => {
-        buildings.push({
-          id: ID.value[eid],
-          type: 'Residential',
-          position: { x: Position.x[eid], y: Position.y[eid] },
-        });
+        try {
+          buildings.push({
+            id: ID.value[eid] || eid,
+            type: 'Residential',
+            position: { x: Position.x[eid] || 0, y: Position.y[eid] || 0 },
+          });
+        } catch (error) {
+          console.warn(`Error reading Residential entity ${eid}:`, error);
+        }
       });
 
       // Получить коммерческие здания
       const commercialEntities = query(world, [Commercial, Position, ID]);
       commercialEntities.forEach((eid: number) => {
-        buildings.push({
-          id: ID.value[eid],
-          type:
-            Commercial.type[eid] === 0 ? 'Shop' : Commercial.type[eid] === 1 ? 'Office' : 'Factory',
-          position: { x: Position.x[eid], y: Position.y[eid] },
-          capacity: Commercial.employees[eid]?.length || 0,
-          currentOccupancy: Commercial.customers[eid]?.length || 0,
-        });
+        try {
+          buildings.push({
+            id: ID.value[eid] || eid,
+            type:
+              Commercial.type[eid] === 0
+                ? 'Shop'
+                : Commercial.type[eid] === 1
+                  ? 'Office'
+                  : 'Factory',
+            position: { x: Position.x[eid] || 0, y: Position.y[eid] || 0 },
+            capacity: Commercial.employeeCount[eid] || 0,
+            currentOccupancy: Commercial.customerCount[eid] || 0,
+          });
+        } catch (error) {
+          console.warn(`Error reading Commercial entity ${eid}:`, error);
+        }
       });
 
       // Получить рабочие места
       const workplaceEntities = query(world, [Workplace, Position, ID]);
       workplaceEntities.forEach((eid: number) => {
-        buildings.push({
-          id: ID.value[eid],
-          type: 'Workplace',
-          position: { x: Position.x[eid], y: Position.y[eid] },
-          capacity: 1, // Одно рабочее место
-          currentOccupancy: Workplace.worker[eid] ? 1 : 0,
-        });
+        try {
+          buildings.push({
+            id: ID.value[eid] || eid,
+            type: 'Workplace',
+            position: { x: Position.x[eid] || 0, y: Position.y[eid] || 0 },
+            capacity: 1, // Одно рабочее место
+            currentOccupancy: Workplace.occupied[eid] || 0,
+          });
+        } catch (error) {
+          console.warn(`Error reading Workplace entity ${eid}:`, error);
+        }
       });
     } catch (error) {
       console.error('Error getting buildings data:', error);
@@ -632,5 +648,4 @@ export class SimulationDebug extends DebugComponent {
     if (this.economyList) this.economyList.innerHTML = errorDiv;
     if (this.scheduleList) this.scheduleList.innerHTML = errorDiv;
   }
-
 }

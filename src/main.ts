@@ -54,13 +54,13 @@ async function startGame(): Promise<void> {
 
   // Глобальные методы для отладки в браузерной консоли
   if (typeof window !== 'undefined' && core.eventBus && core.ecsManager && core.tickManager) {
-    // Создаем TimeService для отладки
-    const timeService = TimeService.createFromEventBus(core.eventBus);
+    // Используем TimeService из TickManager
+    const timeService = core.tickManager.getTimeService();
 
     window.sim = {
       stats: () => logger.info('ECS Stats:', core.ecsManager!.getStats()),
       time: () => {
-        const timeData = core.tickManager!.getTimeController().getTimeUpdateData();
+        const timeData = timeService.getTimeData();
         logger.info(`Date: ${timeData.date}, Time: ${timeData.timeOfDay}, Day ${timeData.day}`);
       },
       listenTime: () => {

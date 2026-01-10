@@ -1,28 +1,23 @@
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { TickController } from './controllers/tick_controller';
-import { TimeController } from './controllers/time_controller';
 import { TimeService } from './time_service';
 import { LogicTickData, SetSpeedPayload } from './types';
 
 /**
  * TickManager - оркестратор управления тиками и временем
- * Использует TickController для fixed timestep логики и TimeController для игрового времени
+ * Использует TickController для fixed timestep логики и новый TimeService для игрового времени
  */
 export class TickManager {
   private tickController: TickController;
-  private timeController: TimeController;
   private timeService: TimeService;
-  private eventBusTimeService: TimeService;
 
   constructor(
     private readonly eventBus: EventBus,
     initialTickRate = 10,
   ) {
     this.tickController = new TickController(initialTickRate);
-    this.timeController = new TimeController(eventBus);
-    this.timeService = TimeService.fromTimeController(this.timeController);
-    this.eventBusTimeService = TimeService.createFromEventBus(eventBus);
+    this.timeService = new TimeService(eventBus, initialTickRate);
 
     // Подписываемся на события управления
     this.eventBus.on(Events.GamePauseToggle, () => this.tickController.togglePause());
@@ -44,11 +39,8 @@ export class TickManager {
 
     // Выполняем тики
     for (let i = 0; i < ticksToExecute; i++) {
-      // Обновляем игровое время
-      this.timeController.tick();
-
-      // Эмитим обновление времени
-      this.timeController.emitTimeUpdate();
+      // TimeService теперь эмитит события напрямую (time:tick, time:day, time:week)
+      this.timeService.tick();
 
       // Эмитим LogicTick только с данными тика
       this.eventBus.emit(Events.LogicTick, this.createLogicTickData(ticksToExecute));
@@ -64,8 +56,6 @@ export class TickManager {
       ticksExecuted,
     };
   }
-
-  // Делегируем методы контроллерам
 
   // Управление паузой
   public pause(): void {
@@ -85,20 +75,8 @@ export class TickManager {
     return this.tickController;
   }
 
-  public getTimeController(): TimeController {
-    return this.timeController;
-  }
-
   public getTimeService(): TimeService {
     return this.timeService;
-  }
-
-  /**
-   * Получить TimeService, который работает с eventBus
-   * Используйте этот метод для компонентов, которые хотят получать время через события
-   */
-  public getEventBusTimeService(): TimeService {
-    return this.eventBusTimeService;
   }
 
   // Геттеры для обратной совместимости

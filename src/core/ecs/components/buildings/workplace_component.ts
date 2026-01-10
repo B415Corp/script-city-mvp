@@ -1,22 +1,23 @@
-import { EntityId } from 'bitecs';
-import { EducationLevel } from '../population/person_component';
+import { defineComponent } from '@/core/ecs/core/component_builder';
 
 /**
  * Рабочее место
  * Определяет доступные вакансии и условия работы
  */
-export const Workplace = {
-  /** Тип работы */
-  jobType: [] as string[],
+export const Workplace = defineComponent('Workplace', {
+  /** Максимальная вместимость (количество работников) */
+  capacity: { type: 'ui16', default: 10, min: 1 },
+  /** Текущие работники (количество) */
+  occupied: { type: 'ui16', default: 0, min: 0 },
+  /** ID здания */
+  buildingId: { type: 'ui32', default: 0 },
   /** Зарплата за рабочий день */
-  salary: [] as number[],
-  /** Текущий работник (может быть undefined) */
-  worker: [] as (EntityId | undefined)[],
-  /** Здание, где находится рабочее место */
-  building: [] as EntityId[],
+  salary: { type: 'f32', default: 50, min: 0 },
+  /** Тип работы (индекс) */
+  type: { type: 'ui8', default: 0 },
   /** Минимальный уровень образования для работы */
-  minEducationLevel: [] as number[],
-} as const;
+  minEducationLevel: { type: 'ui8', default: 0, min: 0, max: 5 },
+});
 
 /**
  * Типы работ
@@ -32,9 +33,10 @@ export enum JobType {
  * Тип для данных рабочего места
  */
 export type WorkplaceData = {
-  jobType: string;
+  capacity: number;
+  occupied: number;
+  buildingId: number;
   salary: number;
-  worker?: EntityId;
-  building: EntityId;
-  minEducationLevel: EducationLevel;
+  type: number;
+  minEducationLevel: number;
 };

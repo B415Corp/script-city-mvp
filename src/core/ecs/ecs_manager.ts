@@ -7,22 +7,20 @@ import { TickManager } from '../tick/tick_manager';
 import { Logger } from '../utils/logger';
 
 import { EntityFactory } from './entities';
-// Отключенные системы в упрощенной симуляции:
-// import { PopulationSystem, NeedsSystem, DailyRoutineSystem, JobSearchSystem, FiringSystem, createPriceFluctuationSystem, PriceFluctuationSystem, MinimumExpensesUpdateSystem, createWeeklyExpensesSystem, WeeklyExpensesSystem } from './systems/clusters';
 import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
 import {
-  WorkSystem,
-  ScheduleManagerSystem,
-  MovementSystem,
+  createWorkSystem,
+  createMovementSystem,
+  createHappinessSystem,
 } from './systems/clusters/schedule_activity_systems';
-import { System, SystemCluster } from './systems/types';
+import { SystemCluster } from './systems/types';
 import { LogicTickData } from '../tick/types';
-import { Person, Citizen, Needs, Schedule, Shop, Factory, ID, Position, Residential, Workplace } from './components';
-// import { TestSystem } from './systems/clusters/test_system'; // Отключена в упрощенной симуляции
+import { Person } from './components/population';
+import { Residential, Workplace } from './components/buildings';
 
-/**
- * Реестр компонентов для запросов по именам
- */
+// Временно отключен COMPONENT_REGISTRY - новые компоненты имеют другой формат
+// TODO: Адаптировать для новых компонентов с TypedArrays
+/*
 const COMPONENT_REGISTRY: Record<
   string,
   Record<string, unknown[]> | Record<string, Record<string, unknown>[]> // Компоненты bitECS
@@ -37,29 +35,12 @@ const COMPONENT_REGISTRY: Record<
   Residential,
   Workplace,
 };
+*/
 
-// Регистр систем
-const systemRegistry: Record<string, System> = {
-  // Отключенные системы в упрощенной симуляции
-  // Population: PopulationSystem,
-  // Needs: NeedsSystem,
-  // DailyRoutine: DailyRoutineSystem,
-  // PriceFluctuation: PriceFluctuationSystem,
-  // MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
-  // WeeklyExpenses: WeeklyExpensesSystem,
-  // JobSearch: JobSearchSystem,
-  // Firing: FiringSystem,
-  // Test: TestSystem,
-  // Только активные системы в упрощенной симуляции
-  Work: WorkSystem,
-  ScheduleManager: ScheduleManagerSystem,
-  Movement: MovementSystem,
-} as const;
-
-// Регистр кластеров
+// ✅ Регистр кластеров для нового ScheduleManager
 const clustersRegistry: Record<string, SystemCluster> = {
   population: {
-    systemNames: ['ScheduleManager', 'Movement', 'Work'],
+    systemNames: ['Work', 'Movement', 'Happiness'],
     enabled: true,
     interval: undefined, // Каждый тик
   },
@@ -75,39 +56,68 @@ const clustersRegistry: Record<string, SystemCluster> = {
   },
 };
 
-export type SystemName = keyof typeof systemRegistry;
 export type systemsClusters = Record<string, SystemCluster>;
+
+// ✅ Новый ScheduleManager согласно плану рефакторинга BitECS 0.4.0
+export type SystemFunction = (world: World, delta?: number) => void;
+
+export class ScheduleManager {
+  private systems: SystemFunction[] = [];
+
+  constructor(
+    private world: World,
+    private eventBus: EventBus,
+  ) {}
+
+  registerSystem(system: SystemFunction): void {
+    this.systems.push(system);
+
+    if (import.meta.env.DEV) {
+      console.log('[ScheduleManager] Registered system');
+    }
+  }
+
+  update(delta: number): void {
+    for (const system of this.systems) {
+      try {
+        system(this.world, delta);
+      } catch (error) {
+        console.error('[ScheduleManager] Error in system:', error);
+
+        this.eventBus.emit(Events.SystemError, {
+          systemName: system.name || 'unknown',
+          error: error as Error,
+        });
+      }
+    }
+  }
+
+  getSystems(): readonly SystemFunction[] {
+    return this.systems;
+  }
+}
 
 export class ECSManager {
   private world: World;
-  private entityFactory: EntityFactory; // Фабрика сущностей для создания новых сущностей
-  private systems: Record<string, System> = {}; // Все системы по именам
-  private queries: Map<string, ReturnType<typeof query>> = new Map(); // Кэш query объектов
-  private systemsClusters: systemsClusters = clustersRegistry; // Регистр кластеров
-  private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
+  private entityFactory: EntityFactory;
+  private scheduleManager: ScheduleManager;
+  private systemsClusters: systemsClusters = clustersRegistry;
+  private clusterTimers: Map<string, number> = new Map();
   private timeService: TimeService;
   private logger: Logger;
 
   constructor(
     private eventBus: EventBus,
     private tickManager: TickManager,
-    private systemDependencies?: import('./systems/types').ISystemDependencies,
   ) {
     this.logger = Logger.create('ECSManager');
     this.logger.info('ECSManager initialized');
     this.world = createWorld();
     this.entityFactory = new EntityFactory(this.world);
+    this.scheduleManager = new ScheduleManager(this.world, this.eventBus);
 
-    // Инициализируем TimeService для работы с eventBus
-    this.timeService = tickManager.getEventBusTimeService();
-
-    // Создаем систему цикла дня и ночи
-    // Используем eventBus версию TimeService для синхронизации с событиями
-    const dayNightSystem = createDayNightCycleSystem(eventBus, this.timeService);
-    this.registerSystem('DayNightCycle', dayNightSystem);
-
-    // Инициализируем query объекты для часто используемых комбинаций компонентов
-    this.initializeQueries();
+    // Инициализируем TimeService
+    this.timeService = tickManager.getTimeService();
 
     // Регистрируем базовые системы
     this.registerBaseSystems();
@@ -120,69 +130,23 @@ export class ECSManager {
       const tickData = payload as LogicTickData;
       this.updateSystems(tickData);
     });
-
-    // TimeService предоставляет актуальные данные времени
-
-    // Подписываемся на CallSystem для вызова систем по событиям
-    this.eventBus.on(Events.CallSystem, (payload) => {
-      const callData = payload as CallSystemPayload;
-      this.handleCallSystem(callData);
-    });
-  }
-
-  /**
-   * Создает ключ для кэширования query на основе массива имен компонентов
-   */
-  private getQueryKey(componentNames: readonly string[]): string {
-    return [...componentNames].sort().join(',');
-  }
-
-  /**
-   * Инициализирует query объекты для часто используемых комбинаций компонентов
-   */
-  private initializeQueries(): void {
-    // Создаем предварительные query для наиболее часто используемых комбинаций компонентов
-    // Это улучшает производительность, так как query создаются один раз при инициализации
-
-    // Query для жителей города (Person + Citizen + Needs) - самая частая комбинация
-    this.queries.set('citizens', query(this.world, [Person, Citizen, Needs]));
-
-    // Query для всех людей
-    this.queries.set('persons', query(this.world, [Person]));
-
-    // Query для магазинов
-    this.queries.set('shops', query(this.world, [Shop]));
-
-    // Query для фабрик
-    this.queries.set('factories', query(this.world, [Factory]));
-
-    this.logger.info(`Query system initialized with ${this.queries.size} pre-built queries`);
   }
 
   /**
    * Регистрирует базовые системы
    */
   private registerBaseSystems(): void {
-    // Создаем системы с dependency injection
-    const systems = this.createSystemsWithDependencies();
+    // ✅ Создаем системы согласно плану рефакторинга BitECS 0.4.0
+    const workSystem = createWorkSystem(this.timeService);
+    const movementSystem = createMovementSystem();
+    const happinessSystem = createHappinessSystem(this.timeService);
 
-    for (const [systemName, system] of Object.entries(systems)) {
-      this.registerSystem(systemName, system);
-    }
+    // Регистрируем системы в ScheduleManager
+    this.scheduleManager.registerSystem(workSystem);
+    this.scheduleManager.registerSystem(movementSystem);
+    this.scheduleManager.registerSystem(happinessSystem);
 
-    this.logger.info(`Registered ${Object.keys(this.systems).length} base systems`);
-  }
-
-  /**
-   * Создает системы с dependency injection
-   */
-  private createSystemsWithDependencies(): Record<string, System> {
-    return {
-      // Только активные системы в упрощенной симуляции
-      Work: WorkSystem,
-      ScheduleManager: ScheduleManagerSystem,
-      Movement: MovementSystem,
-    };
+    this.logger.info('Registered base systems in ScheduleManager');
   }
 
   /**
@@ -190,15 +154,6 @@ export class ECSManager {
    */
   private initializeClusters(): void {
     for (const [clusterName, cluster] of Object.entries(this.systemsClusters)) {
-      // Проверяем, что все системы кластера зарегистрированы
-      for (const systemName of cluster.systemNames) {
-        if (!this.systems[systemName]) {
-          throw new Error(
-            `System "${systemName}" not found in cluster "${clusterName}", systems: ${Object.keys(this.systems)}`,
-          );
-        }
-      }
-
       // Инициализируем таймер для кластера
       this.clusterTimers.set(clusterName, 0);
       this.logger.info(
@@ -207,80 +162,6 @@ export class ECSManager {
       );
     }
     this.logger.info(`Total clusters initialized: ${Object.keys(this.systemsClusters).length}`);
-  }
-
-  /**
-   * Обрабатывает событие CallSystem
-   */
-  private handleCallSystem(callData: CallSystemPayload): void {
-    try {
-      if (callData.entityId !== undefined) {
-        // Вызвать систему для конкретной сущности
-        this.callSystemForEntity(callData.systemName, callData.entityId, callData.extraData);
-      } else {
-        // Вызвать систему для всех подходящих сущностей
-        this.callSystem(callData.systemName, undefined, callData.extraData);
-      }
-    } catch (error) {
-      console.error(`Error calling system "${callData.systemName}":`, error);
-    }
-  }
-
-  /**
-   * Регистрирует систему по имени
-   */
-  registerSystem(name: string, system: System): void {
-    if (this.systems[name]) {
-      console.warn(`System "${name}" is already registered, overwriting`);
-    }
-
-    this.validateSystem(system);
-    this.systems[name] = system;
-    this.logger.info(`Registered system: ${name}`);
-  }
-
-  /**
-   * Вызывает систему по имени
-   */
-  callSystem(systemName: string, entities?: EntityId[], extraData?: unknown): void {
-    const system = this.systems[systemName];
-    if (!system) {
-      throw new Error(`System "${systemName}" not found`);
-    }
-
-    const targetEntities = entities || this.queryEntities(system.components);
-    system.update(this.world, targetEntities, 0, extraData);
-  }
-
-  /**
-   * Вызывает систему по имени для конкретных сущностей
-   */
-  callSystemForEntities(systemName: string, entityIds: EntityId[], extraData?: unknown): void {
-    this.callSystem(systemName, entityIds, extraData);
-  }
-
-  /**
-   * Вызывает систему по имени для одной сущности
-   */
-  callSystemForEntity(systemName: string, entityId: EntityId, extraData?: unknown): void {
-    this.callSystemForEntities(systemName, [entityId], extraData);
-  }
-
-  /**
-   * Валидирует систему
-   */
-  private validateSystem(system: System): void {
-    if (!system.name || typeof system.name !== 'string') {
-      throw new Error('System must have a valid name');
-    }
-
-    if (!Array.isArray(system.components) || system.components.length === 0) {
-      throw new Error(`System "${system.name}" must have at least one component`);
-    }
-
-    if (typeof system.update !== 'function') {
-      throw new Error(`System "${system.name}" must have an update function`);
-    }
   }
 
   /**
@@ -301,11 +182,8 @@ export class ECSManager {
       const shouldUpdate = !cluster.interval || newTimer >= cluster.interval;
 
       if (shouldUpdate) {
-        // Обновляем все системы в кластере
-        // Используем TimeService для синхронизации с событиями времени
-        for (const systemName of cluster.systemNames) {
-          this.callSystem(systemName, undefined, this.timeService);
-        }
+        // ✅ Используем ScheduleManager для обновления всех систем кластера
+        this.scheduleManager.update(deltaTime);
 
         // Сбрасываем таймер
         this.clusterTimers.set(clusterName, 0);
@@ -314,44 +192,6 @@ export class ECSManager {
         this.clusterTimers.set(clusterName, newTimer);
       }
     }
-  }
-
-  /**
-   * Запрашивает сущности по компонентам
-   * Возвращает сущности, которые имеют все указанные компоненты
-   */
-  private queryEntities(componentNames: readonly string[]): EntityId[] {
-    if (componentNames.length === 0) {
-      return [];
-    }
-
-    // Сначала проверяем, есть ли предварительный query для этой комбинации
-    const queryKey = this.getQueryKey(componentNames);
-    const cachedQuery = this.queries.get(queryKey);
-
-    if (cachedQuery) {
-      // Используем предварительный query
-      return Array.from(cachedQuery);
-    }
-
-    // Если предварительного query нет, создаем его на лету
-    const components = componentNames
-      .map((name) => {
-        const component = COMPONENT_REGISTRY[name];
-        if (!component) {
-          console.warn(`Component "${name}" not found in registry`);
-          return null;
-        }
-        return component;
-      })
-      .filter((comp) => comp !== null);
-
-    if (components.length === 0) {
-      return [];
-    }
-
-    // Используем bitECS 0.4.0 query API: query(world, [components])
-    return Array.from(query(this.world, components));
   }
 
   /**
@@ -396,20 +236,6 @@ export class ECSManager {
   }
 
   /**
-   * Получить список всех зарегистрированных систем
-   */
-  getRegisteredSystems(): string[] {
-    return Object.keys(this.systems);
-  }
-
-  /**
-   * Проверить, зарегистрирована ли система
-   */
-  isSystemRegistered(systemName: string): boolean {
-    return systemName in this.systems;
-  }
-
-  /**
    * Проверить, включен ли кластер
    */
   isClusterEnabled(clusterName: string): boolean {
@@ -422,9 +248,9 @@ export class ECSManager {
    */
   getEntityCount(): number {
     // В BiteCS нет прямого способа получить общее количество сущностей
-    // Используем query с любым компонентом для подсчета
+    // Используем query с компонентом Person для подсчета (Person есть у всех жителей)
     try {
-      const entities = query(this.world, [ID]); // ID есть у всех сущностей
+      const entities = query(this.world, [Person]);
       return entities.length;
     } catch {
       return 0;
@@ -437,28 +263,26 @@ export class ECSManager {
   getEntityCountsByType(): Record<string, number> {
     const counts: Record<string, number> = {};
 
-    // Подсчет сущностей с компонентами Person
+    // ✅ Используем query для подсчета сущностей
     try {
-      const personQuery = this.queries.get('persons') || query(this.world, [Person]);
-      counts['Person'] = personQuery.length;
+      const personEntities = query(this.world, [Person]);
+      counts['Person'] = personEntities.length;
     } catch {
       counts['Person'] = 0;
     }
 
-    // Подсчет сущностей с компонентами Shop
     try {
-      const shopQuery = this.queries.get('shops') || query(this.world, [Shop]);
-      counts['Shop'] = shopQuery.length;
+      const residentialEntities = query(this.world, [Residential]);
+      counts['Residential'] = residentialEntities.length;
     } catch {
-      counts['Shop'] = 0;
+      counts['Residential'] = 0;
     }
 
-    // Подсчет сущностей с компонентами Factory
     try {
-      const factoryQuery = this.queries.get('factories') || query(this.world, [Factory]);
-      counts['Factory'] = factoryQuery.length;
+      const workplaceEntities = query(this.world, [Workplace]);
+      counts['Workplace'] = workplaceEntities.length;
     } catch {
-      counts['Factory'] = 0;
+      counts['Workplace'] = 0;
     }
 
     return counts;
@@ -514,9 +338,9 @@ export class ECSManager {
     }
 
     return {
-      totalSystemsCount: Object.keys(this.systems).length,
+      totalSystemsCount: this.scheduleManager.getSystems().length,
       clustersCount: Object.keys(clusters).length,
-      systems: Object.keys(this.systems), // Список всех зарегистрированных систем
+      systems: this.scheduleManager.getSystems().map((s) => s.name || 'unknown'), // Список всех зарегистрированных систем
       totalEntities: this.getEntityCount(), // Общее количество сущностей
       entityCounts: this.getEntityCountsByType(), // Количество сущностей по типам
       clusters,

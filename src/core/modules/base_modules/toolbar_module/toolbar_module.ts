@@ -9,6 +9,7 @@ import { Logger } from '@/core/utils/logger';
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  private logger!: Logger;
 
   // UI элементы
   private container!: Phaser.GameObjects.Container;
@@ -88,7 +89,7 @@ export class ToolbarModule extends BaseModule {
       text: 'Пауза',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit(Events.GamePauseToggle);
+        this.eventBus.emit(Events.GamePauseToggle, undefined);
         switchTimeButton('pause');
       },
     });

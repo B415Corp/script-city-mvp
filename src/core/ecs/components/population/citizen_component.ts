@@ -1,4 +1,4 @@
-import { EntityId } from 'bitecs';
+import { defineComponent } from '@/core/ecs/core/component_builder';
 
 /**
  * Тип собственности жилья
@@ -12,49 +12,65 @@ export enum HousingType {
  * Гражданин города
  * Содержит социальные и экономические характеристики
  */
-export const Citizen = {
+export const Citizen = defineComponent('Citizen', {
   /** Уровень счастья (0-100) */
-  happiness: [] as number[],
+  happiness: { type: 'ui8', default: 70, min: 0, max: 100 },
   /** Дом, где живет гражданин */
-  home: [] as EntityId[],
-  /** Место работы (может быть undefined) */
-  workplace: [] as (EntityId | undefined)[],
+  home: { type: 'ui32', default: 0 },
+  /** Место работы */
+  workplace: { type: 'ui32', default: 0 },
   /** Количество денег */
-  money: [] as number[],
+  money: { type: 'f32', default: 100, min: 0 },
   /** Уровень энергии/усталости (0-100) */
-  energy: [] as number[],
+  energy: { type: 'ui8', default: 100, min: 0, max: 100 },
   /** Тип собственности жилья */
-  housingType: [] as number[],
+  housingType: { type: 'ui8', default: 0 },
   /** Минимальные месячные расходы (аренда + еда) */
-  minimumExpenses: [] as number[],
+  minimumExpenses: { type: 'f32', default: 50, min: 0 },
   /** Зарплата за последний месяц */
-  salary: [] as number[],
-  /** Ищет ли работу в данный момент */
-  isLookingForJob: [] as boolean[],
-  /** Количество попыток поиска работы с момента последней работы */
-  jobSearchAttempts: [] as number[],
-  /** День последней попытки поиска работы */
-  lastJobSearchDay: [] as number[],
-  /** День последнего списания месячных расходов */
-  lastExpenseDay: [] as number[],
+  salary: { type: 'f32', default: 50, min: 0 },
   /** День последнего получения зарплаты */
-  lastWorkDay: [] as number[],
-} as const;
+  lastWorkDay: { type: 'ui32', default: 0 },
+  /** Ищет ли работу в данный момент (boolean as 0/1) */
+  isLookingForJob: { type: 'ui8', default: 0 },
+  /** Количество попыток поиска работы с момента последней работы */
+  jobSearchAttempts: { type: 'ui16', default: 0, min: 0 },
+  /** День последней попытки поиска работы */
+  lastJobSearchDay: { type: 'ui32', default: 0 },
+  /** День последнего списания месячных расходов */
+  lastExpenseDay: { type: 'ui32', default: 0 },
+  /** Живет ли бездомным (boolean as 0/1) */
+  isHomeless: { type: 'ui8', default: 1 },
+  /** Возраст гражданина */
+  age: { type: 'ui8', default: 25, min: 0, max: 120 },
+  /** Уровень образования (1-5) */
+  education: { type: 'ui8', default: 0, min: 0, max: 5 },
+  /** Опыт работы */
+  experience: { type: 'ui16', default: 0, min: 0 },
+  /** Навыки (bitfield) */
+  skills: { type: 'ui32', default: 0 },
+});
 
 /**
  * Тип для данных гражданина
  */
 export type CitizenData = {
   happiness: number;
-  home: EntityId;
-  workplace?: EntityId;
+  home: number;
+  workplace: number;
   money: number;
   energy: number;
-  housingType: HousingType;
+  housingType: number;
   minimumExpenses: number;
   salary: number;
-  isLookingForJob: boolean;
+  lastWorkDay: number;
+  isLookingForJob: number;
   jobSearchAttempts: number;
   lastJobSearchDay: number;
   lastExpenseDay: number;
+  isHomeless: number;
+  age: number;
+  education: number;
+  experience: number;
+  skills: number;
 };

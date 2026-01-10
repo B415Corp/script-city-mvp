@@ -1,17 +1,19 @@
+import { defineComponent } from '@/core/ecs/core/component_builder';
+
 /**
  * Базовые данные человека
  * Содержит фундаментальную информацию о жителе
  */
-export const Person = {
+export const Person = defineComponent('Person', {
   /** Возраст в годах */
-  age: [] as number[],
+  age: { type: 'ui8', default: 25, min: 0, max: 120 },
   /** Пол: 0 = мужской, 1 = женский */
-  gender: [] as number[],
-  /** Имя человека */
-  name: [] as string[],
-  /** Уровень образования (1-5: Без образования, Начальное, Среднее, Колледж, Высшее) */
-  education: [] as number[],
-} as const;
+  gender: { type: 'ui8', default: 0 },
+  /** Имя человека (индекс в массиве имен) */
+  firstName: { type: 'ui16', default: 0 },
+  /** Фамилия человека (индекс в массиве фамилий) */
+  lastName: { type: 'ui16', default: 0 },
+});
 
 /**
  * Пол человека
@@ -38,6 +40,6 @@ export enum EducationLevel {
 export type PersonData = {
   age: number;
   gender: Gender;
-  name: string;
-  education: EducationLevel;
+  firstName: number;
+  lastName: number;
 };

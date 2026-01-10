@@ -1,27 +1,38 @@
+import { defineComponent } from '@/core/ecs/core/component_builder';
+
 /**
  * Компоненты для разных типов зданий
- * Используются системами расписания для определения типа здания
  */
 
 /**
  * Компонент магазина
  */
-export const Shop = {
-  type: [] as string[], // Тип магазина ('grocery', 'clothing', etc.)
-  size: [] as string[], // Размер ('small', 'medium', 'large')
-  demand: [] as number[], // Текущий спрос (0-100)
-  stock: [] as number[], // Запасы (0-100)
-} as const;
+export const Shop = defineComponent('Shop', {
+  /** Тип магазина (индекс) */
+  type: { type: 'ui8', default: 0 },
+  /** Размер (индекс) */
+  size: { type: 'ui8', default: 0 },
+  /** Текущий спрос (0-100) */
+  demand: { type: 'ui8', default: 50, min: 0, max: 100 },
+  /** Запасы (0-100) */
+  stock: { type: 'ui8', default: 100, min: 0, max: 100 },
+  /** Цена товаров */
+  price: { type: 'f32', default: 10, min: 0 },
+});
 
 /**
  * Компонент фабрики (работы)
  */
-export const Factory = {
-  type: [] as string[], // Тип производства
-  capacity: [] as number[], // Производственная мощность
-  efficiency: [] as number[], // Эффективность (0-100)
-  workers: [] as number[], // Количество рабочих
-} as const;
+export const Factory = defineComponent('Factory', {
+  /** Тип производства (индекс) */
+  type: { type: 'ui8', default: 0 },
+  /** Производственная мощность */
+  capacity: { type: 'ui16', default: 100, min: 0 },
+  /** Эффективность (0-100) */
+  efficiency: { type: 'ui8', default: 80, min: 0, max: 100 },
+  /** Количество рабочих */
+  workers: { type: 'ui16', default: 0, min: 0 },
+});
 
 /**
  * Типы зданий

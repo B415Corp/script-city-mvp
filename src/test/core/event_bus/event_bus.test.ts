@@ -59,7 +59,7 @@ describe('EventBus', () => {
       expect(goodHandler).toHaveBeenCalledTimes(1);
       expect(consoleSpy).toHaveBeenCalledWith(
         'Ошибка при публикации события "GameStarted":',
-        expect.any(Error)
+        expect.any(Error),
       );
 
       consoleSpy.mockRestore();

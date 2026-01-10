@@ -34,4 +34,5 @@ export enum Events {
 
   // ECS системы
   CallSystem = 'CallSystem',
+  SystemError = 'SystemError',
 }

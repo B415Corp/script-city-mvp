@@ -16,51 +16,78 @@ import {
 import { ModuleStatePayload, ModuleErrorPayload } from '../modules/extends/types';
 import { EntityId } from 'bitecs';
 
-// Payload для вызова систем
-export interface CallSystemPayload {
-  systemName: string;
-  entityId?: EntityId;
-  extraData?: unknown;
+// ============================================================================
+// EVENT PAYLOAD MAP (типобезопасный маппинг)
+// ============================================================================
+
+export interface EventPayloadMap {
+  // Time events
+  [Events.LogicTick]: LogicTickData;
+  [Events.GameTimeUpdated]: GameTimeUpdateData;
+  [Events.TickStarted]: TickStartedPayload;
+  [Events.TickEnded]: undefined;
+  [Events.SetGameSpeed]: SetSpeedPayload;
+
+  // Game state events
+  [Events.GameStarted]: undefined;
+  [Events.GamePaused]: undefined;
+  [Events.GameStopped]: undefined;
+  [Events.GamePauseToggle]: undefined;
+
+  // Map events
+  [Events.MapCentered]: MapCenteredPayload;
+  [Events.SceneReady]: undefined;
+
+  // UI/Map interaction events
+  [Events.TileHovered]: TileHoveredPayload;
+  [Events.TileUnhovered]: TileClickedPayload;
+  [Events.TileClicked]: TileClickedPayload;
+  [Events.TileClickedUp]: TileClickedPayload;
+  [Events.TilesSelected]: TilesSelectedPayload;
+  [Events.CameraZoomed]: CameraZoomedPayload;
+
+  // Tool events
+  [Events.SelectTool]: SelectToolPayload;
+  [Events.ToolActivated]: ToolActivatedPayload;
+  [Events.ResetToolToDefault]: null;
+
+  // Module events
+  [Events.ModuleEnabled]: ModuleStatePayload;
+  [Events.ModuleDisabled]: ModuleStatePayload;
+  [Events.ModuleError]: ModuleErrorPayload;
+
+  // System events
+  [Events.CallSystem]: CallSystemPayload;
+  [Events.SystemError]: { systemName: string; error: Error };
 }
+
+// ============================================================================
+// TYPE-SAFE EVENT BUS TYPES
+// ============================================================================
+
+export type EventCallback<T> = (payload: T) => void;
 
 export interface Subscription {
   unsubscribe(): void;
 }
 
 export interface HandlerInfo {
-  handler: EventHandler;
+  handler: EventCallback<unknown>;
   once: boolean;
 }
 
 export type EventHandler<T = unknown> = (payload?: T) => void;
 
-// Маппинг событий к их payload типам
-export interface EventPayloadMap {
-  [Events.GameStarted]: undefined;
-  [Events.GamePaused]: undefined;
-  [Events.GameStopped]: undefined;
-  [Events.TickStarted]: TickStartedPayload;
-  [Events.TickEnded]: undefined;
-  [Events.MapCentered]: MapCenteredPayload;
-  [Events.SceneReady]: undefined;
-  [Events.LogicTick]: LogicTickData;
-  [Events.GamePauseToggle]: undefined;
-  [Events.SetGameSpeed]: SetSpeedPayload;
-  [Events.GameTimeUpdated]: GameTimeUpdateData;
-  [Events.TileUnhovered]: TileClickedPayload;
-  [Events.TileHovered]: TileHoveredPayload;
-  [Events.CameraZoomed]: CameraZoomedPayload;
-  [Events.TileClicked]: TileClickedPayload;
-  [Events.TileClickedUp]: TileClickedPayload;
-  [Events.TilesSelected]: TilesSelectedPayload;
-  [Events.SelectTool]: SelectToolPayload;
-  [Events.ToolActivated]: ToolActivatedPayload;
-  [Events.ResetToolToDefault]: null;
-  [Events.ModuleEnabled]: ModuleStatePayload;
-  [Events.ModuleDisabled]: ModuleStatePayload;
-  [Events.ModuleError]: ModuleErrorPayload;
-  [Events.CallSystem]: CallSystemPayload;
-}
-
 // Вспомогательный тип для получения payload типа по событию
 export type EventPayload<T extends Events> = EventPayloadMap[T];
+
+// ============================================================================
+// LEGACY COMPATIBILITY
+// ============================================================================
+
+// Payload для вызова систем
+export interface CallSystemPayload {
+  systemName: string;
+  entityId?: EntityId;
+  extraData?: unknown;
+}

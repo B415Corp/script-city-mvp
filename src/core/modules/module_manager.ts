@@ -1,5 +1,6 @@
 import { EventBus } from '../event_bus/event_bus';
 import { ECSManager } from '../ecs/ecs_manager';
+import { TickManager } from '../tick/tick_manager';
 import KekModule from './custom_modules/kek_module';
 import MapModule from './base_modules/map_module/map_module';
 import ToolbarModule from './base_modules/toolbar_module/toolbar_module';
@@ -28,6 +29,7 @@ export class ModuleManager {
   private scene!: Phaser.Scene;
   private eventBus!: EventBus;
   private ecsManager!: ECSManager;
+  private tickManager!: TickManager;
 
   // api модулей
   private baseModuleApi: Map<string, BaseModule> = new Map();
@@ -37,10 +39,16 @@ export class ModuleManager {
   private baseModules = baseModuleRegistry;
   private customModules = customModuleRegistry;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+  constructor(
+    scene: Phaser.Scene,
+    eventBus: EventBus,
+    ecsManager: ECSManager,
+    tickManager: TickManager,
+  ) {
     this.scene = scene;
     this.eventBus = eventBus;
     this.ecsManager = ecsManager;
+    this.tickManager = tickManager;
   }
 
   public init(): void {
@@ -51,14 +59,15 @@ export class ModuleManager {
   // инициализация базовых модулей в порядке очереди
   private initBaseModules(): void {
     Object.entries(this.baseModules).forEach(([name, ModuleClass]) => {
-      // DebugModule получает ECSManager для доступа к статистике entities
+      // DebugModule получает ECSManager и TickManager для доступа к статистике
       let module: BaseModule;
       if (name === 'DebugModule') {
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
           ecsManager: ECSManager,
-        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager);
+          tickManager: TickManager,
+        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager, this.tickManager);
       } else {
         module = new (ModuleClass as new (scene: Phaser.Scene, eventBus: EventBus) => BaseModule)(
           this.scene,

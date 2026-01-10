@@ -1,14 +1,17 @@
+import { defineComponent } from '@/core/ecs/core/component_builder';
+
 /**
  * Позиция сущности в мире
  * Используется для всех движущихся объектов и зданий
- * В bitECS 0.4 компоненты - это обычные объекты с массивами
  */
-export const Position = {
+export const Position = defineComponent('Position', {
   /** Координата X */
-  x: [] as number[],
+  x: { type: 'f32', default: 0 },
   /** Координата Y */
-  y: [] as number[],
-} as const;
+  y: { type: 'f32', default: 0 },
+  /** Координата Z (для будущих 3D возможностей) */
+  z: { type: 'f32', default: 0 },
+});
 
 /**
  * Тип для позиционных данных

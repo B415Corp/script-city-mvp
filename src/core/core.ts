@@ -90,7 +90,7 @@ export class Core {
           }
 
           scene.init(this.eventBus, this.tickManager);
-          this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager);
+          this.moduleManager = new ModuleManager(scene, this.eventBus, this.ecsManager, this.tickManager);
           this.moduleManager.init();
           scene.setModuleManager(this.moduleManager);
 
@@ -119,7 +119,7 @@ export class Core {
     }
     this.tickManager = new TickManager(this.eventBus, 10);
     // Устанавливаем начальное время на 2:00 ночи (жители спят)
-    this.tickManager.getTimeController().setTime(2 * 60); // 2:00 AM
+    this.tickManager.getTimeService().setTime(2 * 60); // 2:00 AM
   }
 
   private async startSimulation(): Promise<void> {

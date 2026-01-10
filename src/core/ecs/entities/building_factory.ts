@@ -45,8 +45,8 @@ export class BuildingFactory {
     this.setRenderData(eid, {
       visible: 1,
       layer: 2, // BUILDINGS layer
-      spriteType: SpriteType.HOUSE,
-      color: '#8B4513', // Коричневый для домов
+      spriteType: 1, // индекс спрайта дома
+      color: 1, // индекс цвета (коричневый)
     });
 
     return eid;
@@ -71,8 +71,8 @@ export class BuildingFactory {
     this.setRenderData(eid, {
       visible: 1,
       layer: 2, // BUILDINGS layer
-      spriteType: commercialData.type === CommercialType.SHOP ? SpriteType.SHOP : SpriteType.OFFICE,
-      color: commercialData.type === CommercialType.SHOP ? '#32CD32' : '#4169E1', // Зеленый для магазинов, синий для офисов
+      spriteType: commercialData.type === CommercialType.SHOP ? 2 : 3, // индекс спрайта магазина или офиса
+      color: commercialData.type === CommercialType.SHOP ? 2 : 3, // индекс цвета (зеленый/синий)
     });
 
     return eid;
@@ -97,8 +97,8 @@ export class BuildingFactory {
     this.setRenderData(eid, {
       visible: 1,
       layer: 2, // BUILDINGS layer
-      spriteType: SpriteType.OFFICE,
-      color: '#708090', // Серый для рабочих мест
+      spriteType: 3, // индекс спрайта офиса
+      color: 4, // индекс цвета (серый)
     });
 
     return eid;
@@ -110,8 +110,10 @@ export class BuildingFactory {
   createSimpleHouse(positionData: PositionData): EntityId {
     const residentialData: ResidentialData = {
       capacity: 15,
-      occupants: [],
+      occupied: 0, // количество текущих жителей
       quality: 75,
+      buildingId: 0,
+      rent: 150,
     };
 
     return this.createHouse(residentialData, positionData);
@@ -123,13 +125,11 @@ export class BuildingFactory {
   createSimpleShop(positionData: PositionData): EntityId {
     const commercialData: CommercialData = {
       type: CommercialType.SHOP,
-      inventory: {
-        food: 100,
-        clothes: 50,
-        electronics: 25,
-      },
-      employees: [],
-      customers: [],
+      buildingId: 0,
+      inventorySize: 175, // общий размер инвентаря (100+50+25)
+      employeeCount: 0, // количество сотрудников
+      customerCount: 0, // количество клиентов
+      dailyRevenue: 0,
     };
 
     return this.createCommercial(commercialData, positionData);
@@ -140,11 +140,12 @@ export class BuildingFactory {
    */
   createSimpleOffice(positionData: PositionData, salary: number = 500): EntityId {
     const workplaceData: WorkplaceData = {
-      jobType: 'office_work',
+      capacity: 5, // максимум 5 работников
+      occupied: 0, // текущих работников
+      buildingId: 0, // будет установлено позже
       salary,
-      worker: undefined,
-      building: 0, // Будет установлено позже
-      minEducationLevel: EducationLevel.SECONDARY, // Минимум среднее образование
+      type: 1, // тип работы (офис)
+      minEducationLevel: 2, // минимум среднее образование
     };
 
     return this.createWorkplace(workplaceData, positionData);
@@ -155,11 +156,12 @@ export class BuildingFactory {
    */
   createShopCashier(positionData: PositionData, salary: number = 300): EntityId {
     const workplaceData: WorkplaceData = {
-      jobType: 'cashier',
+      capacity: 1, // только 1 кассир
+      occupied: 0,
+      buildingId: 0, // будет установлено позже
       salary,
-      worker: undefined,
-      building: 0, // Будет установлено позже
-      minEducationLevel: EducationLevel.PRIMARY, // Минимум начальное образование
+      type: 0, // тип работы (кассир)
+      minEducationLevel: 1, // минимум начальное образование
     };
 
     return this.createWorkplace(workplaceData, positionData);
@@ -170,11 +172,12 @@ export class BuildingFactory {
    */
   createShopManager(positionData: PositionData, salary: number = 450): EntityId {
     const workplaceData: WorkplaceData = {
-      jobType: 'manager',
+      capacity: 1, // только 1 менеджер
+      occupied: 0,
+      buildingId: 0, // будет установлено позже
       salary,
-      worker: undefined,
-      building: 0, // Будет установлено позже
-      minEducationLevel: EducationLevel.COLLEGE, // Минимум колледж
+      type: 2, // тип работы (менеджер)
+      minEducationLevel: 4, // минимум колледж
     };
 
     return this.createWorkplace(workplaceData, positionData);
@@ -183,22 +186,28 @@ export class BuildingFactory {
   // Методы для установки данных компонентов
   private setResidentialData(eid: EntityId, data: ResidentialData) {
     Residential.capacity[eid] = data.capacity;
-    Residential.occupants[eid] = [...data.occupants];
+    Residential.occupied[eid] = data.occupied;
     Residential.quality[eid] = data.quality;
+    Residential.buildingId[eid] = data.buildingId;
+    Residential.rent[eid] = data.rent;
   }
 
   private setCommercialData(eid: EntityId, data: CommercialData) {
     Commercial.type[eid] = data.type;
-    Commercial.inventory[eid] = { ...data.inventory };
-    Commercial.employees[eid] = [...data.employees];
-    Commercial.customers[eid] = [...data.customers];
+    Commercial.buildingId[eid] = data.buildingId;
+    Commercial.inventorySize[eid] = data.inventorySize;
+    Commercial.employeeCount[eid] = data.employeeCount;
+    Commercial.customerCount[eid] = data.customerCount;
+    Commercial.dailyRevenue[eid] = data.dailyRevenue;
   }
 
   private setWorkplaceData(eid: EntityId, data: WorkplaceData) {
-    Workplace.jobType[eid] = data.jobType;
+    Workplace.capacity[eid] = data.capacity;
+    Workplace.occupied[eid] = data.occupied;
+    Workplace.buildingId[eid] = data.buildingId;
     Workplace.salary[eid] = data.salary;
-    Workplace.worker[eid] = data.worker || 0;
-    Workplace.building[eid] = data.building;
+    Workplace.type[eid] = data.type;
+    Workplace.minEducationLevel[eid] = data.minEducationLevel;
     Workplace.minEducationLevel[eid] = data.minEducationLevel;
   }
 

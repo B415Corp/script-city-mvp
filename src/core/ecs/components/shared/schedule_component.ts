@@ -1,10 +1,12 @@
+import { defineComponent } from '@/core/ecs/core/component_builder';
+
 /**
  * Компонент расписания для управления поведением сущностей по времени суток
- * Позволяет задавать активности для разных фаз дня и модификаторы поведения
  */
 
 export type DayPhase = 'dawn' | 'morning' | 'day' | 'evening' | 'night';
 
+// Старые типы для совместимости
 export interface Activity {
   /** Название активности */
   activity: string;
@@ -27,22 +29,37 @@ export interface ScheduleModifier {
   priority?: number;
 }
 
-export const Schedule = {
-  /** Расписание по фазам дня */
-  phaseSchedule: [] as Record<DayPhase, Activity>[],
-  /** Текущая активность */
-  currentActivity: [] as string[],
-  /** Текущая фаза дня */
-  currentPhase: [] as string[],
-  /** Флаг, показывающий, была ли активность выполнена в текущей фазе */
-  activityExecuted: [] as boolean[],
-  /** Время следующей активности (минуты от начала дня) */
-  nextActivityTime: [] as number[],
-  /** Модификаторы расписания */
-  modifiers: [] as ScheduleModifier[][],
-  /** Тип сущности для выбора подходящего расписания */
-  entityType: [] as string[],
+export const DAY_PHASES = {
+  dawn: 0,
+  morning: 1,
+  day: 2,
+  evening: 3,
+  night: 4,
 } as const;
+
+export const ACTIVITIES = {
+  idle: 0,
+  work: 1,
+  sleep: 2,
+  eat: 3,
+  shop: 4,
+} as const;
+
+export type DayPhaseIndex = (typeof DAY_PHASES)[keyof typeof DAY_PHASES];
+export type ActivityIndex = (typeof ACTIVITIES)[keyof typeof ACTIVITIES];
+
+export const Schedule = defineComponent('Schedule', {
+  /** Текущая фаза дня (индекс из DAY_PHASES) */
+  currentPhase: { type: 'ui8', default: 0 },
+  /** Текущая активность (индекс из ACTIVITIES) */
+  currentActivity: { type: 'ui8', default: 0 },
+  /** Флаг, показывающий, была ли активность выполнена в текущей фазе */
+  activityExecuted: { type: 'ui8', default: 0 },
+  /** Время следующей активности (минуты от начала дня) */
+  nextActivityTime: { type: 'ui16', default: 0 },
+  /** Тип сущности для выбора подходящего расписания */
+  entityType: { type: 'ui8', default: 0 },
+});
 
 /**
  * Типы расписаний для разных сущностей
@@ -50,7 +67,19 @@ export const Schedule = {
 export type EntityType = 'citizen';
 
 /**
+ * Тип для данных расписания
+ */
+export type ScheduleData = {
+  currentPhase: number;
+  currentActivity: number;
+  activityExecuted: number;
+  nextActivityTime: number;
+  entityType: number;
+};
+
+/**
  * Предустановленные расписания для разных типов сущностей
+ * Совместимый формат для существующего кода
  */
 export const DEFAULT_SCHEDULES: Record<EntityType, Record<DayPhase, Activity>> = {
   citizen: {
@@ -60,15 +89,4 @@ export const DEFAULT_SCHEDULES: Record<EntityType, Record<DayPhase, Activity>> =
     evening: { activity: 'idle', duration: 60, system: 'Movement' },
     night: { activity: 'idle', duration: 480, system: 'Movement' },
   },
-};
-
-/**
- * Тип для данных расписания
- */
-export type ScheduleData = {
-  phaseSchedule: Record<DayPhase, Activity>;
-  modifiers?: ScheduleModifier[];
-  entityType: EntityType;
-  currentPhase?: DayPhase;
-  activityExecuted?: boolean;
 };

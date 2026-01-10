@@ -41,37 +41,62 @@ export class PersonFactory {
   ): EntityId {
     const eid = addEntity(this.world);
 
-    // Добавляем компоненты
-    addComponent(this.world, eid, Person);
-    addComponent(this.world, eid, Citizen);
-    addComponent(this.world, eid, Needs);
-    addComponent(this.world, eid, Schedule);
-    addComponent(this.world, eid, Position);
-    addComponent(this.world, eid, ID);
-    addComponent(this.world, eid, Render);
-
-    // Заполняем данные
-    this.setPersonData(eid, personData);
-    this.setCitizenData(eid, citizenData);
-    this.setNeedsData(eid, { food: 50, shopping: 30, work: 20, sleep: 20 });
-    this.setScheduleData(eid, {
-      phaseSchedule: DEFAULT_SCHEDULES.citizen,
-      entityType: 'citizen',
+    // Используем .create() методы для компонентов
+    Person.create(this.world, eid, {
+      age: personData.age,
+      gender: personData.gender,
+      firstName: personData.firstName,
+      lastName: personData.lastName,
     });
-    this.setPositionData(eid, positionData);
-    this.setIdData(eid, { value: this.nextId++ });
-    this.setRenderData(eid, {
+
+    Citizen.create(this.world, eid, {
+      happiness: citizenData.happiness,
+      home: homeId || citizenData.home,
+      workplace: citizenData.workplace || 0,
+      money: citizenData.money,
+      energy: citizenData.energy,
+      housingType: citizenData.housingType,
+      minimumExpenses: citizenData.minimumExpenses,
+      salary: citizenData.salary,
+      lastWorkDay: citizenData.lastWorkDay || 0,
+      isLookingForJob: citizenData.isLookingForJob ? 1 : 0,
+      jobSearchAttempts: citizenData.jobSearchAttempts,
+      lastJobSearchDay: citizenData.lastJobSearchDay,
+      lastExpenseDay: citizenData.lastExpenseDay,
+      isHomeless: citizenData.isHomeless || 0,
+      age: citizenData.age,
+      education: citizenData.education,
+      experience: citizenData.experience || 0,
+      skills: citizenData.skills || 0,
+    });
+
+    Needs.create(this.world, eid, {
+      food: 50,
+      shopping: 30,
+      work: 20,
+      sleep: 20,
+    });
+
+    Schedule.create(this.world, eid, {
+      currentPhase: 4, // night
+      currentActivity: 0, // idle
+      activityExecuted: 0,
+      nextActivityTime: 0,
+      entityType: 0, // citizen
+    });
+
+    Position.create(this.world, eid, positionData);
+
+    ID.create(this.world, eid, {
+      value: this.nextId++,
+    });
+
+    Render.create(this.world, eid, {
       visible: 1,
       layer: 3, // UNITS layer
-      spriteType: SpriteType.PERSON,
-      color: personData.gender === Gender.MALE ? '#4A90E2' : '#E94B3C',
+      spriteType: 0, // PERSON
+      color: 0, // default color index
     });
-
-    // Связываем с домом если указан
-    if (homeId !== undefined) {
-      citizenData.home = homeId;
-      this.setCitizenData(eid, citizenData);
-    }
 
     return eid;
   }
@@ -87,8 +112,8 @@ export class PersonFactory {
     const personData: PersonData = {
       age,
       gender,
-      name: this.generateName(gender),
-      education,
+      firstName: this.getRandomNameIndex(),
+      lastName: this.getRandomLastNameIndex(),
     };
 
     const housingType = Math.random() < 0.7 ? HousingType.OWNED : HousingType.RENTED;
@@ -99,16 +124,22 @@ export class PersonFactory {
     const citizenData: CitizenData = {
       happiness: 70 + Math.random() * 30, // 70-100
       home: homeId || 0,
-      workplace: undefined,
+      workplace: 0,
       money: 100 + Math.random() * 900, // 100-1000
       energy: 80 + Math.random() * 20, // 80-100
       housingType,
       minimumExpenses,
       salary: 0, // Пока нет работы
-      isLookingForJob: true, // Начинает с поиска работы
+      lastWorkDay: 0,
+      isLookingForJob: 1, // Начинает с поиска работы
       jobSearchAttempts: 0,
       lastJobSearchDay: 0,
       lastExpenseDay: 0,
+      isHomeless: homeId ? 0 : 1,
+      age,
+      education,
+      experience: 0,
+      skills: 0,
     };
 
     return this.create(personData, citizenData, positionData, homeId);
@@ -117,30 +148,19 @@ export class PersonFactory {
   /**
    * Генерирует имя в зависимости от пола
    */
-  private generateName(gender: Gender): string {
-    const maleNames = [
-      'Александр',
-      'Дмитрий',
-      'Иван',
-      'Михаил',
-      'Сергей',
-      'Андрей',
-      'Алексей',
-      'Николай',
-    ];
-    const femaleNames = [
-      'Анна',
-      'Елена',
-      'Мария',
-      'Ольга',
-      'Татьяна',
-      'Ирина',
-      'Наталья',
-      'Светлана',
-    ];
+  private getRandomNameIndex(): number {
+    // Возвращаем случайный индекс имени (0-999 для простоты)
+    // В реальном приложении здесь был бы массив имен
+    return Math.floor(Math.random() * 1000);
+  }
 
-    const names = gender === Gender.MALE ? maleNames : femaleNames;
-    return names[Math.floor(Math.random() * names.length)];
+  /**
+   * Генерирует фамилию
+   */
+  private getRandomLastNameIndex(): number {
+    // Возвращаем случайный индекс фамилии (0-999 для простоты)
+    // В реальном приложении здесь был бы массив фамилий
+    return Math.floor(Math.random() * 1000);
   }
 
   /**
@@ -175,58 +195,5 @@ export class PersonFactory {
     }
   }
 
-  // Методы для установки данных компонентов
-  private setPersonData(eid: EntityId, data: PersonData) {
-    Person.age[eid] = data.age;
-    Person.gender[eid] = data.gender;
-    Person.name[eid] = data.name;
-    Person.education[eid] = data.education;
-  }
-
-  private setCitizenData(eid: EntityId, data: CitizenData) {
-    Citizen.happiness[eid] = data.happiness;
-    Citizen.home[eid] = data.home;
-    Citizen.workplace[eid] = data.workplace || 0;
-    Citizen.money[eid] = data.money;
-    Citizen.energy[eid] = data.energy;
-    Citizen.housingType[eid] = data.housingType;
-    Citizen.minimumExpenses[eid] = data.minimumExpenses;
-    Citizen.salary[eid] = data.salary;
-    Citizen.isLookingForJob[eid] = data.isLookingForJob;
-    Citizen.jobSearchAttempts[eid] = data.jobSearchAttempts;
-    Citizen.lastJobSearchDay[eid] = data.lastJobSearchDay;
-  }
-
-  private setNeedsData(eid: EntityId, data: NeedsData) {
-    Needs.food[eid] = data.food;
-    Needs.shopping[eid] = data.shopping;
-    Needs.work[eid] = data.work;
-    Needs.sleep[eid] = data.sleep;
-  }
-
-  private setPositionData(eid: EntityId, data: PositionData) {
-    Position.x[eid] = data.x;
-    Position.y[eid] = data.y;
-  }
-
-  private setIdData(eid: EntityId, data: IdData) {
-    ID.value[eid] = data.value;
-  }
-
-  private setRenderData(eid: EntityId, data: RenderData) {
-    Render.visible[eid] = data.visible;
-    Render.layer[eid] = data.layer;
-    Render.spriteType[eid] = data.spriteType;
-    Render.color[eid] = data.color;
-  }
-
-  private setScheduleData(eid: EntityId, data: ScheduleData) {
-    Schedule.phaseSchedule[eid] = data.phaseSchedule;
-    Schedule.entityType[eid] = data.entityType;
-    Schedule.currentActivity[eid] = '';
-    Schedule.currentPhase[eid] = data.currentPhase || 'night';
-    Schedule.activityExecuted[eid] = data.activityExecuted || false;
-    Schedule.nextActivityTime[eid] = 0;
-    Schedule.modifiers[eid] = data.modifiers || [];
-  }
+  // Старые методы установки данных больше не нужны - используем .create() методы компонентов
 }

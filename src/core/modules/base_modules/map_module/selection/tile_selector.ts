@@ -99,7 +99,7 @@ export class TileSelector {
       count: (x2 - x1 + 1) * (y2 - y1 + 1),
     });
 
-      logger.debug(`Selected area: (${x1},${y1}) to (${x2},${y2})`);
+    logger.debug(`Selected area: (${x1},${y1}) to (${x2},${y2})`);
   }
 
   // Рисование выделения

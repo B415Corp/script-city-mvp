@@ -79,18 +79,22 @@ export class DayNightCycleSystem implements System {
    * Уведомить сущность о смене фазы дня
    */
   private notifyEntityOfPhaseChange(eid: EntityId, phase: DayPhase, timeOfDay: number): void {
-    const phaseSchedule = Schedule.phaseSchedule[eid];
-    if (!phaseSchedule || !phaseSchedule[phase]) {
+    // Используем DEFAULT_SCHEDULES вместо phaseSchedule из компонента
+    const entityType = Schedule.entityType[eid] as EntityType || 'citizen';
+    const defaultSchedule = DEFAULT_SCHEDULES[entityType];
+
+    if (!defaultSchedule || !defaultSchedule[phase]) {
       return; // Нет расписания для этой фазы
     }
 
     // Устанавливаем текущую фазу для сущности
-    Schedule.currentPhase[eid] = phase;
+    const phaseIndex = DAY_PHASES[phase];
+    Schedule.currentPhase[eid] = phaseIndex;
 
-    const activity = phaseSchedule[phase];
+    const activity = defaultSchedule[phase];
 
-    // Применяем модификаторы расписания
-    const modifiedActivity = this.applyScheduleModifiers(eid, activity, phase);
+    // TODO: Применяем модификаторы расписания (пока возвращаем как есть)
+    const modifiedActivity = activity; // this.applyScheduleModifiers(eid, activity, phase);
 
     // Запускаем активность
     this.startEntityActivity(eid, modifiedActivity, timeOfDay, phase);
@@ -99,63 +103,65 @@ export class DayNightCycleSystem implements System {
   /**
    * Применить модификаторы расписания к активности
    */
-  private applyScheduleModifiers(eid: EntityId, activity: Activity, phase: DayPhase): Activity {
-    const modifiers = Schedule.modifiers[eid] || [];
-    let modifiedActivity = { ...activity };
+  // TODO: Реализовать после добавления поля modifiers в компонент Schedule
+  // private applyScheduleModifiers(eid: EntityId, activity: Activity, phase: DayPhase): Activity {
+  //   const modifiers = Schedule.modifiers[eid] || [];
+  //   let modifiedActivity = { ...activity };
 
-    // Сортируем модификаторы по приоритету (выше = важнее)
-    const sortedModifiers = modifiers.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  //   // Сортируем модификаторы по приоритету (выше = важнее)
+  //   const sortedModifiers = modifiers.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    for (const modifier of sortedModifiers) {
-      if (!this.checkModifierCondition(eid, modifier.condition)) {
-        continue; // Условие не выполнено
-      }
+  //   for (const modifier of sortedModifiers) {
+  //     if (!this.checkModifierCondition(eid, modifier.condition)) {
+  //       continue; // Условие не выполнено
+  //     }
 
-      switch (modifier.type) {
-        case 'delay':
-          // Увеличиваем длительность (задержка)
-          modifiedActivity.duration += modifier.value;
-          break;
+  //     switch (modifier.type) {
+  //       case 'delay':
+  //         // Увеличиваем длительность (задержка)
+  //         modifiedActivity.duration += modifier.value;
+  //         break;
 
-        case 'speed_up':
-          // Уменьшаем длительность (ускорение)
-          modifiedActivity.duration = Math.max(1, modifiedActivity.duration * modifier.value);
-          break;
+  //       case 'speed_up':
+  //         // Уменьшаем длительность (ускорение)
+  //         modifiedActivity.duration = Math.max(1, modifiedActivity.duration * modifier.value);
+  //         break;
 
-        case 'skip':
-          // Пропускаем активность
-          if (modifier.value > 0) {
-            modifiedActivity.activity = 'idle';
-            modifiedActivity.system = undefined;
-          }
-          break;
+  //       case 'skip':
+  //         // Пропускаем активность
+  //         if (modifier.value > 0) {
+  //           modifiedActivity.activity = 'idle';
+  //           modifiedActivity.system = undefined;
+  //         }
+  //         break;
 
-        case 'repeat':
-          // Повторяем активность (пока не реализовано)
-          break;
-      }
-    }
+  //       case 'repeat':
+  //         // Повторяем активность (пока не реализовано)
+  //         break;
+  //     }
+  //   }
 
-    return modifiedActivity;
-  }
+  //   return modifiedActivity;
+  // }
 
   /**
    * Проверить условие модификатора
+   * TODO: Реализовать после добавления поля modifiers в компонент Schedule
    */
-  private checkModifierCondition(eid: EntityId, condition: string): boolean {
-    // В реальной игре здесь будут проверки компонентов
-    // Например: energy_low, hunger_high, sick, etc.
-    switch (condition) {
-      case 'always':
-        return true;
-      case 'never':
-        return false;
-      // Здесь будут добавлены реальные условия
-      default:
-        console.warn(`Unknown condition: ${condition}`);
-        return false;
-    }
-  }
+  // private checkModifierCondition(eid: EntityId, condition: string): boolean {
+  //   // В реальной игре здесь будут проверки компонентов
+  //   // Например: energy_low, hunger_high, sick, etc.
+  //   switch (condition) {
+  //     case 'always':
+  //       return true;
+  //     case 'never':
+  //       return false;
+  //     // Здесь будут добавлены реальные условия
+  //     default:
+  //       console.warn(`Unknown condition: ${condition}`);
+  //       return false;
+  //   }
+  // }
 
   /**
    * Запустить активность для сущности
@@ -166,8 +172,9 @@ export class DayNightCycleSystem implements System {
     timeOfDay: number,
     phase: DayPhase,
   ): void {
-    // Обновляем текущую активность
-    Schedule.currentActivity[eid] = activity.activity;
+    // Обновляем текущую активность (индекс активности)
+    const activityIndex = ACTIVITIES[activity.activity] || 0;
+    Schedule.currentActivity[eid] = activityIndex;
 
     // Вычисляем время окончания активности
     const endTime = (timeOfDay + activity.duration) % (24 * 60);
@@ -203,9 +210,6 @@ export class DayNightCycleSystem implements System {
    * Перевести сущность к следующей активности
    */
   private advanceEntitySchedule(eid: EntityId, timeOfDay: number): void {
-    const phaseSchedule = Schedule.phaseSchedule[eid];
-    if (!phaseSchedule) return;
-
     // Определяем следующую фазу
     const currentPhase = this.getDayPhase(timeOfDay);
     const nextPhase = this.getNextPhase(currentPhase);
@@ -237,42 +241,39 @@ export class DayNightCycleSystem implements System {
    * Инициализировать расписание для сущности
    */
   initializeEntitySchedule(eid: EntityId, entityType: EntityType): void {
-    const defaultSchedule = DEFAULT_SCHEDULES[entityType];
+    // Просто устанавливаем тип сущности - расписание берется из DEFAULT_SCHEDULES
+    Schedule.entityType[eid] = entityType === 'citizen' ? 0 : 0; // Пока только citizen поддерживается
+    Schedule.currentPhase[eid] = 0; // dawn
+    Schedule.currentActivity[eid] = 0; // idle
+    Schedule.activityExecuted[eid] = 0;
+    Schedule.nextActivityTime[eid] = 0;
 
-    if (defaultSchedule) {
-      Schedule.phaseSchedule[eid] = { ...defaultSchedule };
-      Schedule.entityType[eid] = entityType;
-      Schedule.modifiers[eid] = [];
-      Schedule.currentActivity[eid] = '';
-      Schedule.nextActivityTime[eid] = 0;
-
-      logger.info(`Initialized schedule for ${entityType} entity ${eid}`);
-    } else {
-      console.warn(`No default schedule found for entity type: ${entityType}`);
-    }
+    logger.info(`Initialized schedule for ${entityType} entity ${eid}`);
+  }
   }
 
   /**
    * Добавить модификатор расписания
+   * TODO: Реализовать после добавления поля modifiers в компонент Schedule
    */
-  addScheduleModifier(eid: EntityId, modifier: import('../../components').ScheduleModifier): void {
-    if (!Schedule.modifiers[eid]) {
-      Schedule.modifiers[eid] = [];
-    }
-    Schedule.modifiers[eid].push(modifier);
-  }
+  // addScheduleModifier(eid: EntityId, modifier: import('../../components').ScheduleModifier): void {
+  //   if (!Schedule.modifiers[eid]) {
+  //     Schedule.modifiers[eid] = [];
+  //   }
+  //   Schedule.modifiers[eid].push(modifier);
+  // }
 
   /**
    * Удалить модификатор расписания
+   * TODO: Реализовать после добавления поля modifiers в компонент Schedule
    */
-  removeScheduleModifier(eid: EntityId, condition: string): void {
-    if (Schedule.modifiers[eid]) {
-      Schedule.modifiers[eid] = Schedule.modifiers[eid].filter(
-        (mod) => mod.condition !== condition,
-      );
-    }
-  }
-}
+  // removeScheduleModifier(eid: EntityId, condition: string): void {
+  //   if (Schedule.modifiers[eid]) {
+  //     Schedule.modifiers[eid] = Schedule.modifiers[eid].filter(
+  //       (mod) => mod.condition !== condition,
+  //     );
+  //   }
+  // }
 
 // Экспортируем фабричную функцию для создания системы
 export const createDayNightCycleSystem = (eventBus: EventBus, timeService: TimeService) =>

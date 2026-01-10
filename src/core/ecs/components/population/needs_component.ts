@@ -1,17 +1,19 @@
+import { defineComponent } from '@/core/ecs/core/component_builder';
+
 /**
  * Потребности жителей
  * Определяют мотивацию поведения и уровень удовлетворенности
  */
-export const Needs = {
+export const Needs = defineComponent('Needs', {
   /** Уровень голода (0-100, 100 = очень голоден) */
-  food: [] as number[],
+  food: { type: 'ui8', default: 0, min: 0, max: 100 },
   /** Потребность в покупках (0-100, 100 = нужны покупки) */
-  shopping: [] as number[],
+  shopping: { type: 'ui8', default: 0, min: 0, max: 100 },
   /** Потребность в работе (0-100, 100 = нужна работа) */
-  work: [] as number[],
+  work: { type: 'ui8', default: 0, min: 0, max: 100 },
   /** Потребность во сне (0-100, 100 = очень хочет спать) */
-  sleep: [] as number[],
-} as const;
+  sleep: { type: 'ui8', default: 0, min: 0, max: 100 },
+});
 
 /**
  * Тип для данных потребностей

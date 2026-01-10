@@ -16,13 +16,13 @@ export class TickDebug extends DebugComponent {
   private fpsElement!: HTMLElement;
   private timeElement!: HTMLElement;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, timeService: TimeService) {
     super(scene, eventBus);
-    this.timeService = TimeService.createFromEventBus(eventBus);
-    this.initDOM();
+    this.timeService = timeService;
 
     this.eventBus.on(Events.TickStarted, (payload) => {
       if (payload) {
+        // Используем данные из события для кадра
         this.tick = payload.time;
         this.deltaTime = Math.round(payload.delta);
         this.fps = Math.round(1000 / payload.delta);
@@ -39,7 +39,9 @@ export class TickDebug extends DebugComponent {
     this.timeElement = document.getElementById('game-time')!;
   }
 
-  public onActivate(): void {}
+  public onActivate(): void {
+    this.initDOM();
+  }
 
   public onDeactivate(): void {}
 

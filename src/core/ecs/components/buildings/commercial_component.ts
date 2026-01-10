@@ -1,19 +1,23 @@
-import { EntityId } from 'bitecs';
+import { defineComponent } from '@/core/ecs/core/component_builder';
 
 /**
  * Коммерческое здание
  * Магазины, офисы, производства
  */
-export const Commercial = {
+export const Commercial = defineComponent('Commercial', {
   /** Тип здания */
-  type: [] as number[],
-  /** Инвентарь товаров (название -> количество) */
-  inventory: [] as Record<string, number>[],
-  /** Сотрудники */
-  employees: [] as EntityId[][],
-  /** Текущие покупатели/клиенты */
-  customers: [] as EntityId[][],
-} as const;
+  type: { type: 'ui8', default: 0 },
+  /** ID здания */
+  buildingId: { type: 'ui32', default: 0 },
+  /** Количество товаров в инвентаре */
+  inventorySize: { type: 'ui16', default: 0 },
+  /** Количество сотрудников */
+  employeeCount: { type: 'ui16', default: 0 },
+  /** Количество клиентов */
+  customerCount: { type: 'ui16', default: 0 },
+  /** Доход за день */
+  dailyRevenue: { type: 'f32', default: 0 },
+});
 
 /**
  * Типы коммерческих зданий
@@ -29,7 +33,9 @@ export enum CommercialType {
  */
 export type CommercialData = {
   type: CommercialType;
-  inventory: Record<string, number>;
-  employees: EntityId[];
-  customers: EntityId[];
+  buildingId: number;
+  inventorySize: number;
+  employeeCount: number;
+  customerCount: number;
+  dailyRevenue: number;
 };

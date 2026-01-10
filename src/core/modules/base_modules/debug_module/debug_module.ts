@@ -1,6 +1,7 @@
 import { BaseModule } from '../../extends';
 import { EventBus } from '@/core/event_bus/event_bus';
 import { ECSManager } from '@/core/ecs/ecs_manager';
+import { TickManager } from '@/core/tick/tick_manager';
 import { DebugComponent } from './components/debug_component';
 import { EventsDebug } from './components/events_debug';
 import { TickDebug } from './components/tick_debug';
@@ -20,6 +21,11 @@ type ComponentsRegister = keyof typeof debugComponentsRegister;
 
 // Типы конструкторов для разных компонентов
 type DebugComponentConstructor = new (scene: Phaser.Scene, eventBus: EventBus) => DebugComponent;
+type TickDebugComponentConstructor = new (
+  scene: Phaser.Scene,
+  eventBus: EventBus,
+  timeService: import('@/core/tick/time_service').TimeService,
+) => DebugComponent;
 type ECSDebugComponentConstructor = new (
   scene: Phaser.Scene,
   eventBus: EventBus,
@@ -35,6 +41,7 @@ export class DebugModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
   protected ecsManager!: ECSManager;
+  protected tickManager!: TickManager;
   private logger: Logger;
 
   private isOpen: boolean = false;
@@ -50,13 +57,14 @@ export class DebugModule extends BaseModule {
   private tabButtons: Map<string, HTMLElement> = new Map();
   private tabContents: Map<string, HTMLElement> = new Map();
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager, tickManager: TickManager) {
     super(scene, eventBus);
     this.logger = Logger.create('DebugModule');
     this.logger.info('DebugModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
     this.ecsManager = ecsManager;
+    this.tickManager = tickManager;
 
     this.registerComponents();
     this.initDOM();
@@ -72,8 +80,16 @@ export class DebugModule extends BaseModule {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
       let component: DebugComponent;
 
+      // TickDebug получает TimeService из TickManager
+      if (name === 'tick') {
+        component = new (ModuleClass as TickDebugComponentConstructor)(
+          this.scene,
+          this.eventBus,
+          this.tickManager.getTimeService(),
+        );
+      }
       // ECSDebug и SimulationDebug получают ECSManager для доступа к статистике entities
-      if (name === 'ecs' || name === 'simulation') {
+      else if (name === 'ecs' || name === 'simulation') {
         component = new (ModuleClass as ECSDebugComponentConstructor)(
           this.scene,
           this.eventBus,

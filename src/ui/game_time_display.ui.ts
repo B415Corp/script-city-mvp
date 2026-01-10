@@ -13,7 +13,7 @@ export class GameTimeDisplay {
   private phaseElement!: HTMLElement;
 
   constructor(eventBus: EventBus, containerId: string) {
-    this.timeService = TimeService.createFromEventBus(eventBus);
+    this.timeService = new TimeService(eventBus);
     this.container = document.getElementById(containerId)!;
 
     if (!this.container) {

@@ -132,7 +132,7 @@ describe('Event Bus Types', () => {
         Events.ResetToolToDefault,
       ];
 
-      noPayloadEvents.forEach(event => {
+      noPayloadEvents.forEach((event) => {
         const payloadType: EventPayload<typeof event> = undefined;
         expect(payloadType).toBeUndefined();
       });
@@ -177,10 +177,7 @@ describe('Event Bus Types', () => {
     });
 
     it('should work with function parameters', () => {
-      function handleEvent<T extends Events>(
-        event: T,
-        payload: EventPayload<T>
-      ): void {
+      function handleEvent<T extends Events>(event: T, payload: EventPayload<T>): void {
         if (event === Events.CallSystem && payload && 'systemName' in payload) {
           expect(payload.systemName).toBeDefined();
         }
@@ -212,7 +209,7 @@ describe('Event Bus Types', () => {
     it('should work with generic constraints', () => {
       function createEventHandler<T extends Events>(
         event: T,
-        handler: (payload: EventPayload<T>) => void
+        handler: (payload: EventPayload<T>) => void,
       ): void {
         // This function signature ensures type safety
         handler(undefined as EventPayload<T>);
