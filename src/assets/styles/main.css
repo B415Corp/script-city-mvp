@@ -1,3 +1,6 @@
+/* HTML UI Components */
+@import url('../../ui/html/styles.css');
+
 :root {
   /* Colors */
   --color-primary: oklch(65% 0.2 150);
@@ -66,6 +69,22 @@
   --z-popover: 1060;
   --z-tooltip: 1070;
   --z-debug: 2000;
+
+  /* HTML UI Colors */
+  --html-bg-primary: #007bff;
+  --html-bg-secondary: #6c757d;
+  --html-bg-success: #28a745;
+  --html-bg-danger: #dc3545;
+  --html-bg-warning: #ffc107;
+  --html-bg-toolbar: #f8f9fa;
+  --html-bg-badge-default: #f8f9fa;
+
+  --html-text-light: #ffffff;
+  --html-text-dark: #212529;
+  --html-text-muted: #6c757d;
+
+  --html-border-light: #dee2e6;
+  --html-border-dark: #343a40;
 }
 
 * {
@@ -580,6 +599,3 @@ body {
 .debug-event-color-5 {
   color: oklch(75% 0.15 160);
 }
-
-/* HTML UI Components */
-@import url('../../ui/html/styles.css');
