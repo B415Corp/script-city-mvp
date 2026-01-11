@@ -13,8 +13,10 @@ export const createCitizen = createEntityFactory(
     // Создание жителя с компонентами
     console.log('Citizen entity created with money');
     const citizenId = addEntity(world);
-    addComponent(world, citizenId, MoneyComponent);
-    MoneyComponent.money[citizenId] = 100;
+
+    // ✅ ИСПОЛЬЗУЕМ create метод компонента вместо ручного addComponent
+    MoneyComponent.create(world, citizenId, { money: 100 });
+
     return citizenId;
   },
   'Создает сущность жителя с начальной суммой денег',
@@ -25,7 +27,7 @@ export const createFactory = createEntityFactory(
   'factory_entity',
   (world) => {
     const factoryId = addEntity(world);
-    addComponent(world, factoryId, FactoryComponent);
+    FactoryComponent.create(world, factoryId, { workplace: 5 });
     FactoryComponent.workplace[factoryId] = 5; // 5 рабочих мест
     return factoryId;
   },
@@ -37,7 +39,7 @@ export const createWorkplace = createEntityFactory(
   'workplace_entity',
   (world) => {
     const workplaceId = addEntity(world);
-    addComponent(world, workplaceId, WorkplaceComponent);
+    WorkplaceComponent.create(world, workplaceId, { factoryId: 0, workplaceId: 0 });
     WorkplaceComponent.factoryId[workplaceId] = 0; // Связь с заводом
     WorkplaceComponent.workplaceId[workplaceId] = 0; // ID рабочего места
     return workplaceId;

@@ -16,16 +16,17 @@ export const WorkIncomeSystem = createSystem(
     // Получаем реальные сущности с компонентом Money
     const moneyEntities = query(world, [MoneyComponent]);
 
-    let totalMoney = 0;
+    console.log(`Найдено жителей с деньгами: ${moneyEntities.length}`);
 
-    // Сначала суммируем текущие деньги ВСЕХ жителей
-    for (const entityId of moneyEntities) {
-      totalMoney += MoneyComponent.money[entityId];
-    }
-
-    // Затем добавляем +1 каждому жителю
+    // Добавляем +1 каждому жителю
     for (const entityId of moneyEntities) {
       MoneyComponent.money[entityId] += 1;
+    }
+
+    // Суммируем деньги ПОСЛЕ увеличения
+    let totalMoney = 0;
+    for (const entityId of moneyEntities) {
+      totalMoney += MoneyComponent.money[entityId];
     }
 
     console.log(`Общая сумма денег всех жителей: ${totalMoney}`);

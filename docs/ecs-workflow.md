@@ -39,6 +39,8 @@ src/core/ecs/components/
 
 ### Шаг 2: Использование smart constructor
 
+#### Простой способ (автоматическое определение типов)
+
 ```typescript
 import { createComponent } from '../../core/smart_constructors';
 
@@ -47,9 +49,9 @@ import { createComponent } from '../../core/smart_constructors';
  * Хранит координаты X, Y сущности
  */
 export const Position = createComponent('Position', {
-  x: 0, // X координата
-  y: 0, // Y координата
-  z: 0, // Z координата (высота)
+  x: 0, // X координата (автоматически uint32)
+  y: 0, // Y координата (автоматически uint32)
+  z: 0, // Z координата (автоматически uint32)
 });
 
 /**
@@ -57,9 +59,32 @@ export const Position = createComponent('Position', {
  * Управляет здоровьем сущности
  */
 export const Health = createComponent('Health', {
-  current: 100, // Текущее здоровье
-  max: 100, // Максимальное здоровье
-  regeneration: 1, // Регенерация в секунду
+  current: 100, // Текущее здоровье (автоматически uint8, max 255!)
+  max: 100, // Максимальное здоровье (автоматически uint8)
+  regeneration: 1, // Регенерация в секунду (автоматически uint8)
+});
+```
+
+#### Продвинутый способ (явное указание типов)
+
+```typescript
+import { createComponentSchema, money, percentage, entityId } from '../../core/component_schema';
+
+/**
+ * Компонент денег с явным типом float32
+ */
+export const MoneyComponent = createComponentSchema('Money', {
+  money: money(100), // float32, min: 0, начальное значение: 100
+});
+
+/**
+ * Продвинутый компонент гражданина
+ */
+export const CitizenComponent = createComponentSchema('Citizen', {
+  money: money(1000.50),     // float32, деньги с копейками
+  happiness: percentage(75), // uint8, 0-100%
+  workplace: entityId(),     // uint32, ID сущности
+  age: percentage(25),       // uint8, 0-100 лет
 });
 ```
 
@@ -69,12 +94,45 @@ export const Health = createComponent('Health', {
 - Создается BitECS компонент с заданными полями
 - Компонент становится доступен для систем
 
+### 🔧 FieldBuilder'ы для точного контроля типов
+
+Для точного контроля типов данных используйте FieldBuilder'ы:
+
+```typescript
+import { money, percentage, entityId, index, float32, uint8, uint16, uint32 } from '../../core/component_schema';
+
+// Финансовые данные
+money(1000.50)        // → float32, min: 0
+
+// Проценты (0-100)
+percentage(75)        // → uint8, range: 0-100
+
+// Entity ID ссылки
+entityId()           // → uint32
+
+// Индексы с диапазоном
+index(1).range(1, 99) // → uint8, range: 1-99
+
+// Явные типы
+float32(1.5)         // → float32
+uint8(100)          // → uint8
+uint16(50000)       // → uint16
+uint32(1000000)     // → uint32
+```
+
+### ⚠️ Важно про типы данных:
+
+- **`uint8`**: 0-255, экономит память, но **переполняется при 256**!
+- **`float32`**: Для денег, координат, дробных значений
+- **`uint32`**: Для entity ID, больших счетчиков
+
 ### 📝 Соглашения:
 
 - Имена компонентов в PascalCase
 - Поля компонентов в camelCase
 - Все поля должны быть числами (BitECS ограничение)
 - Использовать осмысленные названия полей
+- Для денег всегда используйте `money()` или `float32()`
 
 ## ⚙️ 2. Создание систем
 
@@ -506,14 +564,14 @@ export class EntrySimulation {
 
 ```typescript
 // 1. Компоненты
-export const Inventory = createComponent('Inventory', {
-  size: 20,
-  gold: 0,
+export const Inventory = createComponentSchema('Inventory', {
+  size: index(20).range(1, 100),  // uint8, ограничение 1-100
+  gold: money(0),                  // float32, деньги
 });
 
-export const Item = createComponent('Item', {
-  itemId: 0,
-  quantity: 1,
+export const Item = createComponentSchema('Item', {
+  itemId: entityId(),              // uint32, ссылка на entity
+  quantity: uint16(1),             // uint16, до 65535 предметов
 });
 
 // 2. Системы

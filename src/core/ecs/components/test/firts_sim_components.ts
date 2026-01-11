@@ -1,8 +1,9 @@
+import { createComponentSchema, money } from '../../core/component_schema';
 import { createComponent } from '../../core/smart_constructors';
 
 // хранит текущую сумму денег жителя
-export const MoneyComponent = createComponent('Money', {
-  money: 0,
+export const MoneyComponent = createComponentSchema('Money', {
+  money: money(0),
 });
 
 // хранит количество рабочих мест на заводе
