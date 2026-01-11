@@ -277,6 +277,41 @@
   flex-wrap: wrap;
 }
 
+/* Expandable Sections */
+.toolbar-expandable-section {
+  position: fixed;
+  bottom: calc(var(--space-md) + var(--space-xl) * 2.5 + var(--space-sm));
+  left: var(--space-md);
+  right: var(--space-md);
+  width: calc(100vw - 2 * var(--space-md));
+  background-color: rgba(248, 249, 250, 0.98);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(222, 226, 230, 0.8);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all var(--transition-normal);
+  z-index: 100000;
+}
+
+.toolbar-expandable-section.expanded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.expandable-tools-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  flex-wrap: wrap;
+  min-height: 60px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-md);
+}
+
 /* Toolbar animations */
 .html-toolbar {
   animation: slideIn var(--transition-slow) ease-out;

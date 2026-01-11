@@ -36,13 +36,15 @@ export class ToolbarModule extends BaseModule {
         {
           id: 'upper',
           className: 'upper-section',
+          expandable: true,
+          expanded: false,
           tools: [
             // Левая часть - кнопка инструментов
             {
               label: '🔧 Инструменты',
               variant: 'primary',
               size: 'medium',
-              onClick: () => this.showToolsMenu(),
+              onClick: () => this.toggleToolsSection(),
             },
             // Правая часть - режим редактирования
             {
@@ -149,55 +151,50 @@ export class ToolbarModule extends BaseModule {
     if (speedX3Btn) this.speedButtons.set('speedX3', speedX3Btn);
   }
 
-  private showToolsMenu(): void {
-    // Создаем инструменты зоны как выпадающий список или модальное окно
-    const toolsMenu = document.createElement('div');
-    toolsMenu.className = 'tools-dropdown';
-    toolsMenu.innerHTML = `
-      <div class="tools-dropdown-content">
-        <button class="tool-option" data-tool="living_zone">🏠 Жилая зона</button>
-        <button class="tool-option" data-tool="commercial_zone">🏪 Коммерческая зона</button>
-        <button class="tool-option" data-tool="clear_zone">🗑️ Очистить зону</button>
-      </div>
-    `;
-
-    // Добавляем обработчики
-    toolsMenu.querySelectorAll('.tool-option').forEach((button) => {
-      button.addEventListener('click', (e) => {
-        const toolType = (e.target as HTMLElement).dataset.tool;
-        if (toolType) {
-          this.eventBus.emit(Events.SelectTool, { type: toolType });
-          this.switchActiveTool(toolType);
-          toolsMenu.remove();
-        }
-      });
-    });
-
-    // Закрываем меню при клике вне
-    document.addEventListener(
-      'click',
-      (e) => {
-        if (
-          !toolsMenu.contains(e.target as Node) &&
-          !this.toolbar.getElement().contains(e.target as Node)
-        ) {
-          toolsMenu.remove();
-        }
+  private toggleToolsSection(): void {
+    // Определяем инструменты для expandable секции
+    const tools = [
+      {
+        label: '🏠 Жилая зона',
+        variant: 'secondary' as const,
+        size: 'medium' as const,
+        onClick: () => {
+          this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
+          this.switchActiveTool('living_zone');
+          this.collapseToolsSection();
+        },
       },
-      { once: true },
-    );
+      {
+        label: '🏪 Коммерческая зона',
+        variant: 'secondary' as const,
+        size: 'medium' as const,
+        onClick: () => {
+          this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
+          this.switchActiveTool('commercial_zone');
+          this.collapseToolsSection();
+        },
+      },
+      {
+        label: '🗑️ Очистить зону',
+        variant: 'danger' as const,
+        size: 'medium' as const,
+        onClick: () => {
+          this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
+          this.switchActiveTool('clear_zone');
+          this.collapseToolsSection();
+        },
+      },
+    ];
 
-    // Позиционируем меню
-    const toolsButton = this.toolbar.getTool('upper', '🔧 Инструменты');
-    if (toolsButton) {
-      const rect = toolsButton.getElement().getBoundingClientRect();
-      toolsMenu.style.position = 'fixed';
-      toolsMenu.style.top = `${rect.bottom + 5}px`;
-      toolsMenu.style.left = `${rect.left}px`;
-      toolsMenu.style.zIndex = '10000';
-    }
+    // Добавляем инструменты в expandable секцию
+    this.toolbar.addToolsToExpandable('upper', tools);
 
-    document.body.appendChild(toolsMenu);
+    // Переключаем видимость секции
+    this.toolbar.toggleSection('upper');
+  }
+
+  private collapseToolsSection(): void {
+    this.toolbar.collapseSection('upper');
   }
 
   private toggleEditMode(): void {

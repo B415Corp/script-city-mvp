@@ -5,6 +5,8 @@ export interface ToolbarSection {
   id: string;
   className?: string;
   tools: HTMLButtonConfig[];
+  expandable?: boolean;
+  expanded?: boolean;
 }
 
 export interface ToolbarConfig extends HTMLElementConfig {
@@ -19,6 +21,7 @@ export class HTMLToolbar extends BaseHTMLElement {
   private config: ToolbarConfig;
   private sections: Map<string, HTMLElement> = new Map();
   private tools: Map<string, HTMLButton> = new Map();
+  private expandableSections: Map<string, HTMLElement> = new Map();
 
   constructor(config: ToolbarConfig = {}) {
     // Устанавливаем значения по умолчанию для config
@@ -68,6 +71,17 @@ export class HTMLToolbar extends BaseHTMLElement {
       });
 
       sectionElement.appendChild(toolsContainer);
+
+      // Если секция expandable, создаем expandable контейнер
+      if (section.expandable) {
+        const expandableContainer = document.createElement('div');
+        expandableContainer.className = `toolbar-expandable-section ${section.expanded ? 'expanded' : ''}`;
+        expandableContainer.style.display = section.expanded ? 'block' : 'none';
+
+        sectionElement.appendChild(expandableContainer);
+        this.expandableSections.set(section.id, expandableContainer);
+      }
+
       this.element.appendChild(sectionElement);
       this.sections.set(section.id, sectionElement);
     });
@@ -186,6 +200,98 @@ export class HTMLToolbar extends BaseHTMLElement {
 
   public getSection(sectionId: string): HTMLElement | undefined {
     return this.sections.get(sectionId);
+  }
+
+  public expandSection(sectionId: string): this {
+    const expandableSection = this.expandableSections.get(sectionId);
+    if (expandableSection) {
+      expandableSection.style.display = 'block';
+      expandableSection.classList.add('expanded');
+
+      // Добавляем обработчик клика вне для закрытия
+      setTimeout(() => {
+        this.addClickOutsideHandler(sectionId);
+      }, 10);
+    }
+    return this;
+  }
+
+  public collapseSection(sectionId: string): this {
+    const expandableSection = this.expandableSections.get(sectionId);
+    if (expandableSection) {
+      expandableSection.style.display = 'none';
+      expandableSection.classList.remove('expanded');
+
+      // Удаляем обработчик клика вне
+      this.removeClickOutsideHandler();
+    }
+    return this;
+  }
+
+  public toggleSection(sectionId: string): this {
+    const expandableSection = this.expandableSections.get(sectionId);
+    if (expandableSection) {
+      if (expandableSection.style.display === 'none' || expandableSection.style.display === '') {
+        this.expandSection(sectionId);
+      } else {
+        this.collapseSection(sectionId);
+      }
+    }
+    return this;
+  }
+
+  public addToolsToExpandable(sectionId: string, tools: HTMLButtonConfig[]): this {
+    const expandableSection = this.expandableSections.get(sectionId);
+    if (expandableSection) {
+      // Очищаем существующие инструменты
+      expandableSection.innerHTML = '';
+
+      // Создаем контейнер для инструментов
+      const toolsContainer = document.createElement('div');
+      toolsContainer.className = 'expandable-tools-container';
+
+      tools.forEach((toolConfig) => {
+        const button = new HTMLButton({
+          ...toolConfig,
+          size: 'medium',
+        });
+        this.tools.set(`expandable-${sectionId}-${toolConfig.label}`, button);
+        toolsContainer.appendChild(button.getElement());
+      });
+
+      expandableSection.appendChild(toolsContainer);
+    }
+    return this;
+  }
+
+  private clickOutsideHandler?: (event: MouseEvent) => void;
+
+  private addClickOutsideHandler(sectionId: string): void {
+    this.removeClickOutsideHandler(); // Удаляем предыдущий обработчик
+
+    this.clickOutsideHandler = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const sectionElement = this.sections.get(sectionId);
+      const expandableSection = this.expandableSections.get(sectionId);
+
+      if (
+        sectionElement &&
+        expandableSection &&
+        !sectionElement.contains(target) &&
+        !expandableSection.contains(target)
+      ) {
+        this.collapseSection(sectionId);
+      }
+    };
+
+    document.addEventListener('mousedown', this.clickOutsideHandler);
+  }
+
+  private removeClickOutsideHandler(): void {
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('mousedown', this.clickOutsideHandler);
+      this.clickOutsideHandler = undefined;
+    }
   }
 
   public setPosition(position: 'top' | 'bottom' | 'left' | 'right'): this {
