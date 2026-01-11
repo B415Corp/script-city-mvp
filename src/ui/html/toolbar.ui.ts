@@ -41,10 +41,6 @@ export class HTMLToolbar extends BaseHTMLElement {
   }
 
   protected init(): void {
-    // Настройка базовых стилей панели инструментов
-    this.applyPositionStyles();
-    this.applyOrientationStyles();
-
     // Создание секций или обратная совместимость с tools
     if (this.config.sections && this.config.sections.length > 0) {
       this.createSections();
@@ -96,62 +92,6 @@ export class HTMLToolbar extends BaseHTMLElement {
     sectionElement.appendChild(toolsContainer);
     this.element.appendChild(sectionElement);
     this.sections.set('default', sectionElement);
-  }
-
-  private applyPositionStyles(): void {
-    const position = this.config.position || 'top';
-
-    switch (position) {
-      case 'top':
-        this.setStyle('top', '0');
-        this.setStyle('left', '0');
-        this.setStyle('right', '0');
-        this.setStyle('width', '100%');
-        break;
-      case 'bottom':
-        this.setStyle('bottom', '0');
-        this.setStyle('left', '0');
-        this.setStyle('right', '0');
-        this.setStyle('width', '100%');
-        break;
-      case 'left':
-        this.setStyle('top', '0');
-        this.setStyle('left', '0');
-        this.setStyle('bottom', '0');
-        this.setStyle('height', '100%');
-        break;
-      case 'right':
-        this.setStyle('top', '0');
-        this.setStyle('right', '0');
-        this.setStyle('bottom', '0');
-        this.setStyle('height', '100%');
-        break;
-    }
-  }
-
-  private applyOrientationStyles(): void {
-    const orientation = this.config.orientation || 'horizontal';
-
-    this.setStyle('display', 'flex');
-    this.setStyle('position', 'fixed');
-    this.setStyle('zIndex', '1000');
-    this.setStyle('backgroundColor', '#f8f9fa');
-    this.setStyle('border', '1px solid #dee2e6');
-    this.setStyle('boxShadow', '0 2px 4px rgba(0,0,0,0.1)');
-
-    if (orientation === 'horizontal') {
-      this.setStyle('flexDirection', 'row');
-      this.setStyle('height', '50px');
-      this.setStyle('alignItems', 'center');
-      this.setStyle('padding', '0 16px');
-      this.setStyle('gap', '8px');
-    } else {
-      this.setStyle('flexDirection', 'column');
-      this.setStyle('width', '60px');
-      this.setStyle('justifyContent', 'flex-start');
-      this.setStyle('padding', '16px 0');
-      this.setStyle('gap', '8px');
-    }
   }
 
   // Перегрузка для обратной совместимости
@@ -256,7 +196,6 @@ export class HTMLToolbar extends BaseHTMLElement {
 
     this.addClass(position);
     this.config.position = position;
-    this.applyPositionStyles();
     return this;
   }
 
@@ -264,7 +203,6 @@ export class HTMLToolbar extends BaseHTMLElement {
     this.removeClass(this.config.orientation || 'horizontal');
     this.addClass(orientation);
     this.config.orientation = orientation;
-    this.applyOrientationStyles();
     return this;
   }
 

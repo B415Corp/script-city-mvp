@@ -15,6 +15,8 @@
   justify-content: center;
   white-space: nowrap;
   box-sizing: border-box;
+  cursor: pointer;
+  border: 1px solid transparent;
 }
 
 .html-button:hover:not(.disabled) {
@@ -88,6 +90,12 @@
   border-color: oklch(from var(--html-bg-warning) calc(l * 0.8) c h);
 }
 
+.html-button.disabled {
+  pointer-events: none;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Button Sizes */
 .html-button.small {
   padding: calc(var(--space-xs) * 1.5) var(--space-md);
@@ -114,6 +122,13 @@
   white-space: nowrap;
   box-sizing: border-box;
   transition: var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid transparent;
+  padding: 0 var(--space-sm);
 }
 
 .html-badge.default {
@@ -152,12 +167,14 @@
   border: 1px solid var(--html-bg-danger);
 }
 
+.html-badge.rounded {
+  border-radius: 50%;
+}
+
 /* Toolbar Styles */
 .html-toolbar {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: rgba(248, 249, 250, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(222, 226, 230, 0.8);
+  /* border: 1px solid rgba(222, 226, 230, 0.8); */
   box-shadow: var(--shadow-lg);
   z-index: var(--z-fixed);
   border-radius: var(--radius-lg);
@@ -165,40 +182,47 @@
 }
 
 .html-toolbar.floating {
-  left: 0;
-  right: 0;
-  width: 100vw;
-  margin: 0;
-  border-radius: 0;
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: calc(100vw - 16px);
+  z-index: var(--z-fixed);
+  padding: 0 var(--space-lg);
+  box-sizing: border-box;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
 }
 
 .html-toolbar.top {
   top: 0;
-  border-bottom: 1px solid rgba(222, 226, 230, 0.8);
+  /* border-bottom: 1px solid rgba(222, 226, 230, 0.8); */
 }
 
 .html-toolbar.bottom {
-  bottom: 0;
-  border-top: 1px solid rgba(222, 226, 230, 0.8);
+  /* bottom: 0; */
+  /* border-top: 1px solid rgba(222, 226, 230, 0.8); */
 }
 
 .html-toolbar.left {
   top: 0;
   left: 0;
   bottom: 0;
-  border-right: 1px solid rgba(222, 226, 230, 0.8);
+  /* border-right: 1px solid rgba(222, 226, 230, 0.8); */
 }
 
 .html-toolbar.right {
   top: 0;
   right: 0;
   bottom: 0;
-  border-left: 1px solid rgba(222, 226, 230, 0.8);
+  /* border-left: 1px solid rgba(222, 226, 230, 0.8); */
 }
 
 .html-toolbar.horizontal {
   flex-direction: column;
-  height: calc(var(--space-xl) * 2.5);
+  min-height: calc(var(--space-xl) * 2.5);
+  height: auto;
   align-items: stretch;
   padding: 0;
   gap: 0;
@@ -216,8 +240,8 @@
 .toolbar-section {
   display: flex;
   align-items: center;
-  padding: calc(var(--space-xs) * 1.5) var(--space-lg);
-  border-bottom: 1px solid rgba(222, 226, 230, 0.3);
+  padding: calc(var(--space-xs) * 1.5) 8px;
+  /* border-bottom: 1px solid rgba(222, 226, 230, 0.3); */
   width: 100%;
   box-sizing: border-box;
 }
