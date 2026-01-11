@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Logger, LogLevel, logger } from '../logger';
+import { Logger, LogLevel, logger, LOG_CONTEXT_COLORS, type LogContextColor } from '../logger';
 
 /**
  * Тесты для Logger - системы логирования
@@ -58,6 +58,25 @@ describe('Logger', () => {
     });
   });
 
+  describe('LOG_CONTEXT_COLORS', () => {
+    it('должен содержать 15 цветов', () => {
+      expect(LOG_CONTEXT_COLORS).toHaveLength(15);
+    });
+
+    it('все цвета должны быть валидными hex значениями', () => {
+      const hexColorRegex = /^#[0-9a-f]{6}$/i;
+
+      LOG_CONTEXT_COLORS.forEach((color: LogContextColor) => {
+        expect(color).toMatch(hexColorRegex);
+      });
+    });
+
+    it('все цвета должны быть уникальными', () => {
+      const uniqueColors = new Set(LOG_CONTEXT_COLORS);
+      expect(uniqueColors.size).toBe(LOG_CONTEXT_COLORS.length);
+    });
+  });
+
   describe('Инициализация Logger', () => {
     it('должен инициализироваться с правильными значениями по умолчанию', () => {
       const testLogger = Logger.create('TestContext');
@@ -66,6 +85,7 @@ describe('Logger', () => {
       // Проверяем уровень по умолчанию (DEBUG в dev режиме)
       expect(testLogger['level']).toBe(LogLevel.DEBUG);
       expect(testLogger['context']).toBe('TestContext');
+      expect(testLogger['contextColor']).toBe('#ff6b6b'); // красный по умолчанию
     });
 
     it('должен позволять устанавливать начальный уровень', () => {
@@ -75,6 +95,7 @@ describe('Logger', () => {
 
       expect(testLogger['level']).toBe(LogLevel.ERROR);
       expect(testLogger['context']).toBe('Test');
+      expect(testLogger['contextColor']).toBe('#ff6b6b'); // красный по умолчанию
     });
 
     it('должен использовать контекст по умолчанию "App"', () => {
@@ -153,12 +174,29 @@ describe('Logger', () => {
       expect(logger1).not.toBe(logger2);
       expect(logger1['context']).toBe('Context1');
       expect(logger2['context']).toBe('Context2');
+      expect(logger1['contextColor']).toBe('#ff6b6b'); // красный по умолчанию
+      expect(logger2['contextColor']).toBe('#ff6b6b'); // красный по умолчанию
     });
 
     it('должен использовать уровень по умолчанию для новых инстансов', () => {
       const testLogger = Logger.create('Test');
 
       expect(testLogger['level']).toBe(LogLevel.DEBUG);
+      expect(testLogger['contextColor']).toBe('#ff6b6b'); // красный по умолчанию
+    });
+
+    it('должен позволять устанавливать цвет контекста', () => {
+      const testLogger = Logger.create('Test', '#4ecdc4'); // бирюзовый
+
+      expect(testLogger['context']).toBe('Test');
+      expect(testLogger['contextColor']).toBe('#4ecdc4');
+    });
+
+    it('должен использовать все доступные цвета из LOG_CONTEXT_COLORS', () => {
+      LOG_CONTEXT_COLORS.forEach((color: LogContextColor, index: number) => {
+        const testLogger = Logger.create(`Test${index}`, color);
+        expect(testLogger['contextColor']).toBe(color);
+      });
     });
   });
 
@@ -203,6 +241,38 @@ describe('Logger', () => {
     });
   });
 
+  describe('Context color management', () => {
+    it('должен возвращать цвет контекста через getContextColor', () => {
+      const testLogger = Logger.create('Test', '#4ecdc4'); // бирюзовый
+
+      expect(testLogger.getContextColor()).toBe('#4ecdc4');
+    });
+
+    it('должен устанавливать цвет контекста через setContextColor', () => {
+      const testLogger = Logger.create('Test');
+
+      expect(testLogger.getContextColor()).toBe('#ff6b6b'); // красный по умолчанию
+
+      testLogger.setContextColor('#45b7d1'); // голубой
+      expect(testLogger.getContextColor()).toBe('#45b7d1');
+    });
+
+    it('должен использовать новый цвет контекста в логах', () => {
+      const testLogger = Logger.create('Test');
+
+      testLogger.setContextColor('#4ecdc4'); // бирюзовый
+      testLogger.setLevel(LogLevel.INFO);
+      testLogger.info('Test message');
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '%cℹ️ %c[INFO]%c [Test] Test message',
+        'color: #10b981; font-weight: 500;', // emoji
+        'color: #10b981; font-weight: 500;', // [INFO]
+        'color: #4ecdc4; font-weight: 500;', // [Test] message - новый цвет
+      );
+    });
+  });
+
   describe('debug()', () => {
     it('должен логировать debug сообщения на подходящем уровне', () => {
       const testLogger = Logger.create('Test');
@@ -211,8 +281,10 @@ describe('Logger', () => {
       testLogger.debug('Test debug message');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '%c🐛 [DEBUG][Test] Test debug message',
-        'color: #6b7280; font-weight: 400;',
+        '%c🐛 %c[DEBUG]%c [Test] Test debug message',
+        'color: #6b7280; font-weight: 400;', // emoji
+        'color: #6b7280; font-weight: 400;', // [DEBUG]
+        'color: #ff6b6b; font-weight: 500;', // [Test] message - красный по умолчанию
       );
     });
 
@@ -223,8 +295,10 @@ describe('Logger', () => {
       testLogger.debug('Message', 'arg1', 42, { key: 'value' });
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '%c🐛 [DEBUG][Test] Message',
-        'color: #6b7280; font-weight: 400;',
+        '%c🐛 %c[DEBUG]%c [Test] Message',
+        'color: #6b7280; font-weight: 400;', // emoji
+        'color: #6b7280; font-weight: 400;', // [DEBUG]
+        'color: #ff6b6b; font-weight: 500;', // [Test] message
         'arg1',
         42,
         { key: 'value' },
@@ -249,8 +323,10 @@ describe('Logger', () => {
       testLogger.info('Test info message');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '%cℹ️ [INFO][Test] Test info message',
-        'color: #10b981; font-weight: 500;',
+        '%cℹ️ %c[INFO]%c [Test] Test info message',
+        'color: #10b981; font-weight: 500;', // emoji
+        'color: #10b981; font-weight: 500;', // [INFO]
+        'color: #ff6b6b; font-weight: 500;', // [Test] message
       );
     });
 
@@ -281,8 +357,10 @@ describe('Logger', () => {
       testLogger.warn('Test warning message');
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '%c⚠️ [WARN][Test] Test warning message',
-        'color: #f59e0b; font-weight: 500;',
+        '%c⚠️ %c[WARN]%c [Test] Test warning message',
+        'color: #f59e0b; font-weight: 500;', // emoji
+        'color: #f59e0b; font-weight: 500;', // [WARN]
+        'color: #ff6b6b; font-weight: 500;', // [Test] message
       );
     });
 
@@ -313,8 +391,10 @@ describe('Logger', () => {
       testLogger.error('Test error message');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '%c❌ [ERROR][Test] Test error message',
-        'color: #ef4444; font-weight: 600;',
+        '%c❌ %c[ERROR]%c [Test] Test error message',
+        'color: #ef4444; font-weight: 600;', // emoji
+        'color: #ef4444; font-weight: 600;', // [ERROR]
+        'color: #ff6b6b; font-weight: 600;', // [Test] message
         undefined,
       );
     });
@@ -327,8 +407,10 @@ describe('Logger', () => {
       testLogger.error('Error occurred', testError);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '%c❌ [ERROR][Test] Error occurred',
-        'color: #ef4444; font-weight: 600;',
+        '%c❌ %c[ERROR]%c [Test] Error occurred',
+        'color: #ef4444; font-weight: 600;', // emoji
+        'color: #ef4444; font-weight: 600;', // [ERROR]
+        'color: #ff6b6b; font-weight: 600;', // [Test] message
         testError,
       );
     });
@@ -340,8 +422,10 @@ describe('Logger', () => {
       testLogger.error('Error message', new Error('test'), 'extra', 123);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '%c❌ [ERROR][Test] Error message',
-        'color: #ef4444; font-weight: 600;',
+        '%c❌ %c[ERROR]%c [Test] Error message',
+        'color: #ef4444; font-weight: 600;', // emoji
+        'color: #ef4444; font-weight: 600;', // [ERROR]
+        'color: #ff6b6b; font-weight: 600;', // [Test] message
         expect.any(Error),
         'extra',
         123,
@@ -443,8 +527,10 @@ describe('Logger', () => {
       testLogger.debug('Test message');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '%c🐛 [DEBUG][MyContext] Test message',
-        'color: #6b7280; font-weight: 400;',
+        '%c🐛 %c[DEBUG]%c [MyContext] Test message',
+        'color: #6b7280; font-weight: 400;', // emoji
+        'color: #6b7280; font-weight: 400;', // [DEBUG]
+        'color: #ff6b6b; font-weight: 500;', // [MyContext] message
       );
     });
 
@@ -455,8 +541,10 @@ describe('Logger', () => {
       testLogger.info('Test message');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '%cℹ️ [INFO][MyContext] Test message',
-        'color: #10b981; font-weight: 500;',
+        '%cℹ️ %c[INFO]%c [MyContext] Test message',
+        'color: #10b981; font-weight: 500;', // emoji
+        'color: #10b981; font-weight: 500;', // [INFO]
+        'color: #ff6b6b; font-weight: 500;', // [MyContext] message
       );
     });
 
@@ -467,8 +555,10 @@ describe('Logger', () => {
       testLogger.warn('Test message');
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '%c⚠️ [WARN][MyContext] Test message',
-        'color: #f59e0b; font-weight: 500;',
+        '%c⚠️ %c[WARN]%c [MyContext] Test message',
+        'color: #f59e0b; font-weight: 500;', // emoji
+        'color: #f59e0b; font-weight: 500;', // [WARN]
+        'color: #ff6b6b; font-weight: 500;', // [MyContext] message
       );
     });
 
@@ -479,8 +569,10 @@ describe('Logger', () => {
       testLogger.error('Test message');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '%c❌ [ERROR][MyContext] Test message',
-        'color: #ef4444; font-weight: 600;',
+        '%c❌ %c[ERROR]%c [MyContext] Test message',
+        'color: #ef4444; font-weight: 600;', // emoji
+        'color: #ef4444; font-weight: 600;', // [ERROR]
+        'color: #ff6b6b; font-weight: 600;', // [MyContext] message
         undefined,
       );
     });
@@ -501,8 +593,10 @@ describe('Logger', () => {
       logger.info('Test message from exported logger');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '%cℹ️ [INFO][App] Test message from exported logger',
-        'color: #10b981; font-weight: 500;',
+        '%cℹ️ %c[INFO]%c [App] Test message from exported logger',
+        'color: #10b981; font-weight: 500;', // emoji
+        'color: #10b981; font-weight: 500;', // [INFO]
+        'color: #ff6b6b; font-weight: 500;', // [App] message
       );
     });
   });

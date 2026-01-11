@@ -1,5 +1,6 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
+import { ECSManager } from '@/core/ecs/ecs_manager';
 import { ButtonUI } from '@/ui/button.ui';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
@@ -14,8 +15,8 @@ export class ToolbarModule extends BaseModule {
   // UI элементы
   private container!: Phaser.GameObjects.Container;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
     this.logger = Logger.create('ToolbarModule');
     this.logger.info('ToolbarModule initialized');
     this.scene = scene;

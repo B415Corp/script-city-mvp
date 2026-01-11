@@ -4,7 +4,6 @@ import { MainScene } from '../scenes';
 import { EventBus } from '../event_bus/event_bus';
 import { ECSManager } from '../ecs/ecs_manager';
 import { TickManager } from '../tick/tick_manager';
-import { EntrySimulation } from '../simulations/entry_simulation';
 import { GameSpeeds } from '../tick/types';
 
 // Методы инициализации для Core
@@ -26,14 +25,6 @@ export class CoreInitialization {
     ecsManager: ECSManager | null,
     tickManager: TickManager,
   ) => ModuleManager;
-  private entrySimulationFactory: (
-    ecsManager: ECSManager,
-    eventBus: EventBus,
-    tickManager: TickManager,
-  ) => EntrySimulation;
-
-  // Конфигурационный флаг для Phase 0 - отключает симуляцию
-  private readonly enableSimulation: boolean;
 
   constructor(
     phaser: Phaser.Game | undefined,
@@ -51,12 +42,6 @@ export class CoreInitialization {
       ecsManager: ECSManager | null,
       tickManager: TickManager,
     ) => ModuleManager,
-    entrySimulationFactory: (
-      ecsManager: ECSManager,
-      eventBus: EventBus,
-      tickManager: TickManager,
-    ) => EntrySimulation,
-    enableSimulation: boolean = false,
   ) {
     this.phaser = phaser;
     this.eventBus = eventBus;
@@ -68,8 +53,6 @@ export class CoreInitialization {
     this.tickManagerFactory = tickManagerFactory;
     this.ecsManagerFactory = ecsManagerFactory;
     this.moduleManagerFactory = moduleManagerFactory;
-    this.entrySimulationFactory = entrySimulationFactory;
-    this.enableSimulation = enableSimulation;
   }
 
   // Основной метод инициализации
@@ -79,7 +62,6 @@ export class CoreInitialization {
     this.initializeTickManager();
     await this.initializeECSManager();
     await this.initializeModules();
-    this.startSimulation();
   }
 
   // Отдельные методы инициализации для тестирования
@@ -165,27 +147,6 @@ export class CoreInitialization {
         }
       });
     });
-  }
-
-  async startSimulation(): Promise<void> {
-    if (!this.enableSimulation) {
-      console.log('Simulation disabled for Phase 0');
-      return;
-    }
-
-    try {
-      if (!this.ecsManager || !this.eventBus || !this.tickManager) {
-        throw new Error('All managers must be initialized before starting simulation');
-      }
-      const entrySimulation = this.entrySimulationFactory(
-        this.ecsManager,
-        this.eventBus,
-        this.tickManager,
-      );
-      entrySimulation.start();
-    } catch (error) {
-      throw new Error(`Failed to start simulation: ${error}`);
-    }
   }
 
   // Геттеры для доступа к полям

@@ -7,6 +7,7 @@ import ToolbarModule from './base_modules/toolbar_module/toolbar_module';
 import { ToolsModule } from './base_modules/tools_module/tools_module';
 import { BaseModule, CustomModule } from './extends';
 import { DebugModule } from './base_modules/debug_module/debug_module';
+import { SimulationModule } from './base_modules/simulation_module/simulation_module';
 
 // названия базовых модулей с их классами
 const baseModuleRegistry = {
@@ -14,6 +15,7 @@ const baseModuleRegistry = {
   ToolsModule: ToolsModule,
   ToolbarModule: ToolbarModule,
   DebugModule: DebugModule,
+  SimulationModule: SimulationModule,
 } as const;
 
 // названия кастомных модулей с их классами
@@ -66,14 +68,15 @@ export class ModuleManager {
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
-          ecsManager: ECSManager | null,
+          ecsManager: ECSManager,
           tickManager: TickManager,
-        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager, this.tickManager);
+        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager!, this.tickManager);
       } else {
-        module = new (ModuleClass as new (scene: Phaser.Scene, eventBus: EventBus) => BaseModule)(
-          this.scene,
-          this.eventBus,
-        );
+        module = new (ModuleClass as new (
+          scene: Phaser.Scene,
+          eventBus: EventBus,
+          ecsManager: ECSManager,
+        ) => BaseModule)(this.scene, this.eventBus, this.ecsManager!);
       }
       this.baseModuleApi.set(name, module);
     });

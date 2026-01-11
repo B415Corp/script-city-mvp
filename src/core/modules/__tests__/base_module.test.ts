@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BaseModule } from '../extends/base_module';
 import { EventBus } from '../../event_bus/event_bus';
+import { ECSManager } from '../../ecs/ecs_manager';
 import { Events } from '../../event_bus/events';
 
 // Mock-наследник для тестирования абстрактного класса BaseModule
 class TestBaseModule extends BaseModule {
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
     this.id = 'test-base-module';
   }
 }
@@ -27,7 +28,8 @@ describe('BaseModule', () => {
     } as any;
 
     eventBus = new EventBus();
-    module = new TestBaseModule(mockScene, eventBus);
+    const ecsManager = {} as ECSManager; // Mock ECSManager
+    module = new TestBaseModule(mockScene, eventBus, ecsManager);
   });
 
   describe('конструктор', () => {

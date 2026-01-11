@@ -7,8 +7,8 @@ import { BaseModule, CustomModule } from '../extends';
 
 // Stub-классы для тестирования (не используют Phaser API)
 class StubBaseModule extends BaseModule {
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
     this.id = 'stub-base-module';
   }
 }
@@ -27,10 +27,9 @@ class StubDebugModule extends BaseModule {
     ecsManager: ECSManager | null,
     tickManager: TickManager,
   ) {
-    super(scene, eventBus);
+    super(scene, eventBus, ecsManager!);
     this.id = 'stub-debug-module';
     // Сохраняем для проверки
-    (this as any).ecsManager = ecsManager;
     (this as any).tickManager = tickManager;
   }
 }
@@ -86,7 +85,8 @@ describe('ModuleManager', () => {
   describe('получение API модулей', () => {
     beforeEach(() => {
       // Ручная настройка модулей для тестирования
-      const baseModule = new StubBaseModule(mockScene, eventBus);
+      const ecsManager = {} as ECSManager; // Mock ECSManager
+      const baseModule = new StubBaseModule(mockScene, eventBus, ecsManager);
       const customModule = new StubCustomModule(mockScene, eventBus);
 
       (moduleManager as any).baseModuleApi.set('MapModule', baseModule);
@@ -157,7 +157,8 @@ describe('ModuleManager', () => {
 
   describe('проверка статуса модулей', () => {
     beforeEach(() => {
-      const enabledBaseModule = new StubBaseModule(mockScene, eventBus);
+      const ecsManager = {} as ECSManager; // Mock ECSManager
+      const enabledBaseModule = new StubBaseModule(mockScene, eventBus, ecsManager);
       const enabledCustomModule = new StubCustomModule(mockScene, eventBus);
       const disabledCustomModule = new StubCustomModule(mockScene, eventBus);
 

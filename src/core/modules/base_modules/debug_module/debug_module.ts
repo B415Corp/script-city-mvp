@@ -40,7 +40,7 @@ type SimulationDebugComponentConstructor = new (
 export class DebugModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
-  protected ecsManager: ECSManager | null;
+  protected ecsManager!: ECSManager;
   protected tickManager!: TickManager;
   private logger: Logger;
 
@@ -60,15 +60,14 @@ export class DebugModule extends BaseModule {
   constructor(
     scene: Phaser.Scene,
     eventBus: EventBus,
-    ecsManager: ECSManager | null,
+    ecsManager: ECSManager,
     tickManager: TickManager,
   ) {
-    super(scene, eventBus);
+    super(scene, eventBus, ecsManager);
     this.logger = Logger.create('DebugModule');
     this.logger.info('DebugModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
-    this.ecsManager = ecsManager;
     this.tickManager = tickManager;
 
     this.registerComponents();

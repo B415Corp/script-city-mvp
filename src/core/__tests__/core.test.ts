@@ -572,35 +572,6 @@ describe('Core', () => {
       expect(core._tickManager).toBe(mockTickManager);
       expect(core._ecsManager).toBe(mockECSManager);
     });
-
-    it('должен запускать симуляцию если enableSimulation = true', async () => {
-      const core = new CoreBuilder(mockPhaserConfig)
-        .withECSManager(mockECSManager)
-        .withEventBus(mockEventBus)
-        .withTickManager(mockTickManager)
-        .withEntrySimulation(mockEntrySimulation)
-        .build();
-
-      // Инициализируем менеджеры
-      core._ecsManager = mockECSManager;
-      core._eventBus = mockEventBus;
-      core._tickManager = mockTickManager;
-      core._enableSimulation = true;
-
-      await core.startSimulation();
-
-      expect(mockEntrySimulation.start).toHaveBeenCalled();
-    });
-
-    it('не должен запускать симуляцию если enableSimulation = false', async () => {
-      const core = new CoreBuilder(mockPhaserConfig).build();
-
-      core._enableSimulation = false;
-
-      await core.startSimulation();
-
-      expect(mockEntrySimulation.start).not.toHaveBeenCalled();
-    });
   });
 
   describe('ecsRegistries getter', () => {

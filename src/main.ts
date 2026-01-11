@@ -11,10 +11,8 @@ import { SystemRegistry } from './core/ecs/registry/system_registry';
 import { ClusterRegistry } from './core/ecs/registry/cluster_registry';
 import { EntityFactoryRegistry } from './core/ecs/registry/entity_factory_registry';
 
-// Импорт тестовых компонентов, систем и фабрик для проверки автоматической регистрации
-import './core/ecs/components/test/test_component';
-import './core/ecs/systems/test/test_system';
-import './core/ecs/entities/test/test_entity_factory';
+// Импорт всех тестовых ECS элементов (автоматическая регистрация)
+import './core/ecs/test';
 
 // Глобальный интерфейс для отладки
 interface SimDebugMethods {

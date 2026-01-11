@@ -6,12 +6,12 @@ export const MoneyComponent = createComponent('Money', {
 });
 
 // хранит количество рабочих мест на заводе
-export const FactoryComponent = createComponent('Money', {
+export const FactoryComponent = createComponent('Factory', {
   workplace: 5,
 });
 
 // связывает жителя с конкретным заводом и рабочим местом
-export const WorkplaceComponent = createComponent('Money', {
+export const WorkplaceComponent = createComponent('Workplace', {
   factoryId: 0,
   workplaceId: 0,
 });

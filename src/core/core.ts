@@ -4,7 +4,6 @@ import { MainScene } from './scenes';
 import { EventBus } from './event_bus/event_bus';
 import { ECSManager } from './ecs/ecs_manager';
 import { TickManager } from './tick/tick_manager';
-import { EntrySimulation } from './simulations/entry_simulation';
 import { ComponentRegistry } from './ecs/registry/component_registry';
 import { SystemRegistry } from './ecs/registry/system_registry';
 import { ClusterRegistry } from './ecs/registry/cluster_registry';
@@ -13,7 +12,6 @@ import { GameSpeeds } from './tick/types';
 import { ICoreDependencies } from './types';
 import { CoreLifecycle } from './internal/core_lifecycle';
 import { CoreInitialization } from './internal/core_initialization';
-import { CoreBuilder } from './internal/core_builder';
 
 export class Core {
   private phaserConfig: Phaser.Types.Core.GameConfig;
@@ -41,11 +39,6 @@ export class Core {
     ecsManager: ECSManager | null,
     tickManager: TickManager,
   ) => ModuleManager;
-  private entrySimulationFactory: (
-    ecsManager: ECSManager,
-    eventBus: EventBus,
-    tickManager: TickManager,
-  ) => EntrySimulation;
 
   constructor(phaserConfig: Phaser.Types.Core.GameConfig, dependencies: ICoreDependencies = {}) {
     this.phaserConfig = phaserConfig;
@@ -69,10 +62,6 @@ export class Core {
         ecsManager: ECSManager | null,
         tickManager: TickManager,
       ): ModuleManager => new ModuleManager(scene, eventBus, ecsManager, tickManager));
-    this.entrySimulationFactory =
-      dependencies.entrySimulationFactory ||
-      ((ecsManager: ECSManager, eventBus: EventBus, tickManager: TickManager): EntrySimulation =>
-        new EntrySimulation(ecsManager, eventBus, tickManager));
 
     // Инициализируем компоненты
     this.lifecycle = new CoreLifecycle(
@@ -95,8 +84,6 @@ export class Core {
       this.tickManagerFactory,
       this.ecsManagerFactory,
       this.moduleManagerFactory,
-      this.entrySimulationFactory,
-      this.enableSimulation,
     );
 
     this.lifecycle.setupResizeHandler();
@@ -132,8 +119,6 @@ export class Core {
       this.initialization['tickManagerFactory'],
       this.initialization['ecsManagerFactory'],
       this.initialization['moduleManagerFactory'],
-      this.initialization['entrySimulationFactory'],
-      this.enableSimulation,
     );
   }
 
@@ -183,27 +168,6 @@ export class Core {
     await this.initialization.initializeModules();
     this.moduleManager = this.initialization.getModuleManager();
     this.lifecycle.setModuleManager(this.moduleManager);
-  }
-
-  public async startSimulation(): Promise<void> {
-    if (!this.enableSimulation) {
-      console.log('Simulation disabled for Phase 0');
-      return;
-    }
-
-    try {
-      if (!this.ecsManager || !this.eventBus || !this.tickManager) {
-        throw new Error('All managers must be initialized before starting simulation');
-      }
-      const entrySimulation = this.initialization['entrySimulationFactory'](
-        this.ecsManager,
-        this.eventBus,
-        this.tickManager,
-      );
-      entrySimulation.start();
-    } catch (error) {
-      throw new Error(`Failed to start simulation: ${error}`);
-    }
   }
 
   /**
@@ -278,8 +242,6 @@ export class Core {
       this.initialization['tickManagerFactory'],
       this.initialization['ecsManagerFactory'],
       this.initialization['moduleManagerFactory'],
-      this.initialization['entrySimulationFactory'],
-      value,
     );
   }
 
@@ -314,7 +276,6 @@ export class Core {
       this.initialization['tickManagerFactory'],
       this.initialization['ecsManagerFactory'],
       this.initialization['moduleManagerFactory'],
-      this.initialization['entrySimulationFactory'],
     );
   }
 
@@ -334,8 +295,6 @@ export class Core {
       this.initialization['tickManagerFactory'],
       this.initialization['ecsManagerFactory'],
       this.initialization['moduleManagerFactory'],
-      this.initialization['entrySimulationFactory'],
-      this.enableSimulation,
     );
   }
 
@@ -355,8 +314,6 @@ export class Core {
       this.initialization['tickManagerFactory'],
       this.initialization['ecsManagerFactory'],
       this.initialization['moduleManagerFactory'],
-      this.initialization['entrySimulationFactory'],
-      this.enableSimulation,
     );
   }
 
@@ -382,8 +339,6 @@ export class Core {
       this.initialization['tickManagerFactory'],
       this.initialization['ecsManagerFactory'],
       this.initialization['moduleManagerFactory'],
-      this.initialization['entrySimulationFactory'],
-      this.enableSimulation,
     );
   }
 }

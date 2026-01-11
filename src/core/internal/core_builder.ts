@@ -10,6 +10,7 @@ import { Core } from '../core';
 import { ICoreDependencies } from '../types';
 
 // Builder для создания тестовых экземпляров Core
+/** @internal Для тестирования */
 export class CoreBuilder {
   private phaserConfig: Phaser.Types.Core.GameConfig;
   private dependencies: ICoreDependencies = {};

@@ -1,3 +1,4 @@
+import { ECSManager } from '@/core/ecs/ecs_manager';
 import { EventBus } from '../../event_bus/event_bus';
 import { Events } from '../../event_bus/events';
 
@@ -10,11 +11,14 @@ export abstract class BaseModule {
 
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  protected ecsManager!: ECSManager;
+
   private isEnabled: boolean = true;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     this.scene = scene;
     this.eventBus = eventBus;
+    this.ecsManager = ecsManager;
   }
 
   public get enabled(): boolean {

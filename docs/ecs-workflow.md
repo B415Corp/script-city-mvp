@@ -14,13 +14,16 @@
 ```
 src/core/
 ├── ecs/
+│   ├── test/             # Автоматический импорт всех тестовых ECS элементов
 │   ├── components/        # Компоненты (данные сущностей)
 │   ├── entities/         # Фабрики сущностей
 │   ├── systems/          # Системы (логика)
+│   ├── clusters/         # Кластеры систем
 │   ├── registry/         # Реестры для автоматической регистрации
 │   └── core/             # Smart constructors и schema
+├── simulations/          # Классы симуляций (EntrySimulation и др.)
 ├── modules/              # Модули (высокоуровневые компоненты)
-│   ├── base_modules/     # Базовые модули (MapModule, ToolsModule и т.д.)
+│   ├── base_modules/     # Базовые модули (MapModule, ToolsModule, SimulationModule и т.д.)
 │   └── custom_modules/   # Кастомные модули
 ```
 
@@ -298,13 +301,15 @@ src/core/modules/
 ```typescript
 import { BaseModule } from '../extends/base_module';
 import { EventBus } from '../../event_bus/event_bus';
+import { ECSManager } from '../../ecs/ecs_manager';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  protected ecsManager!: ECSManager;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
     this.logger.info('MapModule initialized');
 
     // Инициализация модуля
@@ -335,10 +340,11 @@ export class MapModule extends BaseModule {
 
 ```typescript
 import { CustomModule } from '../extends/custom_module';
+import { ECSManager } from '../../ecs/ecs_manager';
 
 export class MyCustomModule extends CustomModule {
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
     this.logger.info('MyCustomModule initialized');
 
     // Кастомная логика
@@ -381,6 +387,46 @@ export class MyCustomModule extends CustomModule {
    - Все системы настроены согласно метаданным
    - Кластеры созданы и готовы к работе
 
+### Правильный импорт для автоматической регистрации
+
+Для автоматической регистрации все ECS элементы должны быть импортированы. Рекомендуется использовать **index.ts файлы** для группового импорта:
+
+#### Создание index.ts файла для категории
+
+```typescript
+// src/core/ecs/test/index.ts
+// Автоматический импорт всех тестовых ECS элементов
+
+// Компоненты
+import '../components/test/test_component';
+import '../components/test/firts_sim_components';
+
+// Системы
+import '../systems/test/test_system';
+import '../systems/test/firts_sim_system';
+
+// Фабрики сущностей
+import '../entities/test/test_entity_factory';
+import '../entities/test/firts_sim_factory';
+
+// Кластеры
+import '../clusters/firts_sim_cluster';
+```
+
+#### Импорт в main.ts
+
+```typescript
+// Импорт всех тестовых ECS элементов (автоматическая регистрация)
+import './core/ecs/test';
+```
+
+### Преимущества index.ts подхода:
+
+- ✅ **Один импорт** вместо множества отдельных
+- ✅ **Автоматическое подключение** новых файлов при добавлении в index.ts
+- ✅ **Масштабируемость** - легко добавить новые категории
+- ✅ **Организованность** - все импорты в одном месте
+
 ### Реестры
 
 ```typescript
@@ -412,6 +458,49 @@ const entityId = registries.entityFactories().create('player', world);
 3. **Сгруппировать в кластеры** (организация систем)
 4. **Создать фабрики сущностей** (конструкторы объектов)
 5. **Добавить в модули** (интеграция с игрой)
+6. **Настроить автоматическую регистрацию** (добавить в index.ts)
+7. **Запустить симуляцию** (через SimulationModule или EntrySimulation)
+
+### Запуск симуляции
+
+Симуляции запускаются через **модули** или **EntrySimulation классы**:
+
+#### Через модули (рекомендуется)
+
+```typescript
+// src/core/modules/base_modules/simulation_module/simulation_module.ts
+export class SimulationModule extends BaseModule {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
+    this.startSimulation(); // Запуск симуляции в конструкторе
+  }
+
+  public startSimulation(): void {
+    // Создание сущностей
+    this.createCitizens();
+    this.createFactories();
+
+    // Системы запускаются автоматически через ECS
+  }
+}
+```
+
+#### Через EntrySimulation класс
+
+```typescript
+// src/core/simulations/entry_simulation.ts
+export class EntrySimulation {
+  constructor(
+    private ecsManager: ECSManager,
+    private eventBus: EventBus,
+    private tickManager: TickManager,
+  ) {}
+
+  public start(): void {
+    // Логика запуска симуляции
+  }
+}
+```
 
 ### Пример: Система инвентаря
 
@@ -448,12 +537,26 @@ export const createItem = createEntityFactory(
   'Создает предмет в мире',
 );
 
-// Использование фабрики
-const itemId = registry.create('item', world);
+// 4. Автоматическая регистрация
+// Добавить в src/core/ecs/test/index.ts:
+import '../components/test/inventory_components';
+import '../systems/test/inventory_system';
+import '../entities/test/item_factory';
 
-// 4. Модуль (если нужен UI)
+// 5. Модуль для запуска симуляции
 export class InventoryModule extends BaseModule {
-  // UI для отображения инвентаря
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
+    this.startInventorySimulation();
+  }
+
+  private startInventorySimulation(): void {
+    const world = this.ecsManager.getWorld();
+
+    // Создание предметов через фабрики
+    const registries = this.ecsManager.getRegistries();
+    const itemId = registries.entityFactories().create('item', world);
+  }
 }
 ```
 
@@ -550,10 +653,12 @@ npm run build
 - [ ] Компоненты и системы протестированы
 - [ ] Фабрики сущностей созданы (если нужны)
 - [ ] Системы сгруппированы в кластеры
+- [ ] **Добавлены импорты в index.ts для автоматической регистрации**
+- [ ] **Создан/обновлен модуль для запуска симуляции**
 - [ ] Добавлена документация с тегами
 - [ ] Написаны тесты
 - [ ] Проведено ручное тестирование
 
 ---
 
-**Примечание**: Все компоненты, системы и кластеры регистрируются автоматически при импорте их файлов. Просто создайте файл и импортируйте его где-нибудь в коде.
+**Примечание**: Все компоненты, системы и кластеры регистрируются автоматически при импорте их файлов. Для удобства используйте index.ts файлы для группового импорта. Создайте файл и добавьте его импорт в соответствующий index.ts файл для автоматической регистрации.
