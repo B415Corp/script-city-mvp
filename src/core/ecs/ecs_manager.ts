@@ -381,7 +381,6 @@ export class ScheduleManager {
 
   registerSystem(system: SystemFunction): void {
     this.systems.push(system);
-    console.log('[ScheduleManager] Registered system');
   }
 
   /**
@@ -394,7 +393,6 @@ export class ScheduleManager {
       interval,
       lastExecuted: this.gameTime, // Начать с текущего игрового времени
     });
-    console.log(`[ScheduleManager] Registered interval system: ${name} (interval: ${interval}ms)`);
   }
 
   /**
