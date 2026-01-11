@@ -12,12 +12,22 @@ export class HTMLToolbar extends BaseHTMLElement {
   private tools: HTMLButton[] = [];
 
   constructor(config: ToolbarConfig = {}) {
-    super('div', {
+    // Устанавливаем значения по умолчанию для config
+    const defaultConfig: ToolbarConfig = {
+      position: 'top',
+      orientation: 'horizontal',
       ...config,
-      className: `html-toolbar ${config.position || 'top'} ${config.orientation || 'horizontal'}`,
+    };
+
+    super('div', {
+      ...defaultConfig,
+      className: `html-toolbar ${defaultConfig.position} ${defaultConfig.orientation}`,
     });
 
-    this.config = config;
+    this.config = defaultConfig;
+
+    // Вызываем init после полной инициализации
+    this.init();
   }
 
   protected init(): void {

@@ -39,7 +39,7 @@ export abstract class BaseHTMLElement {
       this.element.innerHTML = config.innerHTML;
     }
 
-    this.init();
+    // init() теперь вызывается дочерними классами после их полной инициализации
   }
 
   protected abstract init(): void;

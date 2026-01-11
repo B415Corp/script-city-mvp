@@ -12,13 +12,23 @@ export class HTMLButton extends BaseHTMLElement {
   private config: HTMLButtonConfig;
 
   constructor(config: HTMLButtonConfig) {
-    super('button', {
+    // Устанавливаем значения по умолчанию
+    const defaultConfig: HTMLButtonConfig = {
+      variant: 'primary',
+      size: 'medium',
       ...config,
-      textContent: config.label,
-      className: `html-button ${config.variant || 'primary'} ${config.size || 'medium'}`,
+    };
+
+    super('button', {
+      ...defaultConfig,
+      textContent: defaultConfig.label,
+      className: `html-button ${defaultConfig.variant} ${defaultConfig.size}`,
     });
 
-    this.config = config;
+    this.config = defaultConfig;
+
+    // Вызываем init после полной инициализации
+    this.init();
   }
 
   protected init(): void {

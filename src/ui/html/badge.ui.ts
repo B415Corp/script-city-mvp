@@ -11,13 +11,24 @@ export class HTMLBadge extends BaseHTMLElement {
   private config: HTMLBadgeConfig;
 
   constructor(config: HTMLBadgeConfig) {
-    super('span', {
+    // Устанавливаем значения по умолчанию
+    const defaultConfig: HTMLBadgeConfig = {
+      variant: 'default',
+      size: 'medium',
+      rounded: false,
       ...config,
-      textContent: config.text,
-      className: `html-badge ${config.variant || 'default'} ${config.size || 'medium'}`,
+    };
+
+    super('span', {
+      ...defaultConfig,
+      textContent: defaultConfig.text,
+      className: `html-badge ${defaultConfig.variant} ${defaultConfig.size}`,
     });
 
-    this.config = config;
+    this.config = defaultConfig;
+
+    // Вызываем init после полной инициализации
+    this.init();
   }
 
   protected init(): void {
@@ -127,16 +138,10 @@ export class HTMLBadge extends BaseHTMLElement {
   public setVariant(
     variant: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger',
   ): this {
-    // Удаляем старый вариант
-    Object.keys(this.element.classList).forEach((className) => {
-      if (className.includes('html-badge') && className !== 'html-badge') {
-        const parts = className.split(' ');
-        parts.forEach((part) => {
-          if (['default', 'primary', 'secondary', 'success', 'warning', 'danger'].includes(part)) {
-            this.removeClass(part);
-          }
-        });
-      }
+    // Удаляем старые варианты
+    const variants = ['default', 'primary', 'secondary', 'success', 'warning', 'danger'];
+    variants.forEach((v) => {
+      this.removeClass(v);
     });
 
     this.addClass(variant);
