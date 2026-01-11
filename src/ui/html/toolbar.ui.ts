@@ -60,6 +60,16 @@ export class HTMLToolbar extends BaseHTMLElement {
       const sectionElement = document.createElement('div');
       sectionElement.className = `toolbar-section ${section.className || ''}`;
 
+      // Если секция expandable, создаем expandable контейнер
+      if (section.expandable) {
+        const expandableContainer = document.createElement('div');
+        expandableContainer.className = `toolbar-expandable-section ${section.expanded ? 'expanded' : ''}`;
+        expandableContainer.style.display = section.expanded ? 'flex' : 'none';
+
+        sectionElement.appendChild(expandableContainer);
+        this.expandableSections.set(section.id, expandableContainer);
+      }
+
       // Создаем контейнер для инструментов в секции
       const toolsContainer = document.createElement('div');
       toolsContainer.className = 'toolbar-section-tools';
@@ -71,16 +81,6 @@ export class HTMLToolbar extends BaseHTMLElement {
       });
 
       sectionElement.appendChild(toolsContainer);
-
-      // Если секция expandable, создаем expandable контейнер
-      if (section.expandable) {
-        const expandableContainer = document.createElement('div');
-        expandableContainer.className = `toolbar-expandable-section ${section.expanded ? 'expanded' : ''}`;
-        expandableContainer.style.display = section.expanded ? 'block' : 'none';
-
-        sectionElement.appendChild(expandableContainer);
-        this.expandableSections.set(section.id, expandableContainer);
-      }
 
       this.element.appendChild(sectionElement);
       this.sections.set(section.id, sectionElement);
@@ -207,11 +207,6 @@ export class HTMLToolbar extends BaseHTMLElement {
     if (expandableSection) {
       expandableSection.style.display = 'block';
       expandableSection.classList.add('expanded');
-
-      // Добавляем обработчик клика вне для закрытия
-      setTimeout(() => {
-        this.addClickOutsideHandler(sectionId);
-      }, 10);
     }
     return this;
   }
@@ -221,9 +216,6 @@ export class HTMLToolbar extends BaseHTMLElement {
     if (expandableSection) {
       expandableSection.style.display = 'none';
       expandableSection.classList.remove('expanded');
-
-      // Удаляем обработчик клика вне
-      this.removeClickOutsideHandler();
     }
     return this;
   }
@@ -262,36 +254,6 @@ export class HTMLToolbar extends BaseHTMLElement {
       expandableSection.appendChild(toolsContainer);
     }
     return this;
-  }
-
-  private clickOutsideHandler?: (event: MouseEvent) => void;
-
-  private addClickOutsideHandler(sectionId: string): void {
-    this.removeClickOutsideHandler(); // Удаляем предыдущий обработчик
-
-    this.clickOutsideHandler = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const sectionElement = this.sections.get(sectionId);
-      const expandableSection = this.expandableSections.get(sectionId);
-
-      if (
-        sectionElement &&
-        expandableSection &&
-        !sectionElement.contains(target) &&
-        !expandableSection.contains(target)
-      ) {
-        this.collapseSection(sectionId);
-      }
-    };
-
-    document.addEventListener('mousedown', this.clickOutsideHandler);
-  }
-
-  private removeClickOutsideHandler(): void {
-    if (this.clickOutsideHandler) {
-      document.removeEventListener('mousedown', this.clickOutsideHandler);
-      this.clickOutsideHandler = undefined;
-    }
   }
 
   public setPosition(position: 'top' | 'bottom' | 'left' | 'right'): this {

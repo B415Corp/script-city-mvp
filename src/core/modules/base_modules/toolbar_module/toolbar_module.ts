@@ -44,14 +44,14 @@ export class ToolbarModule extends BaseModule {
               label: '🔧 Инструменты',
               variant: 'primary',
               size: 'medium',
-              onClick: () => this.toggleToolsSection(),
+              onClick: (): void => this.toggleToolsSection(),
             },
             // Правая часть - режим редактирования
             {
               label: '✏️ Редактирование',
               variant: 'secondary',
               size: 'medium',
-              onClick: () => this.toggleEditMode(),
+              onClick: (): void => this.toggleEditMode(),
             },
           ],
         },
@@ -64,7 +64,7 @@ export class ToolbarModule extends BaseModule {
               label: '⏸️ Пауза',
               variant: 'warning',
               size: 'small',
-              onClick: () => {
+              onClick: (): void => {
                 this.eventBus.emit(Events.GamePauseToggle, undefined);
                 this.switchTimeButton('pause');
               },
@@ -73,7 +73,7 @@ export class ToolbarModule extends BaseModule {
               label: '🐌 X1',
               variant: 'success',
               size: 'small',
-              onClick: () => {
+              onClick: (): void => {
                 this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
                 this.switchTimeButton('speedX1');
               },
@@ -82,7 +82,7 @@ export class ToolbarModule extends BaseModule {
               label: '🐕 X2',
               variant: 'secondary',
               size: 'small',
-              onClick: () => {
+              onClick: (): void => {
                 this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
                 this.switchTimeButton('speedX2');
               },
@@ -91,7 +91,7 @@ export class ToolbarModule extends BaseModule {
               label: '🐆 X3',
               variant: 'secondary',
               size: 'small',
-              onClick: () => {
+              onClick: (): void => {
                 this.eventBus.emit(Events.SetGameSpeed, { speed: 240 });
                 this.switchTimeButton('speedX3');
               },
@@ -158,30 +158,27 @@ export class ToolbarModule extends BaseModule {
         label: '🏠 Жилая зона',
         variant: 'secondary' as const,
         size: 'medium' as const,
-        onClick: () => {
+        onClick: (): void => {
           this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
           this.switchActiveTool('living_zone');
-          this.collapseToolsSection();
         },
       },
       {
         label: '🏪 Коммерческая зона',
         variant: 'secondary' as const,
         size: 'medium' as const,
-        onClick: () => {
+        onClick: (): void => {
           this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
           this.switchActiveTool('commercial_zone');
-          this.collapseToolsSection();
         },
       },
       {
         label: '🗑️ Очистить зону',
         variant: 'danger' as const,
         size: 'medium' as const,
-        onClick: () => {
+        onClick: (): void => {
           this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
           this.switchActiveTool('clear_zone');
-          this.collapseToolsSection();
         },
       },
     ];
@@ -191,10 +188,6 @@ export class ToolbarModule extends BaseModule {
 
     // Переключаем видимость секции
     this.toolbar.toggleSection('upper');
-  }
-
-  private collapseToolsSection(): void {
-    this.toolbar.collapseSection('upper');
   }
 
   private toggleEditMode(): void {
