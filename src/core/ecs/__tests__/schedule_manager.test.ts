@@ -3,14 +3,22 @@ import { ScheduleManager } from '../ecs_manager';
 import { EventBus } from '../../event_bus/event_bus';
 import { SystemRegistry } from '../registry/system_registry';
 import { ClusterRegistry } from '../registry/cluster_registry';
+import { World } from 'bitecs';
+import { SystemFunction } from '../core/smart_constructors';
 
 describe('ScheduleManager', () => {
   let scheduleManager: ScheduleManager;
-  let mockWorld: any;
-  let mockEventBus: any;
-  let mockSystemRegistry: any;
-  let mockClusterRegistry: any;
-  let mockSystem: any;
+  let mockWorld: World;
+  let mockEventBus: {
+    emit: ReturnType<typeof vi.fn>;
+    on: ReturnType<typeof vi.fn>;
+    off: ReturnType<typeof vi.fn>;
+    once: ReturnType<typeof vi.fn>;
+    clearEvents: ReturnType<typeof vi.fn>;
+  };
+  let mockSystemRegistry: { get: ReturnType<typeof vi.fn> };
+  let mockClusterRegistry: { getAll: ReturnType<typeof vi.fn> };
+  let mockSystem: SystemFunction;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -20,10 +28,16 @@ describe('ScheduleManager', () => {
 
     mockEventBus = {
       emit: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
+      once: vi.fn(),
+      clearEvents: vi.fn(),
     };
 
     mockSystemRegistry = {
-      get: vi.fn(),
+      get: vi
+        .fn()
+        .mockReturnValue({ name: 'MockSystem', system: mockSystem, metadata: { enabled: true } }),
     };
 
     mockClusterRegistry = {
@@ -32,9 +46,9 @@ describe('ScheduleManager', () => {
 
     scheduleManager = new ScheduleManager(
       mockWorld,
-      mockEventBus,
-      mockSystemRegistry,
-      mockClusterRegistry,
+      mockEventBus as unknown as EventBus,
+      mockSystemRegistry as unknown as SystemRegistry,
+      mockClusterRegistry as unknown as ClusterRegistry,
     );
   });
 
@@ -174,9 +188,9 @@ describe('ScheduleManager', () => {
       vi.clearAllMocks();
       scheduleManager = new ScheduleManager(
         mockWorld,
-        mockEventBus,
-        mockSystemRegistry,
-        mockClusterRegistry,
+        mockEventBus as unknown as EventBus,
+        mockSystemRegistry as unknown as SystemRegistry,
+        mockClusterRegistry as unknown as ClusterRegistry,
       );
     });
 
@@ -200,8 +214,10 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true },
       };
 
-      mockClusterRegistry.getAll.mockReturnValue(new Map([['TestCluster', mockCluster]]));
-      mockSystemRegistry.get.mockReturnValue(mockRegisteredSystem);
+      vi.mocked(mockClusterRegistry.getAll).mockReturnValue(
+        new Map([['TestCluster', mockCluster]]),
+      );
+      vi.mocked(mockSystemRegistry.get).mockReturnValue(mockRegisteredSystem);
 
       scheduleManager.update(16.67);
 
@@ -215,7 +231,9 @@ describe('ScheduleManager', () => {
         metadata: { enabled: false },
       };
 
-      mockClusterRegistry.getAll.mockReturnValue(new Map([['DisabledCluster', mockCluster]]));
+      vi.mocked(mockClusterRegistry.getAll).mockReturnValue(
+        new Map([['DisabledCluster', mockCluster]]),
+      );
 
       scheduleManager.update(16.67);
 
@@ -232,7 +250,7 @@ describe('ScheduleManager', () => {
 
       // Добавляем интервальную систему напрямую для теста
       (scheduleManager as any).intervalSystems = [intervalSystem];
-      mockSystemRegistry.get.mockReturnValue({
+      vi.mocked(mockSystemRegistry.get).mockReturnValue({
         name: 'IntervalSystem',
         system: mockSystem,
         metadata: { enabled: true },
@@ -257,7 +275,7 @@ describe('ScheduleManager', () => {
       };
 
       (scheduleManager as any).intervalSystems = [intervalSystem];
-      mockSystemRegistry.get.mockReturnValue({
+      vi.mocked(mockSystemRegistry.get).mockReturnValue({
         name: 'DisabledIntervalSystem',
         system: mockSystem,
         metadata: { enabled: false },
@@ -282,7 +300,7 @@ describe('ScheduleManager', () => {
       };
 
       (scheduleManager as any).intervalSystems = [intervalSystem];
-      mockSystemRegistry.get.mockReturnValue({
+      vi.mocked(mockSystemRegistry.get).mockReturnValue({
         name: 'FailingIntervalSystem',
         system: failingSystem,
         metadata: { enabled: true },
@@ -380,8 +398,10 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true, interval: 300 },
       };
 
-      mockClusterRegistry.getAll.mockReturnValue(new Map([['TestCluster', mockCluster]]));
-      mockSystemRegistry.get.mockReturnValue(mockRegisteredSystem);
+      vi.mocked(mockClusterRegistry.getAll).mockReturnValue(
+        new Map([['TestCluster', mockCluster]]),
+      );
+      vi.mocked(mockSystemRegistry.get).mockReturnValue(mockRegisteredSystem);
 
       // Первый тик - интервальная система не выполняется (100 < 300)
       scheduleManager.update(100);
@@ -420,8 +440,8 @@ describe('ScheduleManager', () => {
         ],
       ]);
 
-      mockClusterRegistry.getAll.mockReturnValue(clusters);
-      mockSystemRegistry.get
+      vi.mocked(mockClusterRegistry.getAll).mockReturnValue(clusters);
+      vi.mocked(mockSystemRegistry.get)
         .mockReturnValueOnce({ name: 'System1', system: system1, metadata: { enabled: true } })
         .mockReturnValueOnce({ name: 'System2', system: system2, metadata: { enabled: true } })
         .mockReturnValueOnce({ name: 'System3', system: system3, metadata: { enabled: true } });

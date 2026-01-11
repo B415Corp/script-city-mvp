@@ -42,7 +42,14 @@ describe('Core - базовые тесты', () => {
 
   it('должен иметь механизм очистки ресурсов', () => {
     // Проверяем что destroy метод должен очищать ресурсы в правильном порядке
-    const cleanupOrder = ['resizeHandler', 'moduleManager', 'ecsManager', 'tickManager', 'eventBus', 'phaser'];
+    const cleanupOrder = [
+      'resizeHandler',
+      'moduleManager',
+      'ecsManager',
+      'tickManager',
+      'eventBus',
+      'phaser',
+    ];
     expect(cleanupOrder).toHaveLength(6);
     expect(cleanupOrder[0]).toBe('resizeHandler');
     expect(cleanupOrder[5]).toBe('phaser');

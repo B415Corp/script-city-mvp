@@ -53,7 +53,7 @@ describe('EntityFactoryRegistry', () => {
       registry.register('TestFactory', factory1);
 
       expect(() => registry.register('TestFactory', factory2)).toThrow(
-        'Entity factory "TestFactory" is already registered'
+        'Entity factory "TestFactory" is already registered',
       );
     });
 
@@ -103,7 +103,7 @@ describe('EntityFactoryRegistry', () => {
 
     it('должен выбрасывать ошибку при попытке создать сущность через незарегистрированную фабрику', () => {
       expect(() => registry.create('NonExistentFactory')).toThrow(
-        'Entity factory "NonExistentFactory" not found'
+        'Entity factory "NonExistentFactory" not found',
       );
     });
 

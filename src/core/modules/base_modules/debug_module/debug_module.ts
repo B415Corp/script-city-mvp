@@ -88,7 +88,7 @@ export class DebugModule extends BaseModule {
     }
   }
 
-    // регистрация компонентов
+  // регистрация компонентов
   private registerComponents(): void {
     Object.entries(this.debugComponents).forEach(([name, ModuleClass]) => {
       let component: DebugComponent;

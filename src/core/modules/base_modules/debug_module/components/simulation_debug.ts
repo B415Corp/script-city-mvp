@@ -478,16 +478,27 @@ export class SimulationDebug extends DebugComponent {
       personEntities.forEach((eid: number) => {
         try {
           // Доступ к компонентам через BitECS API
-          const age = (personComponent as any).age[eid] || 0;
-          const gender = (personComponent as any).gender[eid] || 0;
-          const happiness = (citizenComponent as any).happiness[eid] || 0;
-          const energy = (citizenComponent as any).energy[eid] || 0;
-          const money = (citizenComponent as any).money[eid] || 0;
-          const home = (citizenComponent as any).home[eid] || 0;
-          const workplace = (citizenComponent as any).workplace[eid] || 0;
-          const housingType = (citizenComponent as any).housingType[eid] || 0;
-          const posX = (positionComponent as any).x[eid] || 0;
-          const posY = (positionComponent as any).y[eid] || 0;
+          const personComp = personComponent as unknown as { age: number[]; gender: number[] };
+          const citizenComp = citizenComponent as unknown as {
+            happiness: number[];
+            energy: number[];
+            money: number[];
+            home: number[];
+            workplace: number[];
+            housingType: number[];
+          };
+          const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+          const age = personComp.age[eid] || 0;
+          const gender = personComp.gender[eid] || 0;
+          const happiness = citizenComp.happiness[eid] || 0;
+          const energy = citizenComp.energy[eid] || 0;
+          const money = citizenComp.money[eid] || 0;
+          const home = citizenComp.home[eid] || 0;
+          const workplace = citizenComp.workplace[eid] || 0;
+          const housingType = citizenComp.housingType[eid] || 0;
+          const posX = positionComp.x[eid] || 0;
+          const posY = positionComp.y[eid] || 0;
 
           // Определяем тип жилья
           const housingNames: Record<number, string> = {
@@ -562,10 +573,16 @@ export class SimulationDebug extends DebugComponent {
 
         residentialEntities.forEach((eid: number) => {
           try {
-            const capacity = (residentialComponent as any).capacity[eid] || 4;
-            const occupants = (residentialComponent as any).occupants[eid] || 0;
-            const posX = (positionComponent as any).x[eid] || 0;
-            const posY = (positionComponent as any).y[eid] || 0;
+            const residentialComp = residentialComponent as unknown as {
+              capacity: number[];
+              occupants: number[];
+            };
+            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+            const capacity = residentialComp.capacity[eid] || 4;
+            const occupants = residentialComp.occupants[eid] || 0;
+            const posX = positionComp.x[eid] || 0;
+            const posY = positionComp.y[eid] || 0;
 
             buildings.push({
               id: eid,
@@ -589,11 +606,18 @@ export class SimulationDebug extends DebugComponent {
 
         commercialEntities.forEach((eid: number) => {
           try {
-            const buildingType = (commercialComponent as any).type[eid] || 0;
-            const employees = (commercialComponent as any).employees[eid] || 0;
-            const customers = (commercialComponent as any).customers[eid] || 0;
-            const posX = (positionComponent as any).x[eid] || 0;
-            const posY = (positionComponent as any).y[eid] || 0;
+            const commercialComp = commercialComponent as unknown as {
+              type: number[];
+              employees: number[];
+              customers: number[];
+            };
+            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+            const buildingType = commercialComp.type[eid] || 0;
+            const employees = commercialComp.employees[eid] || 0;
+            const customers = commercialComp.customers[eid] || 0;
+            const posX = positionComp.x[eid] || 0;
+            const posY = positionComp.y[eid] || 0;
 
             const typeNames = ['Shop', 'Office', 'Factory'];
 
@@ -619,9 +643,12 @@ export class SimulationDebug extends DebugComponent {
 
         workplaceEntities.forEach((eid: number) => {
           try {
-            const occupied = (workplaceComponent as any).occupied[eid] || 0;
-            const posX = (positionComponent as any).x[eid] || 0;
-            const posY = (positionComponent as any).y[eid] || 0;
+            const workplaceComp = workplaceComponent as unknown as { occupied: number[] };
+            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+            const occupied = workplaceComp.occupied[eid] || 0;
+            const posX = positionComp.x[eid] || 0;
+            const posY = positionComp.y[eid] || 0;
 
             buildings.push({
               id: eid,

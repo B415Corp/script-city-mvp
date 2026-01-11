@@ -11,7 +11,7 @@ describe('Logger', () => {
   const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
   // Мок для import.meta.env
-  const originalImportMeta = (globalThis as { import?: { meta?: any } }).import?.meta;
+  const originalImportMeta = (globalThis as { import?: { meta?: unknown } }).import?.meta;
 
   beforeEach(() => {
     // Очищаем все моки перед каждым тестом
@@ -30,9 +30,9 @@ describe('Logger', () => {
   afterEach(() => {
     // Восстанавливаем оригинальный import.meta
     if (originalImportMeta) {
-      (globalThis as { import?: { meta?: any } }).import = { meta: originalImportMeta };
+      (globalThis as { import?: { meta?: unknown } }).import = { meta: originalImportMeta };
     } else {
-      delete (globalThis as { import?: { meta?: any } }).import;
+      delete (globalThis as { import?: { meta?: unknown } }).import;
     }
   });
 

@@ -152,7 +152,7 @@ describe('EventBus', () => {
       // Должна быть залогирована ошибка
       expect(consoleSpy).toHaveBeenCalledWith(
         '[EventBus] Error in callback for "test:event":',
-        expect.any(Error)
+        expect.any(Error),
       );
 
       consoleSpy.mockRestore();

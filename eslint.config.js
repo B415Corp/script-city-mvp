@@ -73,6 +73,10 @@ export default [
         window: 'readonly',
         document: 'readonly',
         Phaser: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
     plugins: {
@@ -82,7 +86,7 @@ export default [
     rules: {
       'prettier/prettier': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off', // Отключаем для тестов
-      '@typescript-eslint/no-explicit-any': 'warn', // Предупреждение вместо ошибки для тестов
+      '@typescript-eslint/no-explicit-any': 'warn', // Предупреждение для тестов (доступ к приватным полям)
       'no-console': ['warn', { allow: ['warn', 'error', 'group', 'groupEnd', 'log'] }],
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',

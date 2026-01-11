@@ -72,7 +72,7 @@ describe('TimeService', () => {
           totalMinutes: expect.any(Number),
           timeOfDay: expect.any(String),
           date: expect.any(String),
-        })
+        }),
       );
     });
   });
@@ -162,7 +162,7 @@ describe('TimeService', () => {
       it('должен возвращать true для времени 6:00-11:59', () => {
         const morningHours = [6, 7, 8, 9, 10, 11];
 
-        morningHours.forEach(hour => {
+        morningHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isMorningTime()).toBe(true);
         });
@@ -171,7 +171,7 @@ describe('TimeService', () => {
       it('должен возвращать false для времени вне 6:00-11:59', () => {
         const nonMorningHours = [0, 5, 12, 18, 23];
 
-        nonMorningHours.forEach(hour => {
+        nonMorningHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isMorningTime()).toBe(false);
         });
@@ -182,7 +182,7 @@ describe('TimeService', () => {
       it('должен возвращать true для времени 12:00-17:59', () => {
         const afternoonHours = [12, 13, 14, 15, 16, 17];
 
-        afternoonHours.forEach(hour => {
+        afternoonHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isAfternoonTime()).toBe(true);
         });
@@ -191,7 +191,7 @@ describe('TimeService', () => {
       it('должен возвращать false для времени вне 12:00-17:59', () => {
         const nonAfternoonHours = [0, 11, 18, 23];
 
-        nonAfternoonHours.forEach(hour => {
+        nonAfternoonHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isAfternoonTime()).toBe(false);
         });
@@ -202,7 +202,7 @@ describe('TimeService', () => {
       it('должен возвращать true для времени 18:00-21:59', () => {
         const eveningHours = [18, 19, 20, 21];
 
-        eveningHours.forEach(hour => {
+        eveningHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isEveningTime()).toBe(true);
         });
@@ -211,7 +211,7 @@ describe('TimeService', () => {
       it('должен возвращать false для времени вне 18:00-21:59', () => {
         const nonEveningHours = [0, 17, 22, 23];
 
-        nonEveningHours.forEach(hour => {
+        nonEveningHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isEveningTime()).toBe(false);
         });
@@ -222,7 +222,7 @@ describe('TimeService', () => {
       it('должен возвращать true для времени 22:00-5:59', () => {
         const nightHours = [22, 23, 0, 1, 2, 3, 4, 5];
 
-        nightHours.forEach(hour => {
+        nightHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isNightTime()).toBe(true);
         });
@@ -231,7 +231,7 @@ describe('TimeService', () => {
       it('должен возвращать false для времени вне 22:00-5:59', () => {
         const nonNightHours = [6, 12, 18, 21];
 
-        nonNightHours.forEach(hour => {
+        nonNightHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isNightTime()).toBe(false);
         });
@@ -242,7 +242,7 @@ describe('TimeService', () => {
       it('должен возвращать true для времени 9:00-16:59', () => {
         const workHours = [9, 10, 11, 12, 13, 14, 15, 16];
 
-        workHours.forEach(hour => {
+        workHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isWorkHours()).toBe(true);
         });
@@ -251,7 +251,7 @@ describe('TimeService', () => {
       it('должен возвращать false для времени вне 9:00-16:59', () => {
         const nonWorkHours = [0, 8, 17, 18, 23];
 
-        nonWorkHours.forEach(hour => {
+        nonWorkHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isWorkHours()).toBe(false);
         });
@@ -262,7 +262,7 @@ describe('TimeService', () => {
       it('должен возвращать true для времени 18:00-19:59', () => {
         const firingHours = [18, 19];
 
-        firingHours.forEach(hour => {
+        firingHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isFiringTime()).toBe(true);
         });
@@ -271,7 +271,7 @@ describe('TimeService', () => {
       it('должен возвращать false для времени вне 18:00-19:59', () => {
         const nonFiringHours = [0, 17, 20, 23];
 
-        nonFiringHours.forEach(hour => {
+        nonFiringHours.forEach((hour) => {
           timeService.setTime(hour * 60);
           expect(timeService.isFiringTime()).toBe(false);
         });
@@ -294,7 +294,7 @@ describe('TimeService', () => {
     it('должен возвращать false для будней', () => {
       const weekdays = [1, 2, 3, 4, 5]; // Понедельник - пятница
 
-      weekdays.forEach(day => {
+      weekdays.forEach((day) => {
         timeService.setTime((day - 1) * 24 * 60);
         expect(timeService.isWeekend()).toBe(false);
       });

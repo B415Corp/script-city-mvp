@@ -99,10 +99,7 @@ describe('TickManager', () => {
       tickManager.update(1000, 50);
 
       // LogicTick не должен эмититься
-      expect(mockEventBus.emit).not.toHaveBeenCalledWith(
-        Events.LogicTick,
-        expect.any(Object)
-      );
+      expect(mockEventBus.emit).not.toHaveBeenCalledWith(Events.LogicTick, expect.any(Object));
 
       // TimeService.tick() не должен вызываться
       const timeService = tickManager.getTimeService();
@@ -116,41 +113,53 @@ describe('TickManager', () => {
         expect(tickManager.isPaused()).toBe(false);
 
         // Имитируем получение события
-        const pauseCallback = (mockEventBus.on as any).mock.calls.find(
-          ([event]) => event === Events.GamePauseToggle
-        )[1];
+        const pauseCallback = vi
+          .mocked(mockEventBus.on)
+          .mock.calls.find(
+            ([event, callback]: [string, (...args: unknown[]) => void]) =>
+              event === Events.GamePauseToggle,
+          )?.[1];
 
-        pauseCallback();
+        expect(pauseCallback).toBeDefined();
+        pauseCallback!();
         expect(tickManager.isPaused()).toBe(true);
 
-        pauseCallback();
+        pauseCallback!();
         expect(tickManager.isPaused()).toBe(false);
       });
     });
 
     describe('SetGameSpeed', () => {
       it('должен устанавливать скорость при получении события', () => {
-        const speedCallback = (mockEventBus.on as any).mock.calls.find(
-          ([event]) => event === Events.SetGameSpeed
-        )[1];
+        const speedCallback = vi
+          .mocked(mockEventBus.on)
+          .mock.calls.find(
+            ([event, callback]: [string, (...args: unknown[]) => void]) =>
+              event === Events.SetGameSpeed,
+          )?.[1];
 
+        expect(speedCallback).toBeDefined();
         const payload: SetSpeedPayload = { speed: 60 };
-        speedCallback(payload);
+        speedCallback!(payload);
 
         expect(tickManager.getTickRate()).toBe(60);
         expect(tickManager.getFixedStepMs()).toBe(1000 / 60);
       });
 
       it('должен поддерживать все допустимые скорости', () => {
-        const speedCallback = (mockEventBus.on as any).mock.calls.find(
-          ([event]) => event === Events.SetGameSpeed
-        )[1];
+        const speedCallback = vi
+          .mocked(mockEventBus.on)
+          .mock.calls.find(
+            ([event, callback]: [string, (...args: unknown[]) => void]) =>
+              event === Events.SetGameSpeed,
+          )?.[1];
 
+        expect(speedCallback).toBeDefined();
         const speeds: SetSpeedPayload['speed'][] = [10, 60, 240];
 
-        speeds.forEach(speed => {
+        speeds.forEach((speed) => {
           const payload: SetSpeedPayload = { speed };
-          speedCallback(payload);
+          speedCallback!(payload);
           expect(tickManager.getTickRate()).toBe(speed);
         });
       });
@@ -223,29 +232,42 @@ describe('TickManager', () => {
       tickManager.update(0, 100); // 1 тик
 
       expect(mockEventBus.emit).toHaveBeenCalledWith(Events.TickStarted, { time: 0, delta: 100 });
-      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.LogicTick, { delta: 100, ticksExecuted: 1 });
+      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.LogicTick, {
+        delta: 100,
+        ticksExecuted: 1,
+      });
 
       // Ставим на паузу
       tickManager.pause();
       tickManager.update(100, 100); // На паузе не должно быть тиков
 
       // Проверяем что LogicTick не эмитился второй раз
-      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.LogicTick, { delta: 100, ticksExecuted: 1 });
+      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.LogicTick, {
+        delta: 100,
+        ticksExecuted: 1,
+      });
       expect(mockEventBus.emit).toHaveBeenCalledWith(Events.TickStarted, { time: 100, delta: 100 });
 
       // Снимаем с паузы и меняем скорость
       tickManager.resume();
-      const speedCallback = (mockEventBus.on as any).mock.calls.find(
-        ([event]) => event === Events.SetGameSpeed
-      )[1];
-      speedCallback({ speed: 20 });
+      const speedCallback = vi
+        .mocked(mockEventBus.on)
+        .mock.calls.find(
+          ([event, callback]: [string, (...args: unknown[]) => void]) =>
+            event === Events.SetGameSpeed,
+        )?.[1];
+      expect(speedCallback).toBeDefined();
+      speedCallback!({ speed: 20 });
 
       // Очищаем моки для чистоты
-      mockEventBus.emit.mockClear();
+      (mockEventBus.emit as ReturnType<typeof vi.fn>).mockClear();
 
       // Следующее обновление должно работать с новой скоростью
       tickManager.update(200, 50); // 50ms при 20 тик/сек = 1 тик (50ms fixed step)
-      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.LogicTick, { delta: 50, ticksExecuted: 1 });
+      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.LogicTick, {
+        delta: 50,
+        ticksExecuted: 1,
+      });
     });
 
     it('должен правильно обрабатывать несколько тиков в одном обновлении', () => {
@@ -267,30 +289,31 @@ describe('TickManager', () => {
     });
 
     it('должен корректно работать с событиями паузы через EventBus', () => {
-      const pauseCallback = (mockEventBus.on as any).mock.calls.find(
-        ([event]) => event === Events.GamePauseToggle
-      )[1];
+      const pauseCallback = vi
+        .mocked(mockEventBus.on)
+        .mock.calls.find(
+          ([event, callback]: [string, (...args: unknown[]) => void]) =>
+            event === Events.GamePauseToggle,
+        )?.[1];
 
       // Имитируем клик по кнопке паузы
-      pauseCallback();
+      expect(pauseCallback).toBeDefined();
+      pauseCallback!();
       expect(tickManager.isPaused()).toBe(true);
 
       // Проверяем что тики не выполняются
       tickManager.update(100, 100);
-      expect(mockEventBus.emit).not.toHaveBeenCalledWith(
-        Events.LogicTick,
-        expect.any(Object)
-      );
+      expect(mockEventBus.emit).not.toHaveBeenCalledWith(Events.LogicTick, expect.any(Object));
 
       // Имитируем повторный клик (снятие паузы)
-      pauseCallback();
+      pauseCallback!();
       expect(tickManager.isPaused()).toBe(false);
 
       // Теперь тики должны выполняться
       tickManager.update(200, 100);
       expect(mockEventBus.emit).toHaveBeenCalledWith(
         Events.LogicTick,
-        expect.objectContaining({ ticksExecuted: 1 })
+        expect.objectContaining({ ticksExecuted: 1 }),
       );
     });
   });

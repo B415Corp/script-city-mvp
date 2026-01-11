@@ -153,15 +153,15 @@ describe('Core', () => {
   let mockPhaserConfig: Phaser.Types.Core.GameConfig;
 
   // Моки для window и event listeners
-  let addEventListenerSpy: any;
-  let removeEventListenerSpy: any;
+  let addEventListenerSpy: ReturnType<typeof vi.fn>;
+  let removeEventListenerSpy: ReturnType<typeof vi.fn>;
 
   // Моки для реестров
   let mockComponentRegistry: ComponentRegistry;
   let mockSystemRegistry: SystemRegistry;
   let mockClusterRegistry: ClusterRegistry;
   let mockEntityFactoryRegistry: EntityFactoryRegistry;
-  let mockTimeService: any;
+  let mockTimeService: { setTime: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -536,9 +536,11 @@ describe('Core', () => {
 
       // Эмулируем событие 'ready'
       setTimeout(() => {
-        mockPhaserGame.events.once.mock.calls.forEach(([event, callback]) => {
-          if (event === 'ready') callback();
-        });
+        mockPhaserGame.events.once.mock.calls.forEach(
+          ([event, callback]: [string, (...args: unknown[]) => void]) => {
+            if (event === 'ready') callback();
+          },
+        );
       }, 0);
 
       await core.initializeModules();

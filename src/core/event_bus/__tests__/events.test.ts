@@ -71,7 +71,7 @@ describe('Events enum', () => {
   describe('Типизация', () => {
     it('должен быть enum с string значениями', () => {
       // Проверяем что все значения являются строками
-      Object.values(Events).forEach(value => {
+      Object.values(Events).forEach((value) => {
         expect(typeof value).toBe('string');
         expect(value.length).toBeGreaterThan(0);
       });
@@ -97,7 +97,7 @@ describe('Events enum', () => {
         Events.GamePauseToggle,
       ];
 
-      gameEvents.forEach(event => {
+      gameEvents.forEach((event) => {
         expect(event.startsWith('Game')).toBe(true);
       });
     });
@@ -111,7 +111,7 @@ describe('Events enum', () => {
         Events.GameTimeUpdated,
       ];
 
-      tickEvents.forEach(event => {
+      tickEvents.forEach((event) => {
         expect(event.length).toBeGreaterThan(0);
         // Проверяем что нет странных символов
         expect(event).not.toMatch(/[^a-zA-Z:]/);
@@ -130,42 +130,31 @@ describe('Events enum', () => {
         Events.TilesSelected,
       ];
 
-      mapEvents.forEach(event => {
+      mapEvents.forEach((event) => {
         expect(event.length).toBeGreaterThan(0);
       });
     });
 
     it('события инструментов должны иметь понятные имена', () => {
-      const toolEvents = [
-        Events.SelectTool,
-        Events.ToolActivated,
-        Events.ResetToolToDefault,
-      ];
+      const toolEvents = [Events.SelectTool, Events.ToolActivated, Events.ResetToolToDefault];
 
-      toolEvents.forEach(event => {
+      toolEvents.forEach((event) => {
         expect(event.includes('Tool')).toBe(true);
       });
     });
 
     it('события модулей должны иметь префикс Module', () => {
-      const moduleEvents = [
-        Events.ModuleEnabled,
-        Events.ModuleDisabled,
-        Events.ModuleError,
-      ];
+      const moduleEvents = [Events.ModuleEnabled, Events.ModuleDisabled, Events.ModuleError];
 
-      moduleEvents.forEach(event => {
+      moduleEvents.forEach((event) => {
         expect(event.startsWith('Module')).toBe(true);
       });
     });
 
     it('события систем должны иметь понятные имена', () => {
-      const systemEvents = [
-        Events.CallSystem,
-        Events.SystemError,
-      ];
+      const systemEvents = [Events.CallSystem, Events.SystemError];
 
-      systemEvents.forEach(event => {
+      systemEvents.forEach((event) => {
         expect(event.includes('System')).toBe(true);
       });
     });
@@ -226,7 +215,7 @@ describe('Events enum', () => {
       const actualEvents = Object.values(Events);
       expect(actualEvents).toHaveLength(expectedEvents.length);
 
-      expectedEvents.forEach(expectedEvent => {
+      expectedEvents.forEach((expectedEvent) => {
         expect(actualEvents).toContain(expectedEvent);
       });
     });

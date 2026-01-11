@@ -114,6 +114,13 @@ export class ECSManager {
       totalEntities: 0, // Пока нет сущностей
       entityCounts: {}, // Пока нет сущностей по типам
       clusters,
+      intervalSystems: this.scheduleManager.getIntervalSystems().map((is) => is.name),
+      eventSystems: Object.fromEntries(
+        Array.from(this.eventSystemMap.entries()).map(([event, systems]) => [
+          event,
+          systems.map((sys) => sys.name || 'unnamed'),
+        ]),
+      ),
     };
   }
 
@@ -313,9 +320,6 @@ export class ECSManager {
 
     // Очищаем все event-driven системы
     this.eventSystemMap.clear();
-
-    // Останавливаем все интервальные системы
-    this.intervalSystems.length = 0;
 
     this.logger.info('ECSManager destroyed and resources cleaned up');
   }

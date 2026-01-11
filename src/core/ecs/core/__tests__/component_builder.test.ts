@@ -48,7 +48,7 @@ describe('Билдер компонентов', () => {
     it('должен создавать компонент со значениями по умолчанию, когда они не указаны', () => {
       const schema: ComponentSchema = {
         count: { type: 'ui32' }, // Значение по умолчанию не указано
-        flag: { type: 'ui8' },   // Значение по умолчанию не указано
+        flag: { type: 'ui8' }, // Значение по умолчанию не указано
       };
 
       const component = defineComponent('DefaultComponent', schema);
@@ -62,7 +62,9 @@ describe('Билдер компонентов', () => {
         invalidField: { type: 'unknown' as any, default: 0 },
       };
 
-      expect(() => defineComponent('InvalidComponent', schema)).toThrow('Unknown field type: unknown');
+      expect(() => defineComponent('InvalidComponent', schema)).toThrow(
+        'Unknown field type: unknown',
+      );
     });
 
     it('должен создавать компонент с большим начальным размером', () => {
@@ -140,7 +142,7 @@ describe('Билдер компонентов', () => {
       component.create(mockWorld, entityId, { health: NaN });
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid value for "health": expected number, got')
+        expect.stringContaining('Invalid value for "health": expected number, got'),
       );
 
       consoleWarnSpy.mockRestore();
@@ -257,7 +259,9 @@ describe('Билдер компонентов', () => {
 
       component.register(mockWorld);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('[ComponentBuilder] Registered component: TestComponent');
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[ComponentBuilder] Registered component: TestComponent',
+      );
 
       consoleLogSpy.mockRestore();
     });
@@ -275,13 +279,13 @@ describe('Билдер компонентов', () => {
       // Тестируем значение ниже минимума
       component.create(mockWorld, 1, { level: 0 });
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Value 0 for "level" is below min 1')
+        expect.stringContaining('Value 0 for "level" is below min 1'),
       );
 
       // Тестируем значение выше максимума
       component.create(mockWorld, 2, { level: 150 });
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Value 150 for "level" is above max 100')
+        expect.stringContaining('Value 150 for "level" is above max 100'),
       );
 
       consoleWarnSpy.mockRestore();

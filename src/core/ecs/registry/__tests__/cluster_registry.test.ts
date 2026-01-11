@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ClusterRegistry, ClusterMetadata } from '../cluster_registry';
 import { SystemMetadata } from '../system_registry';
+import { SystemFunction } from '../../core/smart_constructors';
 
 describe('ClusterRegistry', () => {
   let registry: ClusterRegistry;
@@ -47,7 +48,7 @@ describe('ClusterRegistry', () => {
       registry.register('TestCluster', ['System1'], metadata1);
 
       expect(() => registry.register('TestCluster', ['System2'], metadata2)).toThrow(
-        'Cluster "TestCluster" is already registered'
+        'Cluster "TestCluster" is already registered',
       );
     });
 
@@ -55,7 +56,7 @@ describe('ClusterRegistry', () => {
       const metadata: ClusterMetadata = { enabled: true };
 
       expect(() => registry.register('EmptyCluster', [], metadata)).toThrow(
-        'Cluster "EmptyCluster": systemNames must be non-empty array'
+        'Cluster "EmptyCluster": systemNames must be non-empty array',
       );
     });
 
@@ -63,7 +64,7 @@ describe('ClusterRegistry', () => {
       const metadata: ClusterMetadata = { enabled: true };
 
       expect(() => registry.register('InvalidCluster', null as any, metadata)).toThrow(
-        'Cluster "InvalidCluster": systemNames must be non-empty array'
+        'Cluster "InvalidCluster": systemNames must be non-empty array',
       );
     });
 
@@ -72,7 +73,7 @@ describe('ClusterRegistry', () => {
       const metadata: ClusterMetadata = { enabled: true, interval: -100 };
 
       expect(() => registry.register('InvalidCluster', systemNames, metadata)).toThrow(
-        'Cluster "InvalidCluster": interval must be positive number'
+        'Cluster "InvalidCluster": interval must be positive number',
       );
     });
 
@@ -81,7 +82,7 @@ describe('ClusterRegistry', () => {
       const metadata: ClusterMetadata = { enabled: true, interval: 0 };
 
       expect(() => registry.register('InvalidCluster', systemNames, metadata)).toThrow(
-        'Cluster "InvalidCluster": interval must be positive number'
+        'Cluster "InvalidCluster": interval must be positive number',
       );
     });
 
@@ -97,10 +98,22 @@ describe('ClusterRegistry', () => {
 
   describe('autoCreateFromSystemMetadata', () => {
     it('должен автоматически создавать кластеры на основе метаданных систем', () => {
-      const systems = new Map<string, { name: string; system: any; metadata: SystemMetadata }>([
-        ['System1', { name: 'System1', system: vi.fn(), metadata: { cluster: 'gameplay', enabled: true } }],
-        ['System2', { name: 'System2', system: vi.fn(), metadata: { cluster: 'gameplay', enabled: false } }],
-        ['System3', { name: 'System3', system: vi.fn(), metadata: { cluster: 'ui', enabled: true } }],
+      const systems = new Map<
+        string,
+        { name: string; system: SystemFunction; metadata: SystemMetadata }
+      >([
+        [
+          'System1',
+          { name: 'System1', system: vi.fn(), metadata: { cluster: 'gameplay', enabled: true } },
+        ],
+        [
+          'System2',
+          { name: 'System2', system: vi.fn(), metadata: { cluster: 'gameplay', enabled: false } },
+        ],
+        [
+          'System3',
+          { name: 'System3', system: vi.fn(), metadata: { cluster: 'ui', enabled: true } },
+        ],
         ['System4', { name: 'System4', system: vi.fn(), metadata: { enabled: true } }], // Без кластера
       ]);
 
@@ -115,17 +128,31 @@ describe('ClusterRegistry', () => {
 
       expect(gameplayCluster!.systemNames).toEqual(['System1', 'System2']);
       expect(gameplayCluster!.metadata.enabled).toBe(true); // Есть включенная система
-      expect(gameplayCluster!.metadata.description).toBe('Auto-created cluster for systems: System1, System2');
+      expect(gameplayCluster!.metadata.description).toBe(
+        'Auto-created cluster for systems: System1, System2',
+      );
 
       expect(uiCluster!.systemNames).toEqual(['System3']);
       expect(uiCluster!.metadata.enabled).toBe(true);
     });
 
     it('должен правильно определять enabled статус кластера', () => {
-      const systems = new Map<string, { name: string; system: any; metadata: SystemMetadata }>([
-        ['System1', { name: 'System1', system: vi.fn(), metadata: { cluster: 'cluster1', enabled: false } }],
-        ['System2', { name: 'System2', system: vi.fn(), metadata: { cluster: 'cluster1', enabled: false } }],
-        ['System3', { name: 'System3', system: vi.fn(), metadata: { cluster: 'cluster2', enabled: true } }],
+      const systems = new Map<
+        string,
+        { name: string; system: SystemFunction; metadata: SystemMetadata }
+      >([
+        [
+          'System1',
+          { name: 'System1', system: vi.fn(), metadata: { cluster: 'cluster1', enabled: false } },
+        ],
+        [
+          'System2',
+          { name: 'System2', system: vi.fn(), metadata: { cluster: 'cluster1', enabled: false } },
+        ],
+        [
+          'System3',
+          { name: 'System3', system: vi.fn(), metadata: { cluster: 'cluster2', enabled: true } },
+        ],
       ]);
 
       registry.autoCreateFromSystemMetadata(systems);
@@ -138,7 +165,10 @@ describe('ClusterRegistry', () => {
     });
 
     it('не должен создавать кластеры для систем без указанного кластера', () => {
-      const systems = new Map<string, { name: string; system: any; metadata: SystemMetadata }>([
+      const systems = new Map<
+        string,
+        { name: string; system: SystemFunction; metadata: SystemMetadata }
+      >([
         ['System1', { name: 'System1', system: vi.fn(), metadata: { enabled: true } }],
         ['System2', { name: 'System2', system: vi.fn(), metadata: { enabled: false } }],
       ]);
@@ -153,8 +183,14 @@ describe('ClusterRegistry', () => {
       registry.register('manual', ['ManualSystem'], { enabled: true });
 
       // Затем пытаемся создать автоматически
-      const systems = new Map<string, { name: string; system: any; metadata: SystemMetadata }>([
-        ['ManualSystem', { name: 'ManualSystem', system: vi.fn(), metadata: { cluster: 'manual' } }],
+      const systems = new Map<
+        string,
+        { name: string; system: SystemFunction; metadata: SystemMetadata }
+      >([
+        [
+          'ManualSystem',
+          { name: 'ManualSystem', system: vi.fn(), metadata: { cluster: 'manual' } },
+        ],
         ['OtherSystem', { name: 'OtherSystem', system: vi.fn(), metadata: { cluster: 'auto' } }],
       ]);
 
@@ -169,7 +205,10 @@ describe('ClusterRegistry', () => {
     });
 
     it('должен правильно группировать системы по кластерам', () => {
-      const systems = new Map<string, { name: string; system: any; metadata: SystemMetadata }>([
+      const systems = new Map<
+        string,
+        { name: string; system: SystemFunction; metadata: SystemMetadata }
+      >([
         ['Gameplay1', { name: 'Gameplay1', system: vi.fn(), metadata: { cluster: 'gameplay' } }],
         ['Gameplay2', { name: 'Gameplay2', system: vi.fn(), metadata: { cluster: 'gameplay' } }],
         ['UI1', { name: 'UI1', system: vi.fn(), metadata: { cluster: 'ui' } }],

@@ -9,6 +9,7 @@ import type {
   EventPayload,
   CallSystemPayload,
 } from '../types';
+import type { LogicTickData } from '../../tick/types';
 
 describe('EventBus Types', () => {
   describe('EventPayloadMap - маппинг событий к payload типам', () => {
@@ -16,7 +17,7 @@ describe('EventBus Types', () => {
       const eventBus = new EventBus();
 
       // Проверяем типизацию для LogicTick
-      const logicTickCallback = vi.fn((payload: { tick: number; deltaTime: number }) => {});
+      const logicTickCallback = vi.fn((payload: LogicTickData | undefined) => {});
       eventBus.on(Events.LogicTick, logicTickCallback);
 
       // Проверяем типизацию для GameStarted (undefined payload)
@@ -24,8 +25,10 @@ describe('EventBus Types', () => {
       eventBus.on(Events.GameStarted, gameStartedCallback);
 
       // Проверяем типизацию для CallSystem
-      const callSystemCallback = vi.fn((payload: CallSystemPayload) => {
-        expect(typeof payload.systemName).toBe('string');
+      const callSystemCallback = vi.fn((payload: CallSystemPayload | undefined) => {
+        if (payload) {
+          expect(typeof payload.systemName).toBe('string');
+        }
       });
       eventBus.on(Events.CallSystem, callSystemCallback);
 
@@ -43,15 +46,17 @@ describe('EventBus Types', () => {
       const eventBus = new EventBus();
 
       // Проверяем legacy time:tick событие
-      const timeTickCallback = vi.fn((payload: { tick: number; time: number }) => {});
+      const timeTickCallback = vi.fn((payload: { tick: number; time: number } | undefined) => {});
       eventBus.on('time:tick', timeTickCallback);
 
       // Проверяем legacy time:day событие
-      const timeDayCallback = vi.fn((payload: { day: number }) => {});
+      const timeDayCallback = vi.fn((payload: { day: number } | undefined) => {});
       eventBus.on('time:day', timeDayCallback);
 
       // Проверяем citizen:hired событие
-      const citizenCallback = vi.fn((payload: { entityId: number; workplaceId: number; salary: number }) => {});
+      const citizenCallback = vi.fn(
+        (payload: { entityId: number; workplaceId: number; salary: number } | undefined) => {},
+      );
       eventBus.on('citizen:hired', citizenCallback);
 
       // Имитируем вызовы
@@ -74,9 +79,9 @@ describe('EventBus Types', () => {
       eventBus.on('test1', noParamCallback);
 
       // Callback с типизированным параметром
-      const typedCallback: EventCallback<{ data: string }> = vi.fn((payload) => {
-        if (payload) {
-          expect(typeof payload.data).toBe('string');
+      const typedCallback: EventCallback<unknown> = vi.fn((payload: unknown) => {
+        if (payload && typeof payload === 'object' && payload !== null && 'data' in payload) {
+          expect(typeof (payload as { data: string }).data).toBe('string');
         }
       });
       eventBus.on('test2', typedCallback);
@@ -140,15 +145,15 @@ describe('EventBus Types', () => {
 
       // Проверяем типизацию через функцию
       function testEventPayload<T extends Events>(event: T, payload: EventPayload<T>) {
-        const callback = vi.fn((p: EventPayload<T>) => p);
+        const callback = vi.fn((p: EventPayload<T> | undefined) => p);
         eventBus.on(event, callback);
         eventBus.emit(event, payload);
         return callback.mock.calls[0][0];
       }
 
       // Test LogicTick payload
-      const logicPayload = testEventPayload(Events.LogicTick, { tick: 1, deltaTime: 16 });
-      expect(logicPayload).toEqual({ tick: 1, deltaTime: 16 });
+      const logicPayload = testEventPayload(Events.LogicTick, { delta: 16, ticksExecuted: 1 });
+      expect(logicPayload).toEqual({ delta: 16, ticksExecuted: 1 });
 
       // Test CallSystem payload
       const callPayload = testEventPayload(Events.CallSystem, { systemName: 'Test' });
@@ -164,9 +169,11 @@ describe('EventBus Types', () => {
     it('должен иметь обязательное поле systemName', () => {
       const eventBus = new EventBus();
 
-      const callback = vi.fn((payload: CallSystemPayload) => {
-        expect(payload.systemName).toBeDefined();
-        expect(typeof payload.systemName).toBe('string');
+      const callback = vi.fn((payload: CallSystemPayload | undefined) => {
+        if (payload) {
+          expect(payload.systemName).toBeDefined();
+          expect(typeof payload.systemName).toBe('string');
+        }
       });
 
       eventBus.on(Events.CallSystem, callback);
@@ -178,7 +185,7 @@ describe('EventBus Types', () => {
       eventBus.emit(Events.CallSystem, {
         systemName: 'AnotherSystem',
         entityId: 123,
-        extraData: { key: 'value' }
+        extraData: { key: 'value' },
       });
 
       expect(callback).toHaveBeenCalledTimes(2);
@@ -198,15 +205,19 @@ describe('EventBus Types', () => {
 
       // Проверяем что неправильные типы отлавливаются компилятором
       // (этот тест проверяет что код компилируется с правильными типами)
-      const typedCallback = vi.fn((payload: { tick: number; deltaTime: number }) => {
-        expect(typeof payload.tick).toBe('number');
-        expect(typeof payload.deltaTime).toBe('number');
-      });
+      const typedCallback = vi.fn(
+        (payload: { delta: number; ticksExecuted: number } | undefined) => {
+          if (payload) {
+            expect(typeof payload.delta).toBe('number');
+            expect(typeof payload.ticksExecuted).toBe('number');
+          }
+        },
+      );
 
       eventBus.on(Events.LogicTick, typedCallback);
-      eventBus.emit(Events.LogicTick, { tick: 1, deltaTime: 16 });
+      eventBus.emit(Events.LogicTick, { delta: 16, ticksExecuted: 1 });
 
-      expect(typedCallback).toHaveBeenCalledWith({ tick: 1, deltaTime: 16 });
+      expect(typedCallback).toHaveBeenCalledWith({ delta: 16, ticksExecuted: 1 });
     });
 
     it('должен поддерживать string события с unknown типами', () => {
@@ -234,13 +245,16 @@ describe('EventBus Types', () => {
         y: number;
       }
 
-      const callback = vi.fn((payload: MockTilePayload) => {
-        expect(typeof payload.x).toBe('number');
-        expect(typeof payload.y).toBe('number');
+      const callback = vi.fn((payload: unknown) => {
+        const tilePayload = payload as MockTilePayload | undefined;
+        if (tilePayload) {
+          expect(typeof tilePayload.x).toBe('number');
+          expect(typeof tilePayload.y).toBe('number');
+        }
       });
 
       // Используем как unknown событие для демонстрации
-      eventBus.on('tile:custom', callback);
+      eventBus.on('tile:custom', callback as EventCallback<unknown>);
       eventBus.emit('tile:custom', { x: 10, y: 20 });
 
       expect(callback).toHaveBeenCalledWith({ x: 10, y: 20 });

@@ -19,10 +19,10 @@ vi.mock('../../registry/cluster_registry');
 vi.mock('../../registry/entity_factory_registry');
 
 describe('Умные конструкторы', () => {
-  let mockComponentRegistry: any;
-  let mockSystemRegistry: any;
-  let mockClusterRegistry: any;
-  let mockEntityFactoryRegistry: any;
+  let mockComponentRegistry: ComponentRegistry;
+  let mockSystemRegistry: SystemRegistry;
+  let mockClusterRegistry: ClusterRegistry;
+  let mockEntityFactoryRegistry: EntityFactoryRegistry;
 
   beforeEach(() => {
     // Очистка всех реестров перед каждым тестом
@@ -30,27 +30,23 @@ describe('Умные конструкторы', () => {
 
     // Настройка моков реестров
     mockComponentRegistry = {
-      getInstance: vi.fn().mockReturnThis(),
       register: vi.fn(),
-    };
+    } as unknown as ComponentRegistry;
     mockSystemRegistry = {
-      getInstance: vi.fn().mockReturnThis(),
       register: vi.fn(),
-    };
+    } as unknown as SystemRegistry;
     mockClusterRegistry = {
-      getInstance: vi.fn().mockReturnThis(),
       register: vi.fn(),
-    };
+    } as unknown as ClusterRegistry;
     mockEntityFactoryRegistry = {
-      getInstance: vi.fn().mockReturnThis(),
       register: vi.fn(),
-    };
+    } as unknown as EntityFactoryRegistry;
 
     // Мокаем методы getInstance
-    (ComponentRegistry.getInstance as any) = vi.fn().mockReturnValue(mockComponentRegistry);
-    (SystemRegistry.getInstance as any) = vi.fn().mockReturnValue(mockSystemRegistry);
-    (ClusterRegistry.getInstance as any) = vi.fn().mockReturnValue(mockClusterRegistry);
-    (EntityFactoryRegistry.getInstance as any) = vi.fn().mockReturnValue(mockEntityFactoryRegistry);
+    vi.mocked(ComponentRegistry.getInstance).mockReturnValue(mockComponentRegistry);
+    vi.mocked(SystemRegistry.getInstance).mockReturnValue(mockSystemRegistry);
+    vi.mocked(ClusterRegistry.getInstance).mockReturnValue(mockClusterRegistry);
+    vi.mocked(EntityFactoryRegistry.getInstance).mockReturnValue(mockEntityFactoryRegistry);
   });
 
   describe('createComponent', () => {

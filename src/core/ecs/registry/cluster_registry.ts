@@ -82,7 +82,7 @@ export class ClusterRegistry {
     for (const [clusterName, systemNames] of clusterMap) {
       if (!this.clusters.has(clusterName)) {
         // Проверить, есть ли хотя бы одна включенная система в кластере
-        const hasEnabledSystem = systemNames.some(systemName => {
+        const hasEnabledSystem = systemNames.some((systemName) => {
           const registeredSystem = registeredSystems.get(systemName);
           return registeredSystem && registeredSystem.metadata.enabled !== false;
         });

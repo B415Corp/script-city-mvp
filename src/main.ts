@@ -86,13 +86,14 @@ async function startGame(): Promise<void> {
       },
       getECSStats: (): ECSDebugStats =>
         core.ecsManager?.getStats() || {
-          message: 'ECS disabled',
           totalSystemsCount: 0,
           clustersCount: 0,
           systems: [],
           totalEntities: 0,
           entityCounts: {},
           clusters: {},
+          intervalSystems: [],
+          eventSystems: {},
         },
       checkRegistries: (): void => {
         const componentRegistry = ComponentRegistry.getInstance();

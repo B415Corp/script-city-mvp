@@ -67,7 +67,7 @@ describe('TimeController', () => {
           totalMinutes: 8 * 60,
           timeOfDay: '08:00',
           day: 1,
-        })
+        }),
       );
     });
   });
@@ -82,7 +82,7 @@ describe('TimeController', () => {
           totalMinutes: 8 * 60,
           timeOfDay: '08:00',
           day: 1,
-        })
+        }),
       );
     });
   });
@@ -278,10 +278,7 @@ describe('TimeController', () => {
     it('должен правильно эмитить события при вызовах emitTimeUpdate', () => {
       timeController.emitTimeUpdate();
 
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        Events.GameTimeUpdated,
-        expect.any(Object)
-      );
+      expect(mockEventBus.emit).toHaveBeenCalledWith(Events.GameTimeUpdated, expect.any(Object));
 
       // Выполняем еще вызовы
       timeController.tick();

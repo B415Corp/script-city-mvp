@@ -30,6 +30,8 @@ export interface ECSDebugStats {
       interval?: number;
     }
   >;
+  intervalSystems: string[];
+  eventSystems: Record<string, string[]>;
 }
 
 export class ECSDebug extends DebugComponent {
@@ -45,9 +47,9 @@ export class ECSDebug extends DebugComponent {
   }
 
   private initDOM(): void {
-    this.systemsList = document.getElementById('systems-list');
-    this.componentsList = document.getElementById('components-list');
-    this.entitiesList = document.getElementById('entities-list');
+    this.systemsList = document.getElementById('systems-list') as HTMLElement;
+    this.componentsList = document.getElementById('components-list') as HTMLElement;
+    this.entitiesList = document.getElementById('entities-list') as HTMLElement;
 
     if (!this.systemsList || !this.componentsList || !this.entitiesList) {
       console.error('ECS Debug DOM elements not found');
@@ -215,12 +217,14 @@ export class ECSDebug extends DebugComponent {
     this.componentsList.appendChild(headerDiv);
 
     // Отображаем все зарегистрированные компоненты
-    Array.from(registeredComponents.keys()).sort().forEach((componentName) => {
-      const componentDiv = document.createElement('div');
-      componentDiv.className = 'debug-ecs-item debug-ecs-component';
-      componentDiv.textContent = `• ${componentName}`;
-      this.componentsList.appendChild(componentDiv);
-    });
+    Array.from(registeredComponents.keys())
+      .sort()
+      .forEach((componentName) => {
+        const componentDiv = document.createElement('div');
+        componentDiv.className = 'debug-ecs-item debug-ecs-component';
+        componentDiv.textContent = `• ${componentName}`;
+        this.componentsList.appendChild(componentDiv);
+      });
   }
 
   private updateEntitiesList(stats: ECSDebugStats): void {

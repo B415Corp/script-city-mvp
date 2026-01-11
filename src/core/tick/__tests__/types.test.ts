@@ -5,7 +5,7 @@ import {
   TickStartedPayload,
   SetSpeedPayload,
   ITimeServiceDependencies,
-  TimeDebugInfo
+  TimeDebugInfo,
 } from '../types';
 
 /**
@@ -25,11 +25,18 @@ describe('Tick Types', () => {
     it('должен содержать ровно 6 условий времени', () => {
       const conditions = Object.values(TimeConditions);
       expect(conditions).toHaveLength(6);
-      expect(conditions).toEqual(['morning', 'afternoon', 'evening', 'night', 'work_hours', 'firing_time']);
+      expect(conditions).toEqual([
+        'morning',
+        'afternoon',
+        'evening',
+        'night',
+        'work_hours',
+        'firing_time',
+      ]);
     });
 
     it('должен иметь строковые значения для всех условий', () => {
-      Object.values(TimeConditions).forEach(condition => {
+      Object.values(TimeConditions).forEach((condition) => {
         expect(typeof condition).toBe('string');
         expect(condition.length).toBeGreaterThan(0);
       });
@@ -93,7 +100,7 @@ describe('Tick Types', () => {
     it('должен позволять создавать валидные скорости', () => {
       const speeds: SetSpeedPayload['speed'][] = [10, 60, 240];
 
-      speeds.forEach(speed => {
+      speeds.forEach((speed) => {
         const payload: SetSpeedPayload = { speed };
         expect(payload.speed).toBe(speed);
       });
@@ -102,7 +109,7 @@ describe('Tick Types', () => {
     it('должен принимать только допустимые значения скорости', () => {
       const validSpeeds = [10, 60, 240] as const;
 
-      validSpeeds.forEach(speed => {
+      validSpeeds.forEach((speed) => {
         const payload: SetSpeedPayload = { speed };
         expect([10, 60, 240]).toContain(payload.speed);
       });
@@ -180,7 +187,7 @@ describe('Tick Types', () => {
     });
 
     it('должен поддерживать все условия времени в debug info', () => {
-      Object.values(TimeConditions).forEach(condition => {
+      Object.values(TimeConditions).forEach((condition) => {
         const debugInfo: TimeDebugInfo = {
           totalMinutes: 0,
           timeOfDay: '00:00',
