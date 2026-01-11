@@ -10,22 +10,76 @@ import { SystemRegistry } from './ecs/registry/system_registry';
 import { ClusterRegistry } from './ecs/registry/cluster_registry';
 import { EntityFactoryRegistry } from './ecs/registry/entity_factory_registry';
 
+// Фабрики зависимостей для Dependency Injection
+export interface ICoreDependencies {
+  phaserFactory?: () => Phaser.Game;
+  eventBusFactory?: () => EventBus;
+  tickManagerFactory?: (eventBus: EventBus) => TickManager;
+  ecsManagerFactory?: (eventBus: EventBus, tickManager: TickManager) => ECSManager;
+  moduleManagerFactory?: (
+    scene: MainScene,
+    eventBus: EventBus,
+    ecsManager: ECSManager | null,
+    tickManager: TickManager,
+  ) => ModuleManager;
+  entrySimulationFactory?: (
+    ecsManager: ECSManager,
+    eventBus: EventBus,
+    tickManager: TickManager,
+  ) => EntrySimulation;
+}
+
 export class Core {
   private phaserConfig: Phaser.Types.Core.GameConfig;
-  private phaser!: Phaser.Game; // definite assignment assertion - инициализируется в initPhaser
+  private phaser?: Phaser.Game;
   private resizeHandler?: () => void;
 
   // Конфигурационный флаг для Phase 0 - отключает симуляцию
   private readonly enableSimulation: boolean = false;
 
-  public moduleManager!: ModuleManager; // definite assignment assertion - инициализируется в initModules
-  public ecsManager: ECSManager | null = null; // может быть null для Phase 0
-  public eventBus!: EventBus; // definite assignment assertion - инициализируется в initEventBus
-  public tickManager!: TickManager; // definite assignment assertion - инициализируется в initTickManager
+  public moduleManager?: ModuleManager;
+  public ecsManager: ECSManager | null = null;
+  public eventBus?: EventBus;
+  public tickManager?: TickManager;
 
-  constructor(phaserConfig: Phaser.Types.Core.GameConfig) {
+  // Фабрики зависимостей с дефолтными значениями
+  private phaserFactory: () => Phaser.Game;
+  private eventBusFactory: () => EventBus;
+  private tickManagerFactory: (eventBus: EventBus) => TickManager;
+  private ecsManagerFactory: (eventBus: EventBus, tickManager: TickManager) => ECSManager;
+  private moduleManagerFactory: (
+    scene: MainScene,
+    eventBus: EventBus,
+    ecsManager: ECSManager | null,
+    tickManager: TickManager,
+  ) => ModuleManager;
+  private entrySimulationFactory: (
+    ecsManager: ECSManager,
+    eventBus: EventBus,
+    tickManager: TickManager,
+  ) => EntrySimulation;
+
+  constructor(phaserConfig: Phaser.Types.Core.GameConfig, dependencies: ICoreDependencies = {}) {
     this.phaserConfig = phaserConfig;
-    this.setupResizeHandler(); // ← ИЗМЕНИТЬ
+
+    // Настраиваем фабрики с дефолтными значениями
+    this.phaserFactory = dependencies.phaserFactory || (() => new Phaser.Game(this.phaserConfig));
+    this.eventBusFactory = dependencies.eventBusFactory || (() => new EventBus());
+    this.tickManagerFactory =
+      dependencies.tickManagerFactory || ((eventBus) => new TickManager(eventBus, 10));
+    this.ecsManagerFactory =
+      dependencies.ecsManagerFactory ||
+      ((eventBus, tickManager) => new ECSManager(eventBus, tickManager));
+    this.moduleManagerFactory =
+      dependencies.moduleManagerFactory ||
+      ((scene, eventBus, ecsManager, tickManager) =>
+        new ModuleManager(scene, eventBus, ecsManager, tickManager));
+    this.entrySimulationFactory =
+      dependencies.entrySimulationFactory ||
+      ((ecsManager, eventBus, tickManager) =>
+        new EntrySimulation(ecsManager, eventBus, tickManager));
+
+    this.setupResizeHandler();
   }
 
   private setupResizeHandler(): void {
@@ -116,13 +170,99 @@ export class Core {
     };
   }
 
+  // Основной метод инициализации
   public async init(): Promise<void> {
-    await this.initPhaser();
-    await this.initEventBus();
-    this.initTickManager();
-    await this.initECSManager(); // Включено для работы дебаг панели ECS
-    await this.initModules();
+    await this.initializePhaser();
+    await this.initializeEventBus();
+    this.initializeTickManager();
+    await this.initializeECSManager();
+    await this.initializeModules();
     this.startSimulation();
+  }
+
+  // Отдельные методы инициализации для тестирования
+  public async initializePhaser(): Promise<void> {
+    try {
+      this.phaser = this.phaserFactory();
+    } catch (error) {
+      throw new Error(`Failed to initialize Phaser: ${error}`);
+    }
+  }
+
+  public async initializeEventBus(): Promise<void> {
+    try {
+      this.eventBus = this.eventBusFactory();
+    } catch (error) {
+      throw new Error(`Failed to initialize EventBus: ${error}`);
+    }
+  }
+
+  public initializeTickManager(): void {
+    try {
+      if (!this.eventBus) {
+        throw new Error('EventBus must be initialized before TickManager');
+      }
+      this.tickManager = this.tickManagerFactory(this.eventBus);
+      // Устанавливаем начальное время на 2:00 ночи (жители спят)
+      this.tickManager.getTimeService().setTime(2 * 60); // 2:00 AM
+    } catch (error) {
+      throw new Error(`Failed to initialize TickManager: ${error}`);
+    }
+  }
+
+  public async initializeECSManager(): Promise<void> {
+    try {
+      if (!this.eventBus || !this.tickManager) {
+        throw new Error('EventBus and TickManager must be initialized before ECSManager');
+      }
+      this.ecsManager = this.ecsManagerFactory(this.eventBus, this.tickManager);
+    } catch (error) {
+      throw new Error(`Failed to initialize ECSManager: ${error}`);
+    }
+  }
+
+  public async initializeModules(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.phaser) {
+        return reject(new Error('Phaser not initialized'));
+      }
+
+      this.phaser.events.once('ready', () => {
+        try {
+          if (!this.phaser) {
+            throw new Error('Phaser is null');
+          }
+
+          const scene = this.phaser.scene.getScene('main_scene') as MainScene;
+
+          if (!scene) {
+            throw new Error('MainScene not found');
+          }
+
+          if (!this.eventBus) {
+            throw new Error('EventBus not initialized');
+          }
+
+          if (!this.tickManager) {
+            throw new Error('TickManager not initialized');
+          }
+
+          scene.init(this.eventBus, this.tickManager);
+          this.moduleManager = this.moduleManagerFactory(
+            scene,
+            this.eventBus,
+            this.ecsManager,
+            this.tickManager,
+          );
+          this.moduleManager.init();
+          scene.setModuleManager(this.moduleManager);
+
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
   }
 
   private async initEventBus(): Promise<void> {
@@ -215,7 +355,7 @@ export class Core {
     }
   }
 
-  private async startSimulation(): Promise<void> {
+  public async startSimulation(): Promise<void> {
     if (!this.enableSimulation) {
       console.log('Simulation disabled for Phase 0');
       return;
@@ -230,5 +370,101 @@ export class Core {
     } catch (error) {
       throw new Error(`Failed to start simulation: ${error}`);
     }
+  }
+}
+
+// Builder для создания тестовых экземпляров Core
+export class CoreBuilder {
+  private phaserConfig: Phaser.Types.Core.GameConfig;
+  private dependencies: ICoreDependencies = {};
+
+  constructor(
+    phaserConfig: Phaser.Types.Core.GameConfig = {
+      type: Phaser.AUTO,
+      width: 800,
+      height: 600,
+      scene: [],
+    },
+  ) {
+    this.phaserConfig = phaserConfig;
+  }
+
+  withPhaser(phaser: Phaser.Game): CoreBuilder {
+    this.dependencies.phaserFactory = () => phaser;
+    return this;
+  }
+
+  withEventBus(eventBus: EventBus): CoreBuilder {
+    this.dependencies.eventBusFactory = () => eventBus;
+    return this;
+  }
+
+  withTickManager(tickManager: TickManager): CoreBuilder {
+    this.dependencies.tickManagerFactory = () => tickManager;
+    return this;
+  }
+
+  withECSManager(ecsManager: ECSManager): CoreBuilder {
+    this.dependencies.ecsManagerFactory = () => ecsManager;
+    return this;
+  }
+
+  withModuleManager(moduleManager: ModuleManager): CoreBuilder {
+    this.dependencies.moduleManagerFactory = () => moduleManager;
+    return this;
+  }
+
+  withEntrySimulation(entrySimulation: EntrySimulation): CoreBuilder {
+    this.dependencies.entrySimulationFactory = () => entrySimulation;
+    return this;
+  }
+
+  withPhaserFactory(factory: () => Phaser.Game): CoreBuilder {
+    this.dependencies.phaserFactory = factory;
+    return this;
+  }
+
+  withEventBusFactory(factory: () => EventBus): CoreBuilder {
+    this.dependencies.eventBusFactory = factory;
+    return this;
+  }
+
+  withTickManagerFactory(factory: (eventBus: EventBus) => TickManager): CoreBuilder {
+    this.dependencies.tickManagerFactory = factory;
+    return this;
+  }
+
+  withECSManagerFactory(
+    factory: (eventBus: EventBus, tickManager: TickManager) => ECSManager,
+  ): CoreBuilder {
+    this.dependencies.ecsManagerFactory = factory;
+    return this;
+  }
+
+  withModuleManagerFactory(
+    factory: (
+      scene: MainScene,
+      eventBus: EventBus,
+      ecsManager: ECSManager | null,
+      tickManager: TickManager,
+    ) => ModuleManager,
+  ): CoreBuilder {
+    this.dependencies.moduleManagerFactory = factory;
+    return this;
+  }
+
+  withEntrySimulationFactory(
+    factory: (
+      ecsManager: ECSManager,
+      eventBus: EventBus,
+      tickManager: TickManager,
+    ) => EntrySimulation,
+  ): CoreBuilder {
+    this.dependencies.entrySimulationFactory = factory;
+    return this;
+  }
+
+  build(): Core {
+    return new Core(this.phaserConfig, this.dependencies);
   }
 }

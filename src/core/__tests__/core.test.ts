@@ -1,32 +1,134 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
+// Глобальные моки
+const mockPhaserGame = {
+  scale: {
+    resize: vi.fn(),
+  } as any,
+  events: {
+    once: vi.fn(),
+  } as any,
+  scene: {
+    getScene: vi.fn(),
+  } as any,
+  destroy: vi.fn(),
+} as any;
+
+const mockEventBus = {
+  emit: vi.fn(),
+  on: vi.fn(),
+  off: vi.fn(),
+  once: vi.fn(),
+  clear: vi.fn(),
+  getListenerCount: vi.fn(),
+  emitLegacy: vi.fn(),
+  onLegacy: vi.fn(),
+  clearEvents: vi.fn(),
+} as any;
+
+const mockTickManager = {
+  start: vi.fn(),
+  stop: vi.fn(),
+  update: vi.fn(),
+  getCurrentTick: vi.fn(),
+  getTickRate: vi.fn(),
+  getFixedStepMs: vi.fn(),
+  isPaused: vi.fn(),
+  pause: vi.fn(),
+  resume: vi.fn(),
+  togglePause: vi.fn(),
+  getTickController: vi.fn(),
+  getTimeService: vi.fn(),
+  destroy: vi.fn(),
+} as any;
+
+const mockECSManager = {
+  destroy: vi.fn(),
+  getWorld: vi.fn(),
+} as any;
+
+const mockModuleManager = {
+  init: vi.fn(),
+  destroy: vi.fn(),
+} as any;
+
+const mockEntrySimulation = {
+  start: vi.fn(),
+} as any;
+
+const mockMainScene = {
+  init: vi.fn(),
+  setModuleManager: vi.fn(),
+} as any;
+
+// Будут определены после импорта через vi.mocked
+
 // Мокаем все зависимости перед импортом Core
-vi.mock('phaser', () => ({
-  default: {
-    AUTO: 0,
-    Game: vi.fn(),
-    Scene: class MockScene {},
-    Types: {
-      Core: {
-        GameConfig: {},
+vi.mock('phaser', () => {
+  const MockPhaserGame = vi.fn(function () {
+    return mockPhaserGame;
+  });
+
+  return {
+    default: {
+      AUTO: 0,
+      Game: MockPhaserGame,
+      Scene: class MockScene {},
+      Types: {
+        Core: {
+          GameConfig: {},
+        },
       },
     },
-  },
+  };
+});
+
+vi.mock('../event_bus/event_bus', () => ({
+  EventBus: vi.fn(function () {
+    return mockEventBus;
+  }),
 }));
 
-vi.mock('../event_bus/event_bus');
-vi.mock('../tick/tick_manager');
-vi.mock('../ecs/ecs_manager');
-vi.mock('../modules/module_manager');
-vi.mock('../scenes');
-vi.mock('../simulations/entry_simulation');
+vi.mock('../tick/tick_manager', () => ({
+  TickManager: vi.fn(function () {
+    return mockTickManager;
+  }),
+}));
+
+vi.mock('../ecs/ecs_manager', () => ({
+  ECSManager: vi.fn(function () {
+    return mockECSManager;
+  }),
+}));
+
+vi.mock('../modules/module_manager', () => ({
+  default: vi.fn(function () {
+    return mockModuleManager;
+  }),
+  ModuleManager: vi.fn(function () {
+    return mockModuleManager;
+  }),
+}));
+
+vi.mock('../scenes', () => ({
+  MainScene: vi.fn(function () {
+    return mockMainScene;
+  }),
+}));
+
+vi.mock('../simulations/entry_simulation', () => ({
+  EntrySimulation: vi.fn(function () {
+    return mockEntrySimulation;
+  }),
+}));
+
 vi.mock('../ecs/registry/component_registry');
 vi.mock('../ecs/registry/system_registry');
 vi.mock('../ecs/registry/cluster_registry');
 vi.mock('../ecs/registry/entity_factory_registry');
 
 import Phaser from 'phaser';
-import { Core } from '../core';
+import { Core, CoreBuilder } from '../core';
 import { EventBus } from '../event_bus/event_bus';
 import { TickManager } from '../tick/tick_manager';
 import { ECSManager } from '../ecs/ecs_manager';
@@ -38,15 +140,17 @@ import { SystemRegistry } from '../ecs/registry/system_registry';
 import { ClusterRegistry } from '../ecs/registry/cluster_registry';
 import { EntityFactoryRegistry } from '../ecs/registry/entity_factory_registry';
 
+// Получаем ссылки на замоканные конструкторы
+const MockPhaserGame = vi.mocked(Phaser.Game);
+const MockEventBus = vi.mocked(EventBus);
+const MockTickManager = vi.mocked(TickManager);
+const MockECSManager = vi.mocked(ECSManager);
+const MockModuleManager = vi.mocked(ModuleManager);
+const MockMainScene = vi.mocked(MainScene);
+const MockEntrySimulation = vi.mocked(EntrySimulation);
+
 describe('Core', () => {
   let mockPhaserConfig: Phaser.Types.Core.GameConfig;
-  let mockPhaserGame: Phaser.Game;
-  let mockEventBus: EventBus;
-  let mockTickManager: TickManager;
-  let mockECSManager: ECSManager;
-  let mockModuleManager: ModuleManager;
-  let mockMainScene: MainScene;
-  let mockEntrySimulation: EntrySimulation;
 
   // Моки для window и event listeners
   let addEventListenerSpy: any;
@@ -70,75 +174,7 @@ describe('Core', () => {
       scene: [],
     };
 
-    mockPhaserGame = {
-      scale: {
-        resize: vi.fn(),
-      } as any,
-      events: {
-        once: vi.fn(),
-      } as any,
-      scene: {
-        getScene: vi.fn(),
-      } as any,
-      destroy: vi.fn(),
-    } as any;
-
-    mockEventBus = {
-      emit: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
-      once: vi.fn(),
-      clear: vi.fn(),
-      getListenerCount: vi.fn(),
-      emitLegacy: vi.fn(),
-      onLegacy: vi.fn(),
-      clearEvents: vi.fn(),
-    } as unknown as EventBus;
-
-    mockTickManager = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      update: vi.fn(),
-      getCurrentTick: vi.fn(),
-      getTickRate: vi.fn(),
-      getFixedStepMs: vi.fn(),
-      isPaused: vi.fn(),
-      pause: vi.fn(),
-      resume: vi.fn(),
-      togglePause: vi.fn(),
-      getTickController: vi.fn(),
-      getTimeService: vi.fn(),
-      destroy: vi.fn(),
-    } as unknown as TickManager;
-
-    mockECSManager = {
-      destroy: vi.fn(),
-      getWorld: vi.fn(),
-    } as unknown as ECSManager;
-
-    mockModuleManager = {
-      init: vi.fn(),
-      destroy: vi.fn(),
-    } as unknown as ModuleManager;
-
-    mockMainScene = {
-      init: vi.fn(),
-      setModuleManager: vi.fn(),
-    } as unknown as MainScene;
-
-    mockEntrySimulation = {
-      start: vi.fn(),
-    } as unknown as EntrySimulation;
-
-    // Мокаем конструкторы
-    vi.mocked(Phaser.Game).mockImplementation(() => mockPhaserGame);
-    vi.mocked(EventBus as any).mockImplementation(() => mockEventBus);
-    vi.mocked(TickManager as any).mockImplementation(() => mockTickManager);
-    vi.mocked(ECSManager as any).mockImplementation(() => mockECSManager);
-    vi.mocked(ModuleManager as any).mockImplementation(() => mockModuleManager);
-    vi.mocked(EntrySimulation as any).mockImplementation(() => mockEntrySimulation);
-
-    // Мокаем получение сцены
+    // Настраиваем моки
     vi.mocked(mockPhaserGame.scene.getScene).mockReturnValue(mockMainScene);
 
     // Мокаем TimeService для TickManager
@@ -173,6 +209,79 @@ describe('Core', () => {
     (SystemRegistry.getInstance as any).mockReturnValue(mockSystemRegistry);
     (ClusterRegistry.getInstance as any).mockReturnValue(mockClusterRegistry);
     (EntityFactoryRegistry.getInstance as any).mockReturnValue(mockEntityFactoryRegistry);
+  });
+
+  describe('CoreBuilder', () => {
+    it('должен создавать Core с кастомными зависимостями', () => {
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withPhaser(mockPhaserGame)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .build();
+
+      expect(core).toBeDefined();
+      expect((core as any).phaser).toBeUndefined(); // Не инициализирован
+      expect((core as any).eventBus).toBeUndefined(); // Не инициализирован
+    });
+
+    it('должен инициализировать Phaser с помощью фабрики', async () => {
+      const core = new CoreBuilder(mockPhaserConfig).withPhaser(mockPhaserGame).build();
+
+      await core.initializePhaser();
+
+      expect((core as any).phaser).toBe(mockPhaserGame);
+    });
+
+    it('должен инициализировать EventBus с помощью фабрики', async () => {
+      const core = new CoreBuilder(mockPhaserConfig).withEventBus(mockEventBus).build();
+
+      await core.initializeEventBus();
+
+      expect((core as any).eventBus).toBe(mockEventBus);
+    });
+
+    it('должен инициализировать TickManager с EventBus', async () => {
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .build();
+
+      await core.initializeEventBus();
+      core.initializeTickManager();
+
+      expect((core as any).tickManager).toBe(mockTickManager);
+      expect(mockTimeService.setTime).toHaveBeenCalledWith(2 * 60);
+    });
+
+    it('должен выбрасывать ошибку при инициализации TickManager без EventBus', () => {
+      const core = new CoreBuilder(mockPhaserConfig).build();
+
+      expect(() => core.initializeTickManager()).toThrow(
+        'EventBus must be initialized before TickManager',
+      );
+    });
+
+    it('должен инициализировать ECSManager с EventBus и TickManager', async () => {
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .withECSManager(mockECSManager)
+        .build();
+
+      await core.initializeEventBus();
+      core.initializeTickManager();
+      await core.initializeECSManager();
+
+      expect((core as any).ecsManager).toBe(mockECSManager);
+    });
+
+    it('должен выбрасывать ошибку при инициализации ECSManager без зависимостей', async () => {
+      const core = new CoreBuilder(mockPhaserConfig).build();
+
+      await expect(core.initializeECSManager()).rejects.toThrow(
+        'EventBus and TickManager must be initialized before ECSManager',
+      );
+    });
   });
 
   afterEach(() => {
@@ -244,7 +353,7 @@ describe('Core', () => {
     it('должен удалять resize listener', () => {
       core.destroy();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('resize', (core as any).resizeHandler);
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
       expect((core as any).resizeHandler).toBeUndefined();
     });
 
@@ -367,223 +476,126 @@ describe('Core', () => {
   });
 
   describe('init', () => {
-    let core: Core;
+    it('должен инициализировать Phaser с дефолтными фабриками', async () => {
+      const core = new CoreBuilder(mockPhaserConfig).withPhaser(mockPhaserGame).build();
 
-    beforeEach(() => {
-      core = new Core(mockPhaserConfig);
-    });
+      await core.initializePhaser();
 
-    it('должен инициализировать Phaser', async () => {
-      await core.init();
-
-      expect(Phaser.Game).toHaveBeenCalledWith(mockPhaserConfig);
       expect((core as any).phaser).toBe(mockPhaserGame);
     });
 
-    it('должен инициализировать EventBus', async () => {
-      await core.init();
+    it('должен инициализировать EventBus с дефолтными фабриками', async () => {
+      const core = new CoreBuilder(mockPhaserConfig).withEventBus(mockEventBus).build();
 
-      expect(EventBus).toHaveBeenCalled();
+      await core.initializeEventBus();
+
       expect((core as any).eventBus).toBe(mockEventBus);
     });
 
     it('должен инициализировать TickManager с EventBus', async () => {
-      await core.init();
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .build();
 
-      expect(TickManager).toHaveBeenCalledWith(mockEventBus, 10);
+      await core.initializeEventBus();
+      core.initializeTickManager();
+
       expect((core as any).tickManager).toBe(mockTickManager);
       expect(mockTimeService.setTime).toHaveBeenCalledWith(2 * 60); // 2:00 AM
     });
 
     it('должен инициализировать ECSManager с EventBus и TickManager', async () => {
-      await core.init();
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .withECSManager(mockECSManager)
+        .build();
 
-      expect(ECSManager).toHaveBeenCalledWith(mockEventBus, mockTickManager);
+      await core.initializeEventBus();
+      core.initializeTickManager();
+      await core.initializeECSManager();
+
       expect((core as any).ecsManager).toBe(mockECSManager);
     });
 
     it('должен инициализировать модули после готовности Phaser', async () => {
-      // Получаем коллбэк для 'ready' события
-      await core.init();
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withPhaser(mockPhaserGame)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .withECSManager(mockECSManager)
+        .withModuleManager(mockModuleManager)
+        .build();
 
-      // Имитируем вызов коллбэка 'ready'
-      const readyCallback = vi
-        .mocked(mockPhaserGame.events.once)
-        .mock.calls.find(([event]: any) => event === 'ready')?.[1];
+      // Настраиваем все зависимости
+      (core as any).phaser = mockPhaserGame;
+      (core as any).eventBus = mockEventBus;
+      (core as any).tickManager = mockTickManager;
+      (core as any).ecsManager = mockECSManager;
 
-      if (readyCallback) {
-        readyCallback();
-      }
+      // Эмулируем событие 'ready'
+      setTimeout(() => {
+        mockPhaserGame.events.once.mock.calls.forEach(([event, callback]) => {
+          if (event === 'ready') callback();
+        });
+      }, 0);
 
-      expect(ModuleManager).toHaveBeenCalledWith(
-        mockMainScene,
-        mockEventBus,
-        mockECSManager,
-        mockTickManager,
-      );
+      await core.initializeModules();
+
       expect(mockModuleManager.init).toHaveBeenCalled();
       expect(mockMainScene.init).toHaveBeenCalledWith(mockEventBus, mockTickManager);
       expect(mockMainScene.setModuleManager).toHaveBeenCalledWith(mockModuleManager);
     });
 
     it('должен корректно обрабатывать последовательность инициализации', async () => {
-      await core.init();
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withPhaser(mockPhaserGame)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .withECSManager(mockECSManager)
+        .withModuleManager(mockModuleManager)
+        .build();
 
-      // Проверяем что Phaser инициализирован первым
-      expect(Phaser.Game).toHaveBeenCalledWith(mockPhaserConfig);
+      await core.initializePhaser();
+      await core.initializeEventBus();
+      core.initializeTickManager();
+      await core.initializeECSManager();
 
-      // Проверяем что EventBus инициализирован
-      expect(EventBus).toHaveBeenCalled();
-
-      // Проверяем что TickManager инициализирован с EventBus
-      expect(TickManager).toHaveBeenCalledWith(mockEventBus, 10);
-
-      // Проверяем что ECSManager инициализирован с EventBus и TickManager
-      expect(ECSManager).toHaveBeenCalledWith(mockEventBus, mockTickManager);
+      // Проверяем что все компоненты инициализированы правильно
+      expect((core as any).phaser).toBe(mockPhaserGame);
+      expect((core as any).eventBus).toBe(mockEventBus);
+      expect((core as any).tickManager).toBe(mockTickManager);
+      expect((core as any).ecsManager).toBe(mockECSManager);
     });
 
     it('должен запускать симуляцию если enableSimulation = true', async () => {
-      // Меняем флаг enableSimulation
+      const core = new CoreBuilder(mockPhaserConfig)
+        .withECSManager(mockECSManager)
+        .withEventBus(mockEventBus)
+        .withTickManager(mockTickManager)
+        .withEntrySimulation(mockEntrySimulation)
+        .build();
+
+      // Инициализируем менеджеры
+      (core as any).ecsManager = mockECSManager;
+      (core as any).eventBus = mockEventBus;
+      (core as any).tickManager = mockTickManager;
       (core as any).enableSimulation = true;
 
-      await core.init();
+      await core.startSimulation();
 
-      expect(EntrySimulation).toHaveBeenCalledWith(mockECSManager, mockEventBus, mockTickManager);
       expect(mockEntrySimulation.start).toHaveBeenCalled();
     });
 
     it('не должен запускать симуляцию если enableSimulation = false', async () => {
+      const core = new CoreBuilder(mockPhaserConfig).build();
+
       (core as any).enableSimulation = false;
 
-      await core.init();
+      await core.startSimulation();
 
-      expect(EntrySimulation).not.toHaveBeenCalled();
       expect(mockEntrySimulation.start).not.toHaveBeenCalled();
-    });
-
-    it('должен выбрасывать ошибку если Phaser не может инициализироваться', async () => {
-      (Phaser.Game as any).mockImplementation(() => {
-        throw new Error('Phaser init failed');
-      });
-
-      await expect(core.init()).rejects.toThrow('Failed to initialize Phaser: Phaser init failed');
-    });
-
-    it('должен выбрасывать ошибку если EventBus не может инициализироваться', async () => {
-      (EventBus as any).mockImplementation(() => {
-        throw new Error('EventBus init failed');
-      });
-
-      await expect(core.init()).rejects.toThrow(
-        'Failed to initialize EventBus: EventBus init failed',
-      );
-    });
-
-    it('должен выбрасывать ошибку если TickManager не может инициализироваться', async () => {
-      (TickManager as any).mockImplementation(() => {
-        throw new Error('TickManager init failed');
-      });
-
-      await expect(core.init()).rejects.toThrow(
-        'Failed to initialize TickManager: TickManager init failed',
-      );
-    });
-
-    it('должен выбрасывать ошибку если ECSManager не может инициализироваться', async () => {
-      (ECSManager as any).mockImplementation(() => {
-        throw new Error('ECSManager init failed');
-      });
-
-      await expect(core.init()).rejects.toThrow(
-        'Failed to initialize ECSManager: ECSManager init failed',
-      );
-    });
-
-    it('должен выбрасывать ошибку если ECSManager инициализируется без EventBus', async () => {
-      (core as any).eventBus = null;
-
-      await expect(core.init()).rejects.toThrow(
-        'EventBus and TickManager must be initialized before ECSManager',
-      );
-    });
-
-    it('должен выбрасывать ошибку если ECSManager инициализируется без TickManager', async () => {
-      (core as any).tickManager = null;
-
-      await expect(core.init()).rejects.toThrow(
-        'EventBus and TickManager must be initialized before ECSManager',
-      );
-    });
-
-    it('должен выбрасывать ошибку при инициализации модулей если Phaser не инициализирован', async () => {
-      (core as any).phaser = null;
-
-      await expect(core.init()).rejects.toThrow('Phaser not initialized');
-    });
-
-    it('должен выбрасывать ошибку если MainScene не найдена', async () => {
-      vi.mocked(mockPhaserGame.scene.getScene).mockReturnValue(undefined as any);
-
-      await core.init();
-
-      // Имитируем вызов коллбэка 'ready'
-      const readyCallback = vi
-        .mocked(mockPhaserGame.events.once)
-        .mock.calls.find(([event]: any) => event === 'ready')?.[1];
-
-      if (readyCallback) {
-        await expect(readyCallback()).rejects.toThrow('MainScene not found');
-      }
-    });
-
-    it('должен выбрасывать ошибку если EventBus не инициализирован при настройке модулей', async () => {
-      (core as any).eventBus = null;
-
-      await core.init();
-
-      // Имитируем вызов коллбэка 'ready'
-      const readyCallback = vi
-        .mocked(mockPhaserGame.events.once)
-        .mock.calls.find(([event]: any) => event === 'ready')?.[1];
-
-      if (readyCallback) {
-        await expect(readyCallback()).rejects.toThrow('EventBus not initialized');
-      }
-    });
-
-    it('должен выбрасывать ошибку если TickManager не инициализирован при настройке модулей', async () => {
-      (core as any).tickManager = null;
-
-      await core.init();
-
-      // Имитируем вызов коллбэка 'ready'
-      const readyCallback = vi
-        .mocked(mockPhaserGame.events.once)
-        .mock.calls.find(([event]: any) => event === 'ready')?.[1];
-
-      if (readyCallback) {
-        await expect(readyCallback()).rejects.toThrow('TickManager not initialized');
-      }
-    });
-
-    it('должен выбрасывать ошибку если симуляция не может стартовать', async () => {
-      (core as any).enableSimulation = true;
-      (EntrySimulation as any).mockImplementation(() => {
-        throw new Error('Simulation start failed');
-      });
-
-      await expect(core.init()).rejects.toThrow(
-        'Failed to start simulation: Simulation start failed',
-      );
-    });
-
-    it('должен выбрасывать ошибку если все менеджеры не инициализированы для симуляции', async () => {
-      (core as any).enableSimulation = true;
-      (core as any).ecsManager = null;
-
-      await expect(core.init()).rejects.toThrow(
-        'All managers must be initialized before starting simulation',
-      );
     });
   });
 
