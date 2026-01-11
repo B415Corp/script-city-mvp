@@ -11,6 +11,8 @@ import { LogicTickData, SetSpeedPayload } from './types';
 export class TickManager {
   private tickController: TickController;
   private timeService: TimeService;
+  private pauseHandler: () => void;
+  private speedHandler: (payload: unknown) => void;
 
   constructor(
     private readonly eventBus: EventBus,
@@ -19,12 +21,27 @@ export class TickManager {
     this.tickController = new TickController(initialTickRate);
     this.timeService = new TimeService(eventBus, initialTickRate);
 
-    // Подписываемся на события управления
-    this.eventBus.on(Events.GamePauseToggle, () => this.tickController.togglePause());
-    this.eventBus.on(Events.SetGameSpeed, (payload) => {
+    // Создаем именованные handlers для корректной отписки
+    this.pauseHandler = (): void => this.tickController.togglePause();
+    this.speedHandler = (payload: unknown): void => {
       const { speed } = payload as SetSpeedPayload;
       this.tickController.setSpeed(speed);
-    });
+    };
+
+    // Подписываемся на события управления
+    this.eventBus.on(Events.GamePauseToggle, this.pauseHandler);
+    this.eventBus.on(Events.SetGameSpeed, this.speedHandler);
+  }
+
+  /**
+   * Очистка ресурсов - отписка от всех событий
+   */
+  public destroy(): void {
+    // Отписываемся от всех событий EventBus используя именованные handlers
+    if (this.eventBus) {
+      this.eventBus.off(Events.GamePauseToggle, this.pauseHandler);
+      this.eventBus.off(Events.SetGameSpeed, this.speedHandler);
+    }
   }
 
   /**

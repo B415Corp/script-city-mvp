@@ -116,6 +116,23 @@ export class ModuleManager {
     const module = this.customModuleApi.get(moduleName);
     return module?.enabled ?? false;
   }
+
+  // очистка ресурсов
+  public destroy(): void {
+    // Очищаем все базовые модули
+    for (const module of this.baseModuleApi.values()) {
+      // TODO: добавить destroy метод в BaseModule если нужен
+      // module.destroy();
+    }
+    this.baseModuleApi.clear();
+
+    // Очищаем все кастомные модули
+    for (const module of this.customModuleApi.values()) {
+      // TODO: добавить destroy метод в CustomModule если нужен
+      // module.destroy();
+    }
+    this.customModuleApi.clear();
+  }
 }
 
 export default ModuleManager;

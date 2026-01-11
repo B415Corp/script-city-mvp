@@ -302,6 +302,25 @@ export class ECSManager {
   }
 
   /**
+   * Очистка ресурсов - отписка от всех событий
+   */
+  public destroy(): void {
+    // Останавливаем ScheduleManager если он существует
+    if (this.scheduleManager) {
+      // TODO: добавить destroy метод в ScheduleManager если нужен
+      // this.scheduleManager.destroy();
+    }
+
+    // Очищаем все event-driven системы
+    this.eventSystemMap.clear();
+
+    // Останавливаем все интервальные системы
+    this.intervalSystems.length = 0;
+
+    this.logger.info('ECSManager destroyed and resources cleaned up');
+  }
+
+  /**
    * Метод для тестирования event-driven систем (Phase 3)
    * Отправляет тестовые события для проверки работы систем
    */

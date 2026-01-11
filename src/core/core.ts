@@ -44,33 +44,53 @@ export class Core {
       this.resizeHandler = undefined;
     }
 
-    // Очищаем moduleManager
+    // Очищаем moduleManager с error handling
     if (this.moduleManager) {
-      // TODO: добавить destroy метод в ModuleManager если нужен
+      try {
+        this.moduleManager.destroy();
+      } catch (error) {
+        console.error('[Core] Error destroying ModuleManager:', error);
+      }
       this.moduleManager = undefined!;
     }
 
-    // Уничтожаем ECSManager если он существует
+    // Уничтожаем ECSManager если он существует с error handling
     if (this.ecsManager) {
-      // TODO: добавить destroy метод в ECSManager если нужен
+      try {
+        this.ecsManager.destroy();
+      } catch (error) {
+        console.error('[Core] Error destroying ECSManager:', error);
+      }
       this.ecsManager = null;
     }
 
-    // Уничтожаем tickManager
+    // Уничтожаем tickManager с error handling
     if (this.tickManager) {
-      // TODO: добавить destroy метод в TickManager если нужен
+      try {
+        this.tickManager.destroy();
+      } catch (error) {
+        console.error('[Core] Error destroying TickManager:', error);
+      }
       this.tickManager = undefined!;
     }
 
-    // Уничтожаем eventBus
+    // Уничтожаем eventBus с error handling
     if (this.eventBus) {
-      // TODO: добавить destroy метод в EventBus если нужен
+      try {
+        this.eventBus.clear(); // Используем существующий метод clear()
+      } catch (error) {
+        console.error('[Core] Error destroying EventBus:', error);
+      }
       this.eventBus = undefined!;
     }
 
-    // Уничтожаем Phaser
+    // Уничтожаем Phaser последним с error handling
     if (this.phaser) {
-      this.phaser.destroy(true);
+      try {
+        this.phaser.destroy(true);
+      } catch (error) {
+        console.error('[Core] Error destroying Phaser:', error);
+      }
       this.phaser = undefined!;
     }
   }
