@@ -1,5 +1,20 @@
 import { vi, beforeEach } from 'vitest';
 
+// Mock Phaser globally
+(globalThis as any).Phaser = {
+  Scene: class MockScene {
+    add = vi.fn();
+    scene = {
+      add: vi.fn(),
+      remove: vi.fn(),
+    };
+  },
+};
+
+vi.mock('phaser', () => ({
+  Scene: (globalThis as any).Phaser.Scene,
+}));
+
 // Mock BitECS functions and types
 vi.mock('bitecs', () => ({
   addComponent: vi.fn(),
