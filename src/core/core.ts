@@ -12,28 +12,31 @@ import { EntityFactoryRegistry } from './ecs/registry/entity_factory_registry';
 
 export class Core {
   private phaserConfig: Phaser.Types.Core.GameConfig;
-  private phaser: Phaser.Game | null = null; // ← ДОБАВИТЬ = null
+  private phaser!: Phaser.Game; // definite assignment assertion - инициализируется в initPhaser
   private resizeHandler?: () => void;
 
-  public moduleManager: ModuleManager | null = null; // ← ДОБАВИТЬ = null
-  public ecsManager: ECSManager | null = null; // ← ДОБАВИТЬ = null
-  public eventBus: EventBus | null = null; // ← ДОБАВИТЬ = null
-  public tickManager: TickManager | null = null; // ← ДОБАВИТЬ = null
+  // Конфигурационный флаг для Phase 0 - отключает симуляцию
+  private readonly enableSimulation: boolean = false;
+
+  public moduleManager!: ModuleManager; // definite assignment assertion - инициализируется в initModules
+  public ecsManager: ECSManager | null = null; // может быть null для Phase 0
+  public eventBus!: EventBus; // definite assignment assertion - инициализируется в initEventBus
+  public tickManager!: TickManager; // definite assignment assertion - инициализируется в initTickManager
 
   constructor(phaserConfig: Phaser.Types.Core.GameConfig) {
     this.phaserConfig = phaserConfig;
     this.setupResizeHandler(); // ← ИЗМЕНИТЬ
   }
 
-  // ← ДОБАВИТЬ новый метод
   private setupResizeHandler(): void {
     this.resizeHandler = (): void => {
-      this.phaser?.scale.resize(window.innerWidth, window.innerHeight);
+      if (this.phaser) {
+        this.phaser.scale.resize(window.innerWidth, window.innerHeight);
+      }
     };
     window.addEventListener('resize', this.resizeHandler);
   }
 
-  // ← ДОБАВИТЬ метод cleanup
   public destroy(): void {
     // Удаляем resize listener
     if (this.resizeHandler) {
@@ -42,14 +45,34 @@ export class Core {
     }
 
     // Очищаем moduleManager
-    this.moduleManager = null;
+    if (this.moduleManager) {
+      // TODO: добавить destroy метод в ModuleManager если нужен
+      this.moduleManager = undefined!;
+    }
 
     // Уничтожаем ECSManager если он существует
-    this.ecsManager = null;
+    if (this.ecsManager) {
+      // TODO: добавить destroy метод в ECSManager если нужен
+      this.ecsManager = null;
+    }
+
+    // Уничтожаем tickManager
+    if (this.tickManager) {
+      // TODO: добавить destroy метод в TickManager если нужен
+      this.tickManager = undefined!;
+    }
+
+    // Уничтожаем eventBus
+    if (this.eventBus) {
+      // TODO: добавить destroy метод в EventBus если нужен
+      this.eventBus = undefined!;
+    }
 
     // Уничтожаем Phaser
-    this.phaser?.destroy(true);
-    this.phaser = null;
+    if (this.phaser) {
+      this.phaser.destroy(true);
+      this.phaser = undefined!;
+    }
   }
 
   /**
@@ -61,7 +84,10 @@ export class Core {
     systems: () => SystemRegistry;
     clusters: () => ClusterRegistry;
     entityFactories: () => EntityFactoryRegistry;
-  } {
+  } | null {
+    if (!this.ecsManager) {
+      return null;
+    }
     return {
       components: (): ComponentRegistry => ComponentRegistry.getInstance(),
       systems: (): SystemRegistry => SystemRegistry.getInstance(),
@@ -80,7 +106,11 @@ export class Core {
   }
 
   private async initEventBus(): Promise<void> {
-    this.eventBus = new EventBus();
+    try {
+      this.eventBus = new EventBus();
+    } catch (error) {
+      throw new Error(`Failed to initialize EventBus: ${error}`);
+    }
   }
 
   private async initModules(): Promise<void> {
@@ -134,31 +164,51 @@ export class Core {
   }
 
   private async initPhaser(): Promise<void> {
-    this.phaser = new Phaser.Game(this.phaserConfig);
+    try {
+      this.phaser = new Phaser.Game(this.phaserConfig);
+    } catch (error) {
+      throw new Error(`Failed to initialize Phaser: ${error}`);
+    }
   }
 
   private async initECSManager(): Promise<void> {
-    if (!this.eventBus || !this.tickManager) {
-      throw new Error('EventBus and TickManager must be initialized before ECSManager');
+    try {
+      if (!this.eventBus || !this.tickManager) {
+        throw new Error('EventBus and TickManager must be initialized before ECSManager');
+      }
+      this.ecsManager = new ECSManager(this.eventBus, this.tickManager);
+    } catch (error) {
+      throw new Error(`Failed to initialize ECSManager: ${error}`);
     }
-    this.ecsManager = new ECSManager(this.eventBus, this.tickManager);
   }
 
-  private async initTickManager(): Promise<void> {
-    if (!this.eventBus) {
-      throw new Error('EventBus must be initialized before TickManager');
+  private initTickManager(): void {
+    try {
+      if (!this.eventBus) {
+        throw new Error('EventBus must be initialized before TickManager');
+      }
+      this.tickManager = new TickManager(this.eventBus, 10);
+      // Устанавливаем начальное время на 2:00 ночи (жители спят)
+      this.tickManager.getTimeService().setTime(2 * 60); // 2:00 AM
+    } catch (error) {
+      throw new Error(`Failed to initialize TickManager: ${error}`);
     }
-    this.tickManager = new TickManager(this.eventBus, 10);
-    // Устанавливаем начальное время на 2:00 ночи (жители спят)
-    this.tickManager.getTimeService().setTime(2 * 60); // 2:00 AM
   }
 
   private async startSimulation(): Promise<void> {
-    // Временно отключено для Phase 0
-    // if (!this.ecsManager || !this.eventBus || !this.tickManager) {
-    //   throw new Error('All managers must be initialized before starting simulation');
-    // }
-    // const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
-    // entrySimulation.start();
+    if (!this.enableSimulation) {
+      console.log('Simulation disabled for Phase 0');
+      return;
+    }
+
+    try {
+      if (!this.ecsManager || !this.eventBus || !this.tickManager) {
+        throw new Error('All managers must be initialized before starting simulation');
+      }
+      const entrySimulation = new EntrySimulation(this.ecsManager, this.eventBus, this.tickManager);
+      entrySimulation.start();
+    } catch (error) {
+      throw new Error(`Failed to start simulation: ${error}`);
+    }
   }
 }
