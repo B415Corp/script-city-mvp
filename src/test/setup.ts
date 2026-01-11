@@ -2,12 +2,30 @@ import { vi, beforeEach } from 'vitest';
 
 // Mock Phaser globally
 (globalThis as any).Phaser = {
+  AUTO: 0,
   Scene: class MockScene {
     add = vi.fn();
     scene = {
       add: vi.fn(),
       remove: vi.fn(),
     };
+  },
+  Game: vi.fn().mockImplementation((config) => ({
+    scale: {
+      resize: vi.fn(),
+    },
+    events: {
+      once: vi.fn(),
+    },
+    scene: {
+      getScene: vi.fn(),
+    },
+    destroy: vi.fn(),
+  })),
+  Types: {
+    Core: {
+      GameConfig: {},
+    },
   },
 };
 
@@ -25,6 +43,10 @@ vi.mock('bitecs', () => ({
   World: {},
   EntityId: {},
 }));
+
+// Mock window for Phaser
+Object.defineProperty(window, 'innerWidth', { value: 800, writable: true });
+Object.defineProperty(window, 'innerHeight', { value: 600, writable: true });
 
 // Mock environment for tests
 Object.defineProperty(import.meta, 'env', {
