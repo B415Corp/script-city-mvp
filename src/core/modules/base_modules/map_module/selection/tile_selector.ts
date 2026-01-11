@@ -1,6 +1,9 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { IsometricMath } from '../infrastructure/isometric_math';
+import { Logger } from '@/core/utils/logger';
+
+const logger = Logger.create('TileSelector');
 
 type SelectionStyle = {
   fill: number;
@@ -96,7 +99,7 @@ export class TileSelector {
       count: (x2 - x1 + 1) * (y2 - y1 + 1),
     });
 
-    console.log(`Selected area: (${x1},${y1}) to (${x2},${y2})`);
+    logger.debug(`Selected area: (${x1},${y1}) to (${x2},${y2})`);
   }
 
   // Рисование выделения
@@ -134,7 +137,7 @@ export class TileSelector {
       this.selectedTiles = [];
       this.graphics.clear();
 
-      console.log('Selection cancelled');
+      logger.debug('Selection cancelled');
     }
   }
 

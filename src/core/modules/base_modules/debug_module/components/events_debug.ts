@@ -77,10 +77,10 @@ export class EventsDebug extends DebugComponent {
     events
       .filter((el) => !excludeList.includes(el))
       .forEach((event) => {
-        const subscription = this.eventBus.on(event, (payload) => {
+        const unsubscribe = this.eventBus.on(event, (payload) => {
           this.addEvent(event, payload);
         });
-        this.eventUnsubscribers.push(subscription.unsubscribe);
+        this.eventUnsubscribers.push(unsubscribe);
       });
   }
 

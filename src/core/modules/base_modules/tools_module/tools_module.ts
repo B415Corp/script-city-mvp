@@ -1,4 +1,5 @@
 import { EventBus } from '@/core/event_bus/event_bus';
+import { ECSManager } from '@/core/ecs/ecs_manager';
 import { ToolId, ToolsEvents, ToolStackType } from './types';
 import { Events } from '@/core/event_bus/events';
 import { LivingZoneTool } from './tools/living_zone_tool';
@@ -42,8 +43,8 @@ export class ToolsModule extends BaseModule {
     },
   };
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
 
     eventBus.on(Events.SelectTool, (payload) => {
       const entry = this.toolsStack[payload?.type ?? ''];

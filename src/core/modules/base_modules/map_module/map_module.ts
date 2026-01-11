@@ -1,6 +1,8 @@
 import { BaseModule } from '../../extends';
 import { Events } from '@/core/event_bus/events';
 import { EventBus } from '@/core/event_bus/event_bus';
+import { ECSManager } from '@/core/ecs/ecs_manager';
+import { Logger } from '@/core/utils/logger';
 import { CameraController } from './camera/camera_controller';
 import { InputHandler } from './input/input_handler';
 import { TileRenderer } from './rendering/tile_renderer';
@@ -12,6 +14,7 @@ import { ToolActivatedPayload } from '../tools_module/types';
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  private logger: Logger;
 
   private container?: Phaser.GameObjects.Container; // контейнер для рендеринга тайлов
   private renderer?: TileRenderer; // рендер тайлов
@@ -26,9 +29,11 @@ export class MapModule extends BaseModule {
   private readonly tileWidth: number = 128;
   private readonly tileHeight: number = 64;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('MapModule init');
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
+    this.logger = Logger.create('🗺️ MapModule', '#f7dc6f');
+    this.logger = Logger.create('🗺️ MapModule', '#f7dc6f');
+    this.logger.info('MapModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
     this.attachToScene(scene);

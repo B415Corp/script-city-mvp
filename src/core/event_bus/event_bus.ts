@@ -1,103 +1,111 @@
-import { EventHandler, HandlerInfo, Subscription, EventPayload } from './types';
-import { Events } from './events';
+import { EventCallback, HandlerInfo, Subscription, EventPayloadMap } from './types';
+
+// ============================================================================
+// TYPE-SAFE EVENT BUS WITH BACKWARD COMPATIBILITY
+// ============================================================================
 
 export class EventBus {
-  private handlers: Map<string, Set<HandlerInfo>> = new Map();
+  private listeners: Map<string, Set<HandlerInfo>> = new Map();
 
-  // Публикация события в шине
-  public emit<T extends Events>(eventType: T, payload?: EventPayload<T>): void {
-    const handlers = this.handlers.get(eventType);
-    if (!handlers || handlers.size === 0) {
-      return;
-    }
-
-    const readyHandlers = Array.from(handlers);
-    readyHandlers.forEach((handler: HandlerInfo) => {
-      try {
-        handler.handler(payload);
-      } catch (error) {
-        console.error(`Ошибка при публикации события "${eventType}":`, error);
-      }
-
-      if (handler.once) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          this.handlers.delete(eventType);
-        }
-      }
-    });
-  }
-
-  // подписка на событие шины
-  public on<T extends Events>(eventType: T, handler: EventHandler<EventPayload<T>>): Subscription {
-    if (!this.handlers.has(eventType)) {
-      this.handlers.set(eventType, new Set());
+  // Type-safe methods for known events
+  on<K extends keyof EventPayloadMap>(
+    event: K,
+    callback: EventCallback<EventPayloadMap[K]>,
+  ): () => void;
+  // Fallback for unknown events
+  on(event: string, callback: EventCallback<unknown>): () => void;
+  on(event: string, callback: EventCallback<unknown>): () => void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
     }
 
     const handlerInfo: HandlerInfo = {
-      handler: handler as EventHandler,
+      handler: callback,
       once: false,
     };
 
-    this.handlers.get(eventType)!.add(handlerInfo);
+    this.listeners.get(event)!.add(handlerInfo);
 
-    return {
-      unsubscribe: (): void => {
-        this.off(eventType, handler);
-      },
-    };
+    return () => this.off(event, callback);
   }
 
-  // Одноразовая подписка на событие шины
-  public once<T extends Events>(
-    eventType: T,
-    handler: EventHandler<EventPayload<T>>,
-  ): Subscription {
-    if (!this.handlers.has(eventType)) {
-      this.handlers.set(eventType, new Set());
-    }
-
-    const handlerInfo: HandlerInfo = {
-      handler: handler as EventHandler,
-      once: true,
-    };
-
-    this.handlers.get(eventType)!.add(handlerInfo);
-
-    return {
-      unsubscribe: (): void => {
-        this.off(eventType, handler);
-      },
-    };
-  }
-
-  // отписка от события шины
-  public off<T extends Events>(eventType: T, handler: EventHandler<EventPayload<T>>): void {
-    const eventHandlers = this.handlers.get(eventType);
-    if (!eventHandlers || eventHandlers.size === 0) {
-      return;
-    }
-
-    // Удаляем обработчики
-    for (const handlerInfo of eventHandlers) {
-      if (handlerInfo.handler === handler) {
-        eventHandlers.delete(handlerInfo);
-        return;
+  // Type-safe methods for known events
+  off<K extends keyof EventPayloadMap>(event: K, callback: EventCallback<EventPayloadMap[K]>): void;
+  // Fallback for unknown events
+  off(event: string, callback: EventCallback<unknown>): void;
+  off(event: string, callback: EventCallback<unknown>): void {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      // Remove the specific callback
+      for (const handlerInfo of callbacks) {
+        if (handlerInfo.handler === callback) {
+          callbacks.delete(handlerInfo);
+          break;
+        }
+      }
+      if (callbacks.size === 0) {
+        this.listeners.delete(event);
       }
     }
+  }
 
-    // Если больше нет обработчиков для этого события, удаляем запись
-    if (eventHandlers.size === 0) {
-      this.handlers.delete(eventType);
+  // Type-safe methods for known events
+  emit<K extends keyof EventPayloadMap>(event: K, payload: EventPayloadMap[K]): void;
+  // Fallback for unknown events
+  emit(event: string, payload?: unknown): void;
+  emit(event: string, payload?: unknown): void {
+    const callbacks = this.listeners.get(event);
+    if (!callbacks) return;
+
+    for (const handlerInfo of callbacks) {
+      try {
+        handlerInfo.handler(payload);
+      } catch (error) {
+        console.error(`[EventBus] Error in callback for "${event}":`, error);
+      }
     }
   }
 
-  // Очистка событий
-  clearEvents(eventType: Events): void {
+  // Type-safe methods for known events
+  once<K extends keyof EventPayloadMap>(
+    event: K,
+    callback: EventCallback<EventPayloadMap[K]>,
+  ): () => void;
+  // Fallback for unknown events
+  once(event: string, callback: EventCallback<unknown>): () => void;
+  once(event: string, callback: EventCallback<unknown>): () => void {
+    const wrappedCallback: EventCallback<unknown> = (payload?: unknown) => {
+      callback(payload);
+      this.off(event, wrappedCallback);
+    };
+
+    return this.on(event, wrappedCallback);
+  }
+
+  clear(): void {
+    this.listeners.clear();
+  }
+
+  getListenerCount(event: string): number {
+    return this.listeners.get(event)?.size ?? 0;
+  }
+
+  // Legacy methods for backward compatibility during transition
+  emitLegacy(eventType: string, payload?: unknown): void {
+    this.emit(eventType, payload);
+  }
+
+  onLegacy(eventType: string, handler: (payload?: unknown) => void): Subscription {
+    return {
+      unsubscribe: this.on(eventType, handler),
+    };
+  }
+
+  clearEvents(eventType?: string): void {
     if (eventType) {
-      this.handlers.delete(eventType);
+      this.listeners.delete(eventType);
     } else {
-      this.handlers.clear();
+      this.listeners.clear();
     }
   }
 }

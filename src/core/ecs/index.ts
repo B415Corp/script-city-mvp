@@ -1,11 +1,7 @@
-// Компоненты
-export * from './components';
-
-// Системы
-export * from './systems';
-
-// Сущности и фабрики
-export * from './entities';
+// Временно закомментированы экспорты удаленных модулей для Phase 0
+// export * from './components';
+// export * from './systems';
+// export * from './entities';
 
 // ECS менеджер
 export { ECSManager } from './ecs_manager';

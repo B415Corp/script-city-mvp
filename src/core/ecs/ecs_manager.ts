@@ -1,519 +1,574 @@
-import { createWorld, addEntity, removeEntity, World, EntityId, query } from 'bitecs';
+import { createWorld, World } from 'bitecs';
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
-import { CallSystemPayload } from '../event_bus/types';
-import { TimeService } from '../tick/time_service';
 import { TickManager } from '../tick/tick_manager';
-
-import { EntityFactory } from './entities';
-// Отключенные системы в упрощенной симуляции:
-// import { PopulationSystem, NeedsSystem, DailyRoutineSystem, JobSearchSystem, FiringSystem, createPriceFluctuationSystem, PriceFluctuationSystem, MinimumExpensesUpdateSystem, createWeeklyExpensesSystem, WeeklyExpensesSystem } from './systems/clusters';
-import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
-import {
-  WorkSystem,
-  ScheduleManagerSystem,
-  MovementSystem,
-} from './systems/clusters/schedule_activity_systems';
-import { System, SystemCluster } from './systems/types';
+import { Logger } from '../utils/logger';
+import { ComponentRegistry } from './registry/component_registry';
+import { SystemRegistry } from './registry/system_registry';
+import { ClusterRegistry } from './registry/cluster_registry';
+import { EntityFactoryRegistry } from './registry/entity_factory_registry';
+import { SystemFunction } from './core/smart_constructors';
+import { CallSystemPayload } from '../event_bus/types';
 import { LogicTickData } from '../tick/types';
-import { Person, Citizen, Needs, Schedule, Shop, Factory, ID } from './components';
-// import { TestSystem } from './systems/clusters/test_system'; // Отключена в упрощенной симуляции
+import { ECSDebugStats } from '../modules/base_modules/debug_module/components/ecs_debug';
 
-/**
- * Реестр компонентов для запросов по именам
- */
-const COMPONENT_REGISTRY: Record<
-  string,
-  Record<string, unknown[]> | Record<string, Record<string, unknown>[]> // Компоненты bitECS
-> = {
-  Person,
-  Citizen,
-  Needs,
-  Schedule,
-  Shop,
-  Factory,
-};
+// Игровое время за один тик (независимо от скорости игры)
+const GAME_TIME_PER_TICK = 100; // ms
 
-// Регистр систем
-const systemRegistry: Record<string, System> = {
-  // Отключенные системы в упрощенной симуляции
-  // Population: PopulationSystem,
-  // Needs: NeedsSystem,
-  // DailyRoutine: DailyRoutineSystem,
-  // PriceFluctuation: PriceFluctuationSystem,
-  // MinimumExpensesUpdate: MinimumExpensesUpdateSystem,
-  // WeeklyExpenses: WeeklyExpensesSystem,
-  // JobSearch: JobSearchSystem,
-  // Firing: FiringSystem,
-  // Test: TestSystem,
-  // Только активные системы в упрощенной симуляции
-  Work: WorkSystem,
-  ScheduleManager: ScheduleManagerSystem,
-  Movement: MovementSystem,
-} as const;
+interface ECSStats {
+  totalSystemsCount: number;
+  clustersCount: number;
+  systems: string[];
+  clusters: Record<string, unknown>;
+  entityCount: number;
+  entityCounts: Record<string, number>;
+  gameTime: number;
+  timeData: unknown;
+  totalEntities: number;
+  components: string[];
+  intervalSystems: string[];
+  eventSystems: Record<string, string[]>;
+}
 
-// Регистр кластеров
-const clustersRegistry: Record<string, SystemCluster> = {
-  population: {
-    systemNames: ['ScheduleManager', 'Movement', 'Work'],
-    enabled: true,
-    interval: undefined, // Каждый тик
-  },
-  economy: {
-    systemNames: [], // Экономические системы отключены в упрощенной симуляции
-    enabled: false,
-    interval: undefined,
-  },
-  infrastructure: {
-    systemNames: ['DayNightCycle'], // Только цикл дня и ночи
-    enabled: true,
-    interval: 240.0,
-  },
-};
-
-export type SystemName = keyof typeof systemRegistry;
-export type systemsClusters = Record<string, SystemCluster>;
+// Временно закомментированы импорты удаленных модулей для Phase 0
+// import { EntityFactory } from './entities';
+// import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
+// import {
+//   createWorkSystem,
+//   createMovementSystem,
+//   createHappinessSystem,
+// } from './systems/clusters/schedule_activity_systems';
+// import { SystemCluster } from './systems/types';
+// import { LogicTickData } from '../tick/types';
+// import { Person, Citizen, Needs } from './components/population';
+// import { Residential, Workplace, Commercial } from './components/buildings';
+// import { Position } from './components/shared/position_component';
+// import { ID } from './components/shared/id_component';
+// import { Render } from './components/shared/render_component';
+// import { Schedule } from './components/shared/schedule_component';
 
 export class ECSManager {
   private world: World;
-  private entityFactory: EntityFactory; // Фабрика сущностей для создания новых сущностей
-  private systems: Record<string, System> = {}; // Все системы по именам
-  private queries: Map<string, ReturnType<typeof query>> = new Map(); // Кэш query объектов
-  private systemsClusters: systemsClusters = clustersRegistry; // Регистр кластеров
-  private clusterTimers: Map<string, number> = new Map(); // Отслеживание времени для интервалов кластеров
-  private timeService: TimeService;
+  private scheduleManager: ScheduleManager;
+  private eventSystemMap: Map<string, SystemFunction[]> = new Map();
+  private logger: Logger;
 
   constructor(
     private eventBus: EventBus,
     private tickManager: TickManager,
-    private systemDependencies?: import('./systems/types').ISystemDependencies,
   ) {
-    console.log('🚀 ECSManager initialized');
+    this.logger = Logger.create('ECSManager');
+    this.logger.info('ECSManager initialized (Phase 3 - with Event system)');
     this.world = createWorld();
-    this.entityFactory = new EntityFactory(this.world);
+    this.scheduleManager = new ScheduleManager(
+      this.world,
+      this.eventBus,
+      SystemRegistry.getInstance(),
+      ClusterRegistry.getInstance(),
+    );
 
-    // Инициализируем TimeService для работы с eventBus
-    this.timeService = tickManager.getEventBusTimeService();
+    // Подписываемся на события для event-driven систем
+    this.setupEventSubscriptions();
 
-    // Создаем систему цикла дня и ночи
-    // Используем eventBus версию TimeService для синхронизации с событиями
-    const dayNightSystem = createDayNightCycleSystem(eventBus, this.timeService);
-    this.registerSystem('DayNightCycle', dayNightSystem);
+    // Подписываемся на LogicTick для обновления систем каждый тик
+    this.setupTickSubscription();
 
-    // Инициализируем query объекты для часто используемых комбинаций компонентов
-    this.initializeQueries();
-
-    // Регистрируем базовые системы
-    this.registerBaseSystems();
-
-    // Инициализируем кластеры
-    this.initializeClusters();
-
-    // Подписываемся на LogicTick для обновления систем
-    this.eventBus.on(Events.LogicTick, (payload) => {
-      const tickData = payload as LogicTickData;
-      this.updateSystems(tickData);
-    });
-
-    // TimeService предоставляет актуальные данные времени
-
-    // Подписываемся на CallSystem для вызова систем по событиям
-    this.eventBus.on(Events.CallSystem, (payload) => {
-      const callData = payload as CallSystemPayload;
-      this.handleCallSystem(callData);
-    });
+    // Автоматическая регистрация компонентов, систем и кластеров
+    this.initECSManager();
   }
 
   /**
-   * Создает ключ для кэширования query на основе массива имен компонентов
-   */
-  private getQueryKey(componentNames: readonly string[]): string {
-    return [...componentNames].sort().join(',');
-  }
-
-  /**
-   * Инициализирует query объекты для часто используемых комбинаций компонентов
-   */
-  private initializeQueries(): void {
-    // Создаем предварительные query для наиболее часто используемых комбинаций компонентов
-    // Это улучшает производительность, так как query создаются один раз при инициализации
-
-    // Query для жителей города (Person + Citizen + Needs) - самая частая комбинация
-    this.queries.set('citizens', query(this.world, [Person, Citizen, Needs]));
-
-    // Query для всех людей
-    this.queries.set('persons', query(this.world, [Person]));
-
-    // Query для магазинов
-    this.queries.set('shops', query(this.world, [Shop]));
-
-    // Query для фабрик
-    this.queries.set('factories', query(this.world, [Factory]));
-
-    console.log(`📋 Query system initialized with ${this.queries.size} pre-built queries`);
-  }
-
-  /**
-   * Регистрирует базовые системы
-   */
-  private registerBaseSystems(): void {
-    // Создаем системы с dependency injection
-    const systems = this.createSystemsWithDependencies();
-
-    for (const [systemName, system] of Object.entries(systems)) {
-      this.registerSystem(systemName, system);
-    }
-
-    console.log(`📋 Registered ${Object.keys(this.systems).length} base systems`);
-  }
-
-  /**
-   * Создает системы с dependency injection
-   */
-  private createSystemsWithDependencies(): Record<string, System> {
-    return {
-      // Только активные системы в упрощенной симуляции
-      Work: WorkSystem,
-      ScheduleManager: ScheduleManagerSystem,
-      Movement: MovementSystem,
-    };
-  }
-
-  /**
-   * Инициализирует кластеры
-   */
-  private initializeClusters(): void {
-    for (const [clusterName, cluster] of Object.entries(this.systemsClusters)) {
-      // Проверяем, что все системы кластера зарегистрированы
-      for (const systemName of cluster.systemNames) {
-        if (!this.systems[systemName]) {
-          throw new Error(
-            `System "${systemName}" not found in cluster "${clusterName}", systems: ${Object.keys(this.systems)}`,
-          );
-        }
-      }
-
-      // Инициализируем таймер для кластера
-      this.clusterTimers.set(clusterName, 0);
-      console.log(
-        `📋 Initialized cluster "${clusterName}" with ${cluster.systemNames.length} systems ` +
-          `(interval: ${cluster.interval ?? 'every tick'})`,
-      );
-    }
-    console.log(`📋 Total clusters initialized: ${Object.keys(this.systemsClusters).length}`);
-  }
-
-  /**
-   * Обрабатывает событие CallSystem
-   */
-  private handleCallSystem(callData: CallSystemPayload): void {
-    try {
-      if (callData.entityId !== undefined) {
-        // Вызвать систему для конкретной сущности
-        this.callSystemForEntity(callData.systemName, callData.entityId, callData.extraData);
-      } else {
-        // Вызвать систему для всех подходящих сущностей
-        this.callSystem(callData.systemName, undefined, callData.extraData);
-      }
-    } catch (error) {
-      console.error(`Error calling system "${callData.systemName}":`, error);
-    }
-  }
-
-  /**
-   * Регистрирует систему по имени
-   */
-  registerSystem(name: string, system: System): void {
-    if (this.systems[name]) {
-      console.warn(`System "${name}" is already registered, overwriting`);
-    }
-
-    this.validateSystem(system);
-    this.systems[name] = system;
-    console.log(`📋 Registered system: ${name}`);
-  }
-
-  /**
-   * Вызывает систему по имени
-   */
-  callSystem(systemName: string, entities?: EntityId[], extraData?: unknown): void {
-    const system = this.systems[systemName];
-    if (!system) {
-      throw new Error(`System "${systemName}" not found`);
-    }
-
-    const targetEntities = entities || this.queryEntities(system.components);
-    system.update(this.world, targetEntities, 0, extraData);
-  }
-
-  /**
-   * Вызывает систему по имени для конкретных сущностей
-   */
-  callSystemForEntities(systemName: string, entityIds: EntityId[], extraData?: unknown): void {
-    this.callSystem(systemName, entityIds, extraData);
-  }
-
-  /**
-   * Вызывает систему по имени для одной сущности
-   */
-  callSystemForEntity(systemName: string, entityId: EntityId, extraData?: unknown): void {
-    this.callSystemForEntities(systemName, [entityId], extraData);
-  }
-
-  /**
-   * Валидирует систему
-   */
-  private validateSystem(system: System): void {
-    if (!system.name || typeof system.name !== 'string') {
-      throw new Error('System must have a valid name');
-    }
-
-    if (!Array.isArray(system.components) || system.components.length === 0) {
-      throw new Error(`System "${system.name}" must have at least one component`);
-    }
-
-    if (typeof system.update !== 'function') {
-      throw new Error(`System "${system.name}" must have an update function`);
-    }
-  }
-
-  /**
-   * Обновляет все кластеры систем с учетом интервалов
-   * Вызывается на каждый LogicTick
-   */
-  private updateSystems(tickData: LogicTickData): void {
-    const deltaTime = tickData.delta;
-
-    for (const [clusterName, cluster] of Object.entries(this.systemsClusters)) {
-      if (!cluster.enabled) continue;
-
-      // Обновляем таймер кластера
-      const currentTimer = this.clusterTimers.get(clusterName) || 0;
-      const newTimer = currentTimer + deltaTime;
-
-      // Проверяем, нужно ли обновлять кластер
-      const shouldUpdate = !cluster.interval || newTimer >= cluster.interval;
-
-      if (shouldUpdate) {
-        // Обновляем все системы в кластере
-        // Используем TimeService для синхронизации с событиями времени
-        for (const systemName of cluster.systemNames) {
-          this.callSystem(systemName, undefined, this.timeService);
-        }
-
-        // Сбрасываем таймер
-        this.clusterTimers.set(clusterName, 0);
-      } else {
-        // Накапливаем время
-        this.clusterTimers.set(clusterName, newTimer);
-      }
-    }
-  }
-
-  /**
-   * Запрашивает сущности по компонентам
-   * Возвращает сущности, которые имеют все указанные компоненты
-   */
-  private queryEntities(componentNames: readonly string[]): EntityId[] {
-    if (componentNames.length === 0) {
-      return [];
-    }
-
-    // Сначала проверяем, есть ли предварительный query для этой комбинации
-    const queryKey = this.getQueryKey(componentNames);
-    const cachedQuery = this.queries.get(queryKey);
-
-    if (cachedQuery) {
-      // Используем предварительный query
-      return Array.from(cachedQuery);
-    }
-
-    // Если предварительного query нет, создаем его на лету
-    const components = componentNames
-      .map((name) => {
-        const component = COMPONENT_REGISTRY[name];
-        if (!component) {
-          console.warn(`Component "${name}" not found in registry`);
-          return null;
-        }
-        return component;
-      })
-      .filter((comp) => comp !== null);
-
-    if (components.length === 0) {
-      return [];
-    }
-
-    // Используем bitECS 0.4.0 query API: query(world, [components])
-    return Array.from(query(this.world, components));
-  }
-
-  /**
-   * Получить фабрику сущностей
-   */
-  get entities(): EntityFactory {
-    return this.entityFactory;
-  }
-
-  /**
-   * Получить мир (использовать осторожно - предоставляет прямой доступ к Bitecs)
+   * Возвращает BitECS world (для Phase 0 - пустой)
    */
   getWorld(): World {
     return this.world;
   }
 
   /**
-   * Создать сущность
+   * Возвращает статистику ECS для дебаг панели
    */
-  createEntity(): EntityId {
-    return addEntity(this.world);
-  }
+  getStats(): ECSDebugStats {
+    const componentRegistry = ComponentRegistry.getInstance();
+    const systemRegistry = SystemRegistry.getInstance();
+    const clusterRegistry = ClusterRegistry.getInstance();
 
-  /**
-   * Уничтожить сущность
-   */
-  destroyEntity(eid: EntityId): void {
-    removeEntity(this.world, eid);
-  }
-
-  /**
-   * Включить/отключить кластер
-   */
-  private setClusterEnabled(clusterName: string, enabled: boolean): void {
-    const cluster = this.systemsClusters[clusterName];
-    if (cluster) {
-      cluster.enabled = enabled;
-      console.log(`📋 Cluster "${clusterName}" ${enabled ? 'enabled' : 'disabled'}`);
-    } else {
-      console.warn(`⚠️ Cluster "${clusterName}" not found`);
-    }
-  }
-
-  /**
-   * Получить список всех зарегистрированных систем
-   */
-  getRegisteredSystems(): string[] {
-    return Object.keys(this.systems);
-  }
-
-  /**
-   * Проверить, зарегистрирована ли система
-   */
-  isSystemRegistered(systemName: string): boolean {
-    return systemName in this.systems;
-  }
-
-  /**
-   * Проверить, включен ли кластер
-   */
-  isClusterEnabled(clusterName: string): boolean {
-    const cluster = this.systemsClusters[clusterName];
-    return cluster ? cluster.enabled : false;
-  }
-
-  /**
-   * Получить количество сущностей
-   */
-  getEntityCount(): number {
-    // В BiteCS нет прямого способа получить общее количество сущностей
-    // Используем query с любым компонентом для подсчета
-    try {
-      const entities = query(this.world, [ID]); // ID есть у всех сущностей
-      return entities.length;
-    } catch {
-      return 0;
-    }
-  }
-
-  /**
-   * Получить количество сущностей по типам компонентов
-   */
-  getEntityCountsByType(): Record<string, number> {
-    const counts: Record<string, number> = {};
-
-    // Подсчет сущностей с компонентами Person
-    try {
-      const personQuery = this.queries.get('persons') || query(this.world, [Person]);
-      counts['Person'] = personQuery.length;
-    } catch {
-      counts['Person'] = 0;
-    }
-
-    // Подсчет сущностей с компонентами Shop
-    try {
-      const shopQuery = this.queries.get('shops') || query(this.world, [Shop]);
-      counts['Shop'] = shopQuery.length;
-    } catch {
-      counts['Shop'] = 0;
-    }
-
-    // Подсчет сущностей с компонентами Factory
-    try {
-      const factoryQuery = this.queries.get('factories') || query(this.world, [Factory]);
-      counts['Factory'] = factoryQuery.length;
-    } catch {
-      counts['Factory'] = 0;
-    }
-
-    return counts;
-  }
-
-  /**
-   * Получить текущее игровое время в минутах
-   */
-  getGameTime(): number {
-    return this.timeService.getTimeData().totalMinutes;
-  }
-
-  getTimeService(): TimeService {
-    return this.timeService;
-  }
-
-  /**
-   * Получить статистику симуляции
-   */
-  getStats(): {
-    totalSystemsCount: number;
-    clustersCount: number;
-    systems: string[]; // Список всех зарегистрированных систем
-    totalEntities: number; // Общее количество сущностей
-    entityCounts: Record<string, number>; // Количество сущностей по типам
-    clusters: Record<
-      string,
-      {
-        systemsCount: number;
-        systems: string[];
-        enabled: boolean;
-        interval?: number;
-      }
-    >;
-  } {
+    // Преобразуем кластеры в формат для дебаг панели
     const clusters: Record<
       string,
-      {
-        systemsCount: number;
-        systems: string[];
-        enabled: boolean;
-        interval?: number;
-      }
+      { systemsCount: number; systems: string[]; enabled: boolean; interval?: number }
     > = {};
-
-    for (const [clusterName, cluster] of Object.entries(this.systemsClusters)) {
+    for (const [clusterName, cluster] of clusterRegistry.getAll()) {
       clusters[clusterName] = {
         systemsCount: cluster.systemNames.length,
         systems: cluster.systemNames,
-        enabled: cluster.enabled,
-        interval: cluster.interval,
+        enabled: cluster.metadata.enabled,
+        interval: cluster.metadata.interval,
       };
     }
 
     return {
-      totalSystemsCount: Object.keys(this.systems).length,
-      clustersCount: Object.keys(clusters).length,
-      systems: Object.keys(this.systems), // Список всех зарегистрированных систем
-      totalEntities: this.getEntityCount(), // Общее количество сущностей
-      entityCounts: this.getEntityCountsByType(), // Количество сущностей по типам
+      totalSystemsCount:
+        this.scheduleManager.getSystems().length + this.scheduleManager.getIntervalSystems().length,
+      clustersCount: clusterRegistry.size(),
+      systems: Array.from(systemRegistry.getAll().keys()),
+      totalEntities: 0, // Пока нет сущностей
+      entityCounts: {}, // Пока нет сущностей по типам
       clusters,
+      intervalSystems: this.scheduleManager.getIntervalSystems().map((is) => is.name),
+      eventSystems: Object.fromEntries(
+        Array.from(this.eventSystemMap.entries()).map(([event, systems]) => [
+          event,
+          systems.map((sys) => sys.name || 'unnamed'),
+        ]),
+      ),
     };
+  }
+
+  // В Phase 0 остальные методы не нужны - ECS отключен
+
+  /**
+   * Автоматическая регистрация компонентов из ComponentRegistry
+   * Вызывается в initECSManager() для автоматической настройки
+   */
+  private autoRegisterComponents(): void {
+    const registry = ComponentRegistry.getInstance();
+
+    // Регистрируем все компоненты в BitECS мире
+    for (const [name, component] of registry.getAll()) {
+      // Компоненты уже созданы через defineComponent() в createComponent()
+      // Здесь можно добавить дополнительную логику регистрации если нужно
+      this.logger.info(`Auto-registered component: ${name}`);
+    }
+
+    this.logger.info(`Auto-registered ${registry.size()} components`);
+  }
+
+  /**
+   * Автоматическая регистрация систем из SystemRegistry
+   * Вызывается в initECSManager() для автоматической настройки
+   */
+  private autoRegisterSystems(): void {
+    const registry = SystemRegistry.getInstance();
+
+    // Регистрируем все системы в ScheduleManager или как event-driven
+    for (const [name, registeredSystem] of registry.getAll()) {
+      const { system, metadata } = registeredSystem;
+
+      // Проверяем eventTriggers для event-driven систем
+      if (metadata.eventTriggers && metadata.eventTriggers.length > 0) {
+        // Event-driven система - регистрируем для каждого события
+        for (const eventName of metadata.eventTriggers) {
+          this.registerEventSystem(eventName, system);
+        }
+        this.logger.info(
+          `Auto-registered event-driven system: ${name} (events: ${metadata.eventTriggers.join(', ')})`,
+        );
+      }
+      // Проверяем интервал для интервальных систем
+      else if (metadata.interval && metadata.interval > 0) {
+        // Система с интервалом
+        this.scheduleManager.registerIntervalSystem(name, system, metadata.interval);
+        this.logger.info(
+          `Auto-registered interval system: ${name} (${metadata.interval}ms, cluster: ${metadata.cluster || 'none'})`,
+        );
+      } else {
+        // Обычная система (каждый тик)
+        this.scheduleManager.registerSystem(system);
+        this.logger.info(
+          `Auto-registered system: ${name} (every tick, cluster: ${metadata.cluster || 'none'})`,
+        );
+      }
+    }
+
+    this.logger.info(`Auto-registered ${registry.size()} systems`);
+  }
+
+  /**
+   * Автоматическая регистрация кластеров из ClusterRegistry
+   * Вызывается в initECSManager() для автоматической настройки
+   */
+  private autoRegisterClusters(): void {
+    const clusterRegistry = ClusterRegistry.getInstance();
+    const systemRegistry = SystemRegistry.getInstance();
+
+    // Автоматически создать кластеры на основе метаданных систем
+    clusterRegistry.autoCreateFromSystemMetadata(systemRegistry.getAll());
+
+    // Зарегистрировать все кластеры
+    for (const [name, cluster] of clusterRegistry.getAll()) {
+      this.logger.info(`Auto-registered cluster: ${name} (${cluster.systemNames.length} systems)`);
+    }
+
+    this.logger.info(`Auto-registered ${clusterRegistry.size()} clusters`);
+  }
+
+  /**
+   * Настройка подписок на события для event-driven систем
+   */
+  private setupEventSubscriptions(): void {
+    // Подписываемся на Events.CallSystem для ручного вызова систем
+    this.eventBus.on(Events.CallSystem, (payload) => {
+      if (payload && 'systemName' in payload) {
+        this.handleCallSystem(payload);
+      }
+    });
+
+    this.logger.info('Event subscriptions setup for event-driven systems');
+  }
+
+  /**
+   * Настройка подписки на LogicTick для автоматического обновления систем
+   */
+  private setupTickSubscription(): void {
+    // Подписываемся на LogicTick события от TickManager
+    this.eventBus.on(Events.LogicTick, (data) => {
+      if (data && 'delta' in data) {
+        // Обновляем системы каждый игровой тик
+        this.scheduleManager.update(data.delta);
+      }
+    });
+
+    this.logger.info('Tick subscription setup for automatic system updates');
+  }
+
+  /**
+   * Инициализация ECS менеджера с автоматической регистрацией
+   * Вызывается в конструкторе для полной настройки
+   */
+  private initECSManager(): void {
+    this.logger.info('Initializing ECS Manager with auto-registration...');
+
+    // Автоматическая регистрация всех компонентов из реестра
+    this.autoRegisterComponents();
+
+    // Автоматическая регистрация всех систем из реестра
+    this.autoRegisterSystems();
+
+    // Автоматическая регистрация кластеров
+    this.autoRegisterClusters();
+
+    this.logger.info('ECS Manager initialization completed');
+  }
+
+  /**
+   * Обработчик для вызова системы по имени (Events.CallSystem)
+   */
+  private handleCallSystem(payload: CallSystemPayload): void {
+    const systemName = payload?.systemName;
+    if (!systemName) return;
+
+    // Находим систему в реестре и выполняем её
+    const registry = SystemRegistry.getInstance();
+    const registeredSystem = registry.get(systemName);
+
+    if (registeredSystem) {
+      try {
+        registeredSystem.system(this.world, 0); // delta = 0 для вызова по событию
+        this.logger.debug(`Executed system "${systemName}" via CallSystem event`);
+      } catch (error) {
+        this.logger.error(`Error executing system "${systemName}":`, error as Error);
+      }
+    } else {
+      this.logger.warn(`System "${systemName}" not found for CallSystem event`);
+    }
+  }
+
+  /**
+   * Обработчик для event-driven систем
+   * Выполняет все системы, подписанные на данное событие
+   */
+  private handleEventSystem(eventName: string, payload?: unknown): void {
+    const systems = this.eventSystemMap.get(eventName);
+    if (!systems || systems.length === 0) {
+      return; // Нет систем, подписанных на это событие
+    }
+
+    for (const system of systems) {
+      try {
+        system(this.world, 0); // delta = 0 для вызова по событию
+        this.logger.debug(`Executed event-driven system for event "${eventName}"`);
+      } catch (error) {
+        this.logger.error(`Error in event-driven system for "${eventName}":`, error as Error);
+      }
+    }
+  }
+
+  /**
+   * Регистрация системы для event-driven выполнения
+   */
+  registerEventSystem(eventName: string, system: SystemFunction): void {
+    if (!this.eventSystemMap.has(eventName)) {
+      this.eventSystemMap.set(eventName, []);
+      // Подписываемся на событие только при первой регистрации
+      this.eventBus.on(eventName, (payload) => {
+        this.handleEventSystem(eventName, payload);
+      });
+    }
+    this.eventSystemMap.get(eventName)!.push(system);
+    this.logger.info(`Registered event-driven system for event "${eventName}"`);
+  }
+
+  /**
+   * Очистка ресурсов - отписка от всех событий
+   */
+  public destroy(): void {
+    // Останавливаем ScheduleManager если он существует
+    if (this.scheduleManager) {
+      // TODO: добавить destroy метод в ScheduleManager если нужен
+      // this.scheduleManager.destroy();
+    }
+
+    // Очищаем все event-driven системы
+    this.eventSystemMap.clear();
+
+    this.logger.info('ECSManager destroyed and resources cleaned up');
+  }
+
+  /**
+   * Метод для тестирования event-driven систем (Phase 3)
+   * Отправляет тестовые события для проверки работы систем
+   */
+  testEventSystems(): void {
+    this.logger.info('Testing event-driven systems...');
+
+    // Отправляем тестовые события
+    // Test events (using emitLegacy for backward compatibility with test events)
+    setTimeout(() => this.eventBus.emitLegacy('test:event', { testData: 'from test' }), 1000);
+    setTimeout(() => this.eventBus.emitLegacy('custom:action', { action: 'test_action' }), 2000);
+    setTimeout(() => this.eventBus.emitLegacy('nonexistent:event', {}), 3000); // Это событие не должно вызвать системы
+
+    this.logger.info(
+      'Test events scheduled (1s: test:event, 2s: custom:action, 3s: nonexistent:event)',
+    );
+  }
+
+  /**
+   * Метод для тестирования фабрик сущностей (Phase 4)
+   * Создает тестовые сущности через зарегистрированные фабрики
+   */
+  testEntityFactories(): void {
+    const registry = EntityFactoryRegistry.getInstance();
+
+    this.logger.info('Testing entity factories...');
+
+    // Создаем mock world для тестирования фабрик
+    const mockWorld = {} as World;
+
+    // Тестируем все зарегистрированные фабрики
+    for (const [name, factory] of registry.getAll()) {
+      try {
+        const entityId = factory.factory(mockWorld);
+        this.logger.info(`Created entity via factory "${name}": entityId = ${entityId}`);
+      } catch (error) {
+        this.logger.error(`Error creating entity via factory "${name}":`, error as Error);
+      }
+    }
+
+    this.logger.info(`Tested ${registry.size()} entity factories`);
+  }
+
+  /**
+   * Метод для тестирования ScheduleManager (Phase 2)
+   * Запускает тестовый цикл обновления систем
+   */
+  testScheduleManager(duration = 5000, deltaTime = 100): void {
+    this.logger.info(
+      `Starting ScheduleManager test for ${duration}ms with deltaTime=${deltaTime}ms...`,
+    );
+
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += deltaTime;
+      this.scheduleManager.update(deltaTime);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        this.logger.info('ScheduleManager test completed');
+      }
+    }, deltaTime);
+  }
+}
+
+// ✅ Расширенный ScheduleManager для Phase 2 с поддержкой интервалов
+
+interface IntervalSystem {
+  system: SystemFunction;
+  name: string;
+  interval: number;
+  lastExecuted: number;
+}
+
+export class ScheduleManager {
+  private systems: SystemFunction[] = [];
+  private intervalSystems: IntervalSystem[] = [];
+  private clusterTimers: Map<string, number> = new Map();
+  private gameTime: number = 0; // Накопленное игровое время для кластеров
+
+  constructor(
+    private world: World,
+    private eventBus: EventBus,
+    private systemRegistry: SystemRegistry,
+    private clusterRegistry: ClusterRegistry,
+  ) {}
+
+  registerSystem(system: SystemFunction): void {
+    this.systems.push(system);
+    console.log('[ScheduleManager] Registered system');
+  }
+
+  /**
+   * Регистрация системы с интервалом выполнения
+   */
+  registerIntervalSystem(name: string, system: SystemFunction, interval: number): void {
+    this.intervalSystems.push({
+      system,
+      name,
+      interval,
+      lastExecuted: this.gameTime, // Начать с текущего игрового времени
+    });
+    console.log(`[ScheduleManager] Registered interval system: ${name} (interval: ${interval}ms)`);
+  }
+
+  /**
+   * Инициализация таймера для кластера
+   */
+  initClusterTimer(clusterName: string): void {
+    this.clusterTimers.set(clusterName, 0);
+  }
+
+  /**
+   * Обновление кластерной системы с интервалом
+   */
+  updateCluster(
+    clusterName: string,
+    systems: SystemFunction[],
+    deltaTime: number,
+    interval?: number,
+  ): void {
+    if (!interval) {
+      // Выполнять каждый тик
+      for (const system of systems) {
+        try {
+          system(this.world, deltaTime);
+        } catch (error) {
+          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error as Error);
+        }
+      }
+      return;
+    }
+
+    // Обновление с интервалом
+    const currentTimer = this.clusterTimers.get(clusterName) || 0;
+    const newTimer = currentTimer + deltaTime;
+
+    if (newTimer >= interval) {
+      for (const system of systems) {
+        try {
+          system(this.world, deltaTime);
+        } catch (error) {
+          console.error(`[ScheduleManager] Error in cluster ${clusterName}:`, error as Error);
+        }
+      }
+      this.clusterTimers.set(clusterName, 0); // Сброс таймера
+    } else {
+      this.clusterTimers.set(clusterName, newTimer);
+    }
+  }
+
+  /**
+   * Обновление кластеров систем
+   */
+  private updateClusters(deltaTime: number, gameTime: number): void {
+    // Получить все кластеры
+    for (const [clusterName, cluster] of this.clusterRegistry.getAll()) {
+      if (!cluster.metadata.enabled) {
+        continue; // Пропустить отключенные кластеры
+      }
+
+      // Выполнить каждую систему в кластере
+      for (const systemName of cluster.systemNames) {
+        const registeredSystem = this.systemRegistry.get(systemName);
+        if (!registeredSystem) {
+          console.warn(
+            `[ScheduleManager] System "${systemName}" not found for cluster "${clusterName}"`,
+          );
+          continue;
+        }
+
+        const { system, metadata } = registeredSystem;
+
+        // Проверить, включена ли система
+        if (metadata.enabled === false) {
+          continue; // Пропустить отключенную систему
+        }
+
+        // Проверить, является ли система интервальной
+        if (metadata.interval && metadata.interval > 0) {
+          // Интервальная система - проверить, пора ли выполнять
+          const intervalSystem = this.intervalSystems.find((is) => is.name === systemName);
+          if (intervalSystem && gameTime - intervalSystem.lastExecuted >= intervalSystem.interval) {
+            try {
+              system(this.world, deltaTime);
+              intervalSystem.lastExecuted = gameTime;
+            } catch (error) {
+              console.error(
+                `[ScheduleManager] Error in interval system "${systemName}" of cluster "${clusterName}":`,
+                error,
+              );
+            }
+          }
+        } else {
+          // Обычная система - выполнить каждый тик
+          try {
+            system(this.world, deltaTime);
+          } catch (error) {
+            console.error(
+              `[ScheduleManager] Error in system "${systemName}" of cluster "${clusterName}":`,
+              error,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Основное обновление - выполняет кластеры и интервальные системы
+   */
+  update(deltaTime: number): void {
+    // Обновить игровое время (фиксированная величина за тик, независимо от скорости)
+    this.gameTime += GAME_TIME_PER_TICK;
+
+    // 1. Обновить кластеры (групповое выполнение обычных систем)
+    this.updateClusters(deltaTime, this.gameTime);
+
+    // 2. Обновить интервальные системы (централизованно)
+    for (const intervalSystem of this.intervalSystems) {
+      // Проверить, включена ли система
+      const registeredSystem = this.systemRegistry.get(intervalSystem.name);
+      if (registeredSystem && registeredSystem.metadata.enabled === false) {
+        continue; // Пропустить отключенную систему
+      }
+
+      if (this.gameTime - intervalSystem.lastExecuted >= intervalSystem.interval) {
+        try {
+          intervalSystem.system(this.world, deltaTime);
+          intervalSystem.lastExecuted = this.gameTime;
+        } catch (error) {
+          console.error(
+            `[ScheduleManager] Error in interval system ${intervalSystem.name}:`,
+            error,
+          );
+        }
+      }
+    }
+  }
+
+  getSystems(): readonly SystemFunction[] {
+    return this.systems;
+  }
+
+  getIntervalSystems(): readonly IntervalSystem[] {
+    return this.intervalSystems;
   }
 }

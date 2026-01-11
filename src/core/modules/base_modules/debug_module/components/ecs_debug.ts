@@ -1,6 +1,7 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './debug_component';
+import { ComponentRegistry } from '@/core/ecs/registry/component_registry';
 
 // Глобальный интерфейс для отладки (объявлен в main.ts)
 declare global {
@@ -9,12 +10,12 @@ declare global {
       stats: () => void;
       time: () => void;
       listenTime: () => () => void;
-      getECSStats: () => ECSStats;
+      getECSStats: () => ECSDebugStats;
     };
   }
 }
 
-export interface ECSStats {
+export interface ECSDebugStats {
   totalSystemsCount: number;
   clustersCount: number;
   systems: string[]; // Список всех зарегистрированных систем
@@ -29,6 +30,8 @@ export interface ECSStats {
       interval?: number;
     }
   >;
+  intervalSystems: string[];
+  eventSystems: Record<string, string[]>;
 }
 
 export class ECSDebug extends DebugComponent {
@@ -44,15 +47,20 @@ export class ECSDebug extends DebugComponent {
   }
 
   private initDOM(): void {
-    this.systemsList = document.getElementById('systems-list')!;
-    this.componentsList = document.getElementById('components-list')!;
-    this.entitiesList = document.getElementById('entities-list')!;
+    this.systemsList = document.getElementById('systems-list') as HTMLElement;
+    this.componentsList = document.getElementById('components-list') as HTMLElement;
+    this.entitiesList = document.getElementById('entities-list') as HTMLElement;
+
+    if (!this.systemsList || !this.componentsList || !this.entitiesList) {
+      console.error('ECS Debug DOM elements not found');
+      return;
+    }
   }
 
   // создание контента
   public createContent(contentContainer: HTMLElement): void {
     this.contentContainer = contentContainer;
-    this.initDOM();
+    // DOM элементы уже существуют в HTML, инициализация происходит в onActivate
   }
 
   // активация компонента
@@ -60,6 +68,12 @@ export class ECSDebug extends DebugComponent {
     // Убедимся, что DOM элементы инициализированы
     if (!this.systemsList) {
       this.initDOM();
+    }
+
+    // Если инициализация не удалась, выходим
+    if (!this.systemsList || !this.componentsList || !this.entitiesList) {
+      console.error('Cannot activate ECS Debug - DOM elements not available');
+      return;
     }
 
     // Запустим периодическое обновление
@@ -103,7 +117,7 @@ export class ECSDebug extends DebugComponent {
         return;
       }
 
-      const stats = this.ecsManager.getStats() as ECSStats;
+      const stats = this.ecsManager.getStats() as unknown as ECSDebugStats;
       if (!stats) {
         this.showError('No ECS data');
         return;
@@ -118,7 +132,7 @@ export class ECSDebug extends DebugComponent {
     }
   }
 
-  private updateSystemsList(stats: ECSStats): void {
+  private updateSystemsList(stats: ECSDebugStats): void {
     if (!this.systemsList) return;
 
     this.systemsList.innerHTML = '';
@@ -184,18 +198,36 @@ export class ECSDebug extends DebugComponent {
 
     this.componentsList.innerHTML = '';
 
-    // Список доступных компонентов
-    const components = ['Person', 'Citizen', 'Needs', 'Schedule', 'Shop', 'Factory'];
+    // Получаем все зарегистрированные компоненты из реестра
+    const componentRegistry = ComponentRegistry.getInstance();
+    const registeredComponents = componentRegistry.getAll();
 
-    components.forEach((componentName) => {
-      const componentDiv = document.createElement('div');
-      componentDiv.className = 'debug-ecs-item debug-ecs-component';
-      componentDiv.textContent = `• ${componentName}`;
-      this.componentsList.appendChild(componentDiv);
-    });
+    if (registeredComponents.size === 0) {
+      const noComponentsDiv = document.createElement('div');
+      noComponentsDiv.className = 'debug-no-data';
+      noComponentsDiv.textContent = '• Нет зарегистрированных компонентов';
+      this.componentsList.appendChild(noComponentsDiv);
+      return;
+    }
+
+    // Заголовок с количеством
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'debug-ecs-item debug-ecs-summary';
+    headerDiv.textContent = `🧩 Компоненты (${registeredComponents.size}):`;
+    this.componentsList.appendChild(headerDiv);
+
+    // Отображаем все зарегистрированные компоненты
+    Array.from(registeredComponents.keys())
+      .sort()
+      .forEach((componentName) => {
+        const componentDiv = document.createElement('div');
+        componentDiv.className = 'debug-ecs-item debug-ecs-component';
+        componentDiv.textContent = `• ${componentName}`;
+        this.componentsList.appendChild(componentDiv);
+      });
   }
 
-  private updateEntitiesList(stats: ECSStats): void {
+  private updateEntitiesList(stats: ECSDebugStats): void {
     if (!this.entitiesList) return;
 
     this.entitiesList.innerHTML = '';

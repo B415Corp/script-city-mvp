@@ -1,11 +1,13 @@
+import { GameSpeeds } from '../types';
+
 /**
  * Контроллер для управления fixed timestep логикой
  * Отвечает за accumulator, fixed step и паузу
  */
 export class TickController {
   private accumulator = 0; // накопленное время
-  private tickRate = 10; // тиков в секунду
-  private fixedStepMs = 1000 / 10; // ms на тик
+  private tickRate = GameSpeeds.NORMAL; // тиков в секунду
+  private fixedStepMs = 1000 / GameSpeeds.NORMAL; // ms на тик
   private paused = false;
 
   // чтобы при лагах не догонять вечность
@@ -38,9 +40,9 @@ export class TickController {
   /**
    * Устанавливает скорость тиков
    */
-  setSpeed(speed: number): void {
+  setSpeed(speed: GameSpeeds | number): void {
     // speed = пауза
-    if (!Number.isFinite(speed) || speed <= 0) {
+    if (speed === GameSpeeds.PAUSED || !Number.isFinite(speed) || speed <= 0) {
       this.paused = true;
       return;
     }

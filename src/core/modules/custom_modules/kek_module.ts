@@ -1,13 +1,15 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { CustomModule } from '../extends';
+import { Logger } from '@/core/utils/logger';
 
 export class KekModule extends CustomModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('KekModule init');
     super(scene, eventBus);
+    const logger = Logger.create('KekModule');
+    logger.info('KekModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
 

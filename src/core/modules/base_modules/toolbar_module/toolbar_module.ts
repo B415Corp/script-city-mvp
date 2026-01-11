@@ -1,20 +1,24 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
+import { ECSManager } from '@/core/ecs/ecs_manager';
 import { ButtonUI } from '@/ui/button.ui';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
 import { BadgeUI } from '@/ui/badge.ui';
+import { Logger } from '@/core/utils/logger';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  private logger!: Logger;
 
   // UI элементы
   private container!: Phaser.GameObjects.Container;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('ToolbarModule init');
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
+    this.logger = Logger.create('ToolbarModule');
+    this.logger.info('ToolbarModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
     this.container = scene.add.container();
@@ -86,7 +90,7 @@ export class ToolbarModule extends BaseModule {
       text: 'Пауза',
       depth: 1001,
       onClick: (): void => {
-        this.eventBus.emit(Events.GamePauseToggle);
+        this.eventBus.emit(Events.GamePauseToggle, undefined);
         switchTimeButton('pause');
       },
     });

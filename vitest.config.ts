@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   test: {
-    environment: 'node', // Используем node для простых тестов без DOM
+    environment: 'jsdom', // Используем jsdom для тестов с DOM зависимостями
     setupFiles: ['./src/test/setup.ts'],
     globals: true, // Для describe, it, expect без импортов
   },

@@ -1,61 +1,63 @@
-import { beforeEach, afterEach } from 'vitest';
-import {
-  Person,
-  Citizen,
-  Needs,
-  Position,
-  ID,
-  Render,
-  Schedule,
-  Prices,
-  Workplace,
-} from '../core/ecs/components';
+import { vi, beforeEach } from 'vitest';
 
-// Импортируем для очистки компонентов из managers
-const COMPONENT_REGISTRY = {
-  Person,
-  Citizen,
-  Needs,
-  Position,
-  ID,
-  Render,
-  Schedule,
-  Prices,
-  Workplace,
-} as const;
+// Mock Phaser globally
+(globalThis as any).Phaser = {
+  AUTO: 0,
+  Scene: class MockScene {
+    add = vi.fn();
+    scene = {
+      add: vi.fn(),
+      remove: vi.fn(),
+    };
+  },
+  Game: vi.fn().mockImplementation((config) => ({
+    scale: {
+      resize: vi.fn(),
+    },
+    events: {
+      once: vi.fn(),
+    },
+    scene: {
+      getScene: vi.fn(),
+    },
+    destroy: vi.fn(),
+  })),
+  Types: {
+    Core: {
+      GameConfig: {},
+    },
+  },
+};
 
-// Список всех компонентов для очистки
-const COMPONENTS_TO_RESET = [
-  Person,
-  Citizen,
-  Needs,
-  Position,
-  ID,
-  Render,
-  Schedule,
-  Prices,
-  Workplace,
-] as const;
+vi.mock('phaser', () => ({
+  Scene: (globalThis as any).Phaser.Scene,
+}));
 
-/**
- * Очищает все массивы компонентов между тестами
- * Это предотвращает загрязнение состояния между тестами
- */
-function resetComponentArrays(): void {
-  for (const component of COMPONENTS_TO_RESET) {
-    // Очистить все массивы в компоненте
-    for (const key in component) {
-      if (Array.isArray(component[key as keyof typeof component])) {
-        (component[key as keyof typeof component] as any[]).length = 0;
-      }
-    }
-  }
-}
+// Mock BitECS functions and types
+vi.mock('bitecs', () => ({
+  addComponent: vi.fn(),
+  removeComponent: vi.fn(),
+  registerComponent: vi.fn(),
+  createWorld: vi.fn(() => ({})), // Return empty object as mock world
+  addEntity: vi.fn(() => 1), // Return mock entity ID
+  World: {},
+  EntityId: {},
+}));
 
-beforeEach(() => {
-  resetComponentArrays();
+// Mock window for Phaser
+Object.defineProperty(window, 'innerWidth', { value: 800, writable: true });
+Object.defineProperty(window, 'innerHeight', { value: 600, writable: true });
+
+// Mock environment for tests
+Object.defineProperty(import.meta, 'env', {
+  value: {
+    DEV: true,
+    PROD: false,
+  },
+  writable: false,
 });
 
-afterEach(() => {
-  resetComponentArrays();
+// Clear all mocks before each test
+beforeEach(() => {
+  vi.clearAllMocks();
 });

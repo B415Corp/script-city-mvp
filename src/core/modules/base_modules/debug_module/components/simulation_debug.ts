@@ -3,22 +3,14 @@ import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './debug_component';
 import { TimeService } from '@/core/tick/time_service';
 import { TimeService as TimeServiceImport } from '@/core/tick/time_service';
-
-// Глобальные типы для браузерных API
-
-import {
-  Person,
-  Citizen,
-  Needs,
-  Position,
-  Schedule,
-  Residential,
-  Commercial,
-  Workplace,
-  ID,
-  HousingType,
-} from '@/core/ecs/components';
 import { query } from 'bitecs';
+import { createSimpleComponent } from '@/core/ecs/core/component_schema';
+import { ComponentRegistry } from '@/core/ecs/registry/component_registry';
+import { SystemRegistry } from '@/core/ecs/registry/system_registry';
+import { ClusterRegistry } from '@/core/ecs/registry/cluster_registry';
+
+// Импортируем компоненты динамически из реестра
+// Компоненты будут получаться во время выполнения
 
 // Вспомогательные функции для упрощенной симуляции
 
@@ -69,7 +61,7 @@ export class SimulationDebug extends DebugComponent {
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus, ecsManager);
     // Создаем TimeService для получения данных времени
-    this.timeService = TimeService.createFromEventBus(eventBus);
+    this.timeService = new TimeService(eventBus);
   }
 
   private initDOM(): void {
@@ -212,7 +204,7 @@ export class SimulationDebug extends DebugComponent {
         </div>
       `;
 
-      // Работа и образование
+      // Работа
       const workSection = document.createElement('div');
       workSection.className = 'debug-simulation-citizen-section';
       workSection.innerHTML = `
@@ -220,10 +212,6 @@ export class SimulationDebug extends DebugComponent {
         <div class="debug-simulation-citizen-stat-item">
           <span class="debug-simulation-citizen-stat-icon">💼</span>
           <span>Работа: ID ${citizen.workplace}</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">💰</span>
-          <span>Зарплата: $${citizen.salary}/день</span>
         </div>
       `;
 
@@ -236,33 +224,6 @@ export class SimulationDebug extends DebugComponent {
           <span class="debug-simulation-citizen-stat-icon">🏠</span>
           <span>Дом: ID ${citizen.home}</span>
         </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">📋</span>
-          <span>Тип: ${citizen.housingType}</span>
-        </div>
-      `;
-
-      // Потребности
-      const needsSection = document.createElement('div');
-      needsSection.className = 'debug-simulation-citizen-section';
-      needsSection.innerHTML = `
-        <div class="debug-simulation-citizen-section-title">🎯 Потребности</div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">🍎</span>
-          <span>Голод: ${citizen.needs.food.toFixed(0)}%</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">🛒</span>
-          <span>Покупки: ${citizen.needs.shopping.toFixed(0)}%</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">💼</span>
-          <span>Работа: ${citizen.needs.work.toFixed(0)}%</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">😴</span>
-          <span>Сон: ${citizen.needs.sleep.toFixed(0)}%</span>
-        </div>
       `;
 
       // Местоположение
@@ -271,29 +232,17 @@ export class SimulationDebug extends DebugComponent {
       locationSection.innerHTML = `
         <div class="debug-simulation-citizen-section-title">📍 Местоположение</div>
         <div class="debug-simulation-citizen-stat-item">
-          <span class="debug-simulation-citizen-stat-icon">🏠</span>
-          <span>Дом ID: ${citizen.home}</span>
-        </div>
-        <div class="debug-simulation-citizen-stat-item">
           <span class="debug-simulation-citizen-stat-icon">📍</span>
           <span>Позиция: (${citizen.position.x.toFixed(1)}, ${citizen.position.y.toFixed(1)})</span>
         </div>
       `;
-
-      // Кнопка копирования
-      const copyButton = document.createElement('button');
-      copyButton.className = 'debug-simulation-citizen-copy-btn';
-      copyButton.textContent = '📋 Копировать данные';
-      copyButton.onclick = (): void => this.copyCitizenDataToClipboard(citizen);
 
       // Добавляем все секции
       citizenDiv.appendChild(basicInfo);
       citizenDiv.appendChild(statusSection);
       citizenDiv.appendChild(workSection);
       citizenDiv.appendChild(housingSection);
-      citizenDiv.appendChild(needsSection);
       citizenDiv.appendChild(locationSection);
-      citizenDiv.appendChild(copyButton);
 
       this.citizensList.appendChild(citizenDiv);
     });
@@ -324,7 +273,9 @@ export class SimulationDebug extends DebugComponent {
     // Группировать по типам
     const buildingsByType = buildingsData.reduce(
       (acc, building) => {
-        if (!acc[building.type]) acc[building.type] = [];
+        if (!acc[building.type]) {
+          acc[building.type] = [];
+        }
         acc[building.type].push(building);
         return acc;
       },
@@ -370,22 +321,32 @@ export class SimulationDebug extends DebugComponent {
     economyDiv.className = 'debug-simulation-economy';
 
     const citizensData = this.getCitizensData();
+    const buildingsData = this.getBuildingsData();
+
+    // Подсчитываем реальные данные
+    const residentialBuildings = buildingsData.filter((b) => b.type === 'Residential');
+    const workplaceBuildings = buildingsData.filter((b) => b.type === 'Workplace');
+    const totalCapacity = residentialBuildings.reduce((sum, b) => sum + (b.capacity || 0), 0);
+    const totalWorkplaces = workplaceBuildings.length;
 
     economyDiv.innerHTML = `
       <div class="debug-simulation-economy-item">
         👥 <strong>Население:</strong> ${citizensData.length} чел.
       </div>
       <div class="debug-simulation-economy-item">
-        🏠 <strong>Дома:</strong> 10 шт.
+        🏠 <strong>Жилые дома:</strong> ${residentialBuildings.length} шт. (вместимость: ${totalCapacity})
       </div>
       <div class="debug-simulation-economy-item">
-        💼 <strong>Рабочие места:</strong> ${citizensData.length} шт.
+        💼 <strong>Рабочие места:</strong> ${totalWorkplaces} шт.
+      </div>
+      <div class="debug-simulation-economy-item">
+        🏢 <strong>Коммерческие здания:</strong> ${buildingsData.filter((b) => b.type !== 'Residential' && b.type !== 'Workplace').length} шт.
       </div>
       <div class="debug-simulation-economy-item">
         💰 <strong>Общие деньги:</strong> $${economyData.totalMoney.toFixed(0)}
       </div>
       <div class="debug-simulation-economy-item">
-        💰 <strong>Деньги на жителя:</strong> $${(economyData.totalMoney / citizensData.length).toFixed(0)}
+        💰 <strong>Деньги на жителя:</strong> $${citizensData.length > 0 ? (economyData.totalMoney / citizensData.length).toFixed(0) : '0'}
       </div>
       <div class="debug-simulation-economy-item">
         😊 <strong>Среднее счастье:</strong> ${economyData.averageHappiness.toFixed(1)}%
@@ -430,10 +391,62 @@ export class SimulationDebug extends DebugComponent {
     });
 
     this.scheduleList.appendChild(scheduleDiv);
+
+    // Добавить информацию о системах и кластерах
+    this.addSystemsAndClustersInfo(this.scheduleList);
+  }
+
+  private addSystemsAndClustersInfo(container: HTMLElement): void {
+    const systemRegistry = SystemRegistry.getInstance();
+    const clusterRegistry = ClusterRegistry.getInstance();
+
+    // Разделитель
+    const separator = document.createElement('hr');
+    separator.className = 'debug-separator';
+    container.appendChild(separator);
+
+    // Системы
+    const systemsHeader = document.createElement('div');
+    systemsHeader.className = 'debug-simulation-schedule-item';
+    systemsHeader.innerHTML = `⚙️ <strong>Зарегистрированные системы (${systemRegistry.size()}):</strong>`;
+    container.appendChild(systemsHeader);
+
+    const registeredSystems = systemRegistry.getAll();
+    Array.from(registeredSystems.keys())
+      .sort()
+      .forEach((systemName) => {
+        const systemDiv = document.createElement('div');
+        systemDiv.className = 'debug-simulation-activity-item';
+        systemDiv.textContent = `  • ${systemName}`;
+        container.appendChild(systemDiv);
+      });
+
+    // Кластеры
+    if (clusterRegistry.size() > 0) {
+      const clustersHeader = document.createElement('div');
+      clustersHeader.className = 'debug-simulation-schedule-item';
+      clustersHeader.innerHTML = `📁 <strong>Кластеры систем (${clusterRegistry.size()}):</strong>`;
+      container.appendChild(clustersHeader);
+
+      const registeredClusters = clusterRegistry.getAll();
+      Array.from(registeredClusters.values()).forEach((cluster) => {
+        const clusterDiv = document.createElement('div');
+        clusterDiv.className = 'debug-simulation-cluster-item';
+        const status = cluster.metadata.enabled ? '🟢' : '🔴';
+        const interval = cluster.metadata.interval
+          ? `${cluster.metadata.interval}ms`
+          : 'каждый тик';
+        clusterDiv.innerHTML = `
+          <div class="debug-simulation-cluster-header">
+            ${status} ${cluster.name} (${cluster.systemNames.length} систем, ${interval})
+          </div>
+        `;
+        container.appendChild(clusterDiv);
+      });
+    }
   }
 
   private getCitizensData(): CitizenData[] {
-    // Получить данные всех жителей из ECS
     const citizens: CitizenData[] = [];
 
     try {
@@ -442,45 +455,83 @@ export class SimulationDebug extends DebugComponent {
         return citizens;
       }
 
-      // Получить всех сущностей с компонентами Person и Citizen
       const world = this.ecsManager.getWorld();
       if (!world) {
         console.warn('World not available in getCitizensData');
         return citizens;
       }
 
-      const personEntities = query(world, [Person, Citizen, Needs, Position, Schedule]);
+      // Получаем компоненты из реестра
+      const componentRegistry = ComponentRegistry.getInstance();
+      const personComponent = componentRegistry.get('Person');
+      const citizenComponent = componentRegistry.get('Citizen');
+      const positionComponent = componentRegistry.get('Position');
+
+      if (!personComponent || !citizenComponent || !positionComponent) {
+        console.warn('Required components not found in registry');
+        return citizens;
+      }
+
+      // Получаем все сущности с компонентами Person и Citizen
+      const personEntities = query(world, [personComponent, citizenComponent, positionComponent]);
 
       personEntities.forEach((eid: number) => {
-        const housingType = Citizen.housingType[eid] || 0;
-        const housingNames: Record<HousingType, string> = {
-          [HousingType.OWNED]: 'Собственное',
-          [HousingType.RENTED]: 'Арендное',
-        };
+        try {
+          // Доступ к компонентам через BitECS API
+          const personComp = personComponent as unknown as { age: number[]; gender: number[] };
+          const citizenComp = citizenComponent as unknown as {
+            happiness: number[];
+            energy: number[];
+            money: number[];
+            home: number[];
+            workplace: number[];
+            housingType: number[];
+          };
+          const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
 
-        citizens.push({
-          id: eid,
-          age: Person.age[eid],
-          gender: Person.gender[eid] === 0 ? 'Male' : 'Female',
-          happiness: Citizen.happiness[eid],
-          energy: Citizen.energy[eid],
-          money: Citizen.money[eid],
-          home: Citizen.home[eid],
-          workplace: Citizen.workplace[eid] || 0, // В упрощенной симуляции всегда есть работа
-          housingType: housingNames[housingType as HousingType] || 'Собственное',
-          salary: Citizen.salary[eid] || 100, // В упрощенной симуляции всегда 100
-          needs: {
-            food: Needs.food[eid],
-            shopping: Needs.shopping[eid],
-            work: Needs.work[eid],
-            sleep: Needs.sleep[eid],
-          },
-          currentActivity: Schedule.currentActivity[eid] || 'idle',
-          position: {
-            x: Position.x[eid],
-            y: Position.y[eid],
-          },
-        });
+          const age = personComp.age[eid] || 0;
+          const gender = personComp.gender[eid] || 0;
+          const happiness = citizenComp.happiness[eid] || 0;
+          const energy = citizenComp.energy[eid] || 0;
+          const money = citizenComp.money[eid] || 0;
+          const home = citizenComp.home[eid] || 0;
+          const workplace = citizenComp.workplace[eid] || 0;
+          const housingType = citizenComp.housingType[eid] || 0;
+          const posX = positionComp.x[eid] || 0;
+          const posY = positionComp.y[eid] || 0;
+
+          // Определяем тип жилья
+          const housingNames: Record<number, string> = {
+            0: 'Собственное',
+            1: 'Арендное',
+          };
+
+          citizens.push({
+            id: eid,
+            age: Math.floor(age),
+            gender: gender === 0 ? 'Male' : 'Female',
+            happiness: happiness,
+            energy: energy,
+            money: money,
+            home: home,
+            workplace: workplace,
+            housingType: housingNames[housingType] || 'Собственное',
+            salary: 100, // Пока фиксированная зарплата
+            needs: {
+              food: 50, // Заглушка, пока нет компонента Needs
+              shopping: 30,
+              work: energy,
+              sleep: 80 - energy,
+            },
+            currentActivity: 'idle', // Заглушка, пока нет компонента Schedule
+            position: {
+              x: posX,
+              y: posY,
+            },
+          });
+        } catch (error) {
+          console.warn(`Error reading citizen entity ${eid}:`, error);
+        }
       });
     } catch (error) {
       console.error('Error getting citizens data:', error);
@@ -490,7 +541,6 @@ export class SimulationDebug extends DebugComponent {
   }
 
   private getBuildingsData(): BuildingData[] {
-    // Получить данные всех зданий из ECS
     const buildings: BuildingData[] = [];
 
     try {
@@ -505,40 +555,116 @@ export class SimulationDebug extends DebugComponent {
         return buildings;
       }
 
-      // Получить жилые дома
-      const residentialEntities = query(world, [Residential, Position, ID]);
-      residentialEntities.forEach((eid: number) => {
-        buildings.push({
-          id: ID.value[eid],
-          type: 'Residential',
-          position: { x: Position.x[eid], y: Position.y[eid] },
-        });
-      });
+      // Получаем компоненты из реестра
+      const componentRegistry = ComponentRegistry.getInstance();
+      const positionComponent = componentRegistry.get('Position');
+      const residentialComponent = componentRegistry.get('Residential');
+      const commercialComponent = componentRegistry.get('Commercial');
+      const workplaceComponent = componentRegistry.get('Workplace');
 
-      // Получить коммерческие здания
-      const commercialEntities = query(world, [Commercial, Position, ID]);
-      commercialEntities.forEach((eid: number) => {
-        buildings.push({
-          id: ID.value[eid],
-          type:
-            Commercial.type[eid] === 0 ? 'Shop' : Commercial.type[eid] === 1 ? 'Office' : 'Factory',
-          position: { x: Position.x[eid], y: Position.y[eid] },
-          capacity: Commercial.employees[eid]?.length || 0,
-          currentOccupancy: Commercial.customers[eid]?.length || 0,
-        });
-      });
+      if (!positionComponent) {
+        console.warn('Position component not found in registry');
+        return buildings;
+      }
 
-      // Получить рабочие места
-      const workplaceEntities = query(world, [Workplace, Position, ID]);
-      workplaceEntities.forEach((eid: number) => {
-        buildings.push({
-          id: ID.value[eid],
-          type: 'Workplace',
-          position: { x: Position.x[eid], y: Position.y[eid] },
-          capacity: 1, // Одно рабочее место
-          currentOccupancy: Workplace.worker[eid] ? 1 : 0,
+      // Получаем жилые дома
+      if (residentialComponent) {
+        const residentialEntities = query(world, [residentialComponent, positionComponent]);
+
+        residentialEntities.forEach((eid: number) => {
+          try {
+            const residentialComp = residentialComponent as unknown as {
+              capacity: number[];
+              occupants: number[];
+            };
+            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+            const capacity = residentialComp.capacity[eid] || 4;
+            const occupants = residentialComp.occupants[eid] || 0;
+            const posX = positionComp.x[eid] || 0;
+            const posY = positionComp.y[eid] || 0;
+
+            buildings.push({
+              id: eid,
+              type: 'Residential',
+              position: {
+                x: posX,
+                y: posY,
+              },
+              capacity: capacity,
+              currentOccupancy: occupants,
+            });
+          } catch (error) {
+            console.warn(`Error reading Residential entity ${eid}:`, error);
+          }
         });
-      });
+      }
+
+      // Получаем коммерческие здания
+      if (commercialComponent) {
+        const commercialEntities = query(world, [commercialComponent, positionComponent]);
+
+        commercialEntities.forEach((eid: number) => {
+          try {
+            const commercialComp = commercialComponent as unknown as {
+              type: number[];
+              employees: number[];
+              customers: number[];
+            };
+            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+            const buildingType = commercialComp.type[eid] || 0;
+            const employees = commercialComp.employees[eid] || 0;
+            const customers = commercialComp.customers[eid] || 0;
+            const posX = positionComp.x[eid] || 0;
+            const posY = positionComp.y[eid] || 0;
+
+            const typeNames = ['Shop', 'Office', 'Factory'];
+
+            buildings.push({
+              id: eid,
+              type: typeNames[buildingType] || 'Shop',
+              position: {
+                x: posX,
+                y: posY,
+              },
+              capacity: employees,
+              currentOccupancy: customers,
+            });
+          } catch (error) {
+            console.warn(`Error reading Commercial entity ${eid}:`, error);
+          }
+        });
+      }
+
+      // Получаем рабочие места
+      if (workplaceComponent) {
+        const workplaceEntities = query(world, [workplaceComponent, positionComponent]);
+
+        workplaceEntities.forEach((eid: number) => {
+          try {
+            const workplaceComp = workplaceComponent as unknown as { occupied: number[] };
+            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
+
+            const occupied = workplaceComp.occupied[eid] || 0;
+            const posX = positionComp.x[eid] || 0;
+            const posY = positionComp.y[eid] || 0;
+
+            buildings.push({
+              id: eid,
+              type: 'Workplace',
+              position: {
+                x: posX,
+                y: posY,
+              },
+              capacity: 1, // Одно рабочее место
+              currentOccupancy: occupied,
+            });
+          } catch (error) {
+            console.warn(`Error reading Workplace entity ${eid}:`, error);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error getting buildings data:', error);
     }
@@ -562,8 +688,6 @@ export class SimulationDebug extends DebugComponent {
     };
   }
 
-  // В упрощенной симуляции все жители работают, поэтому статистика занятости не нужна
-
   private getScheduleData(): {
     currentPhase: string;
     timeOfDay: string;
@@ -572,7 +696,7 @@ export class SimulationDebug extends DebugComponent {
   } {
     const citizensData = this.getCitizensData();
 
-    // Определить текущее время и фазу
+    // Определить текущее время и фазу на основе реального времени
     let timeOfDay = '00:00';
     let currentPhase = 'неизвестно';
 
@@ -591,16 +715,17 @@ export class SimulationDebug extends DebugComponent {
       console.warn('Error getting time data for schedule:', error);
     }
 
-    // Подсчитать активности
-    const activityCounts: Record<string, number> = {};
-    citizensData.forEach((citizen) => {
-      const activity = citizen.currentActivity;
-      activityCounts[activity] = (activityCounts[activity] || 0) + 1;
-    });
+    // Простая логика активностей на основе энергии жителей
+    const activities: { name: string; count: number }[] = [];
+    if (citizensData.length > 0) {
+      const sleeping = citizensData.filter((c) => c.energy < 30).length;
+      const working = citizensData.filter((c) => c.energy >= 30 && c.energy < 70).length;
+      const shopping = citizensData.filter((c) => c.energy >= 70).length;
 
-    const activities = Object.entries(activityCounts)
-      .map(([name, count]) => ({ name: this.translateActivity(name), count }))
-      .sort((a, b) => b.count - a.count);
+      if (sleeping > 0) activities.push({ name: 'сон', count: sleeping });
+      if (working > 0) activities.push({ name: 'работа', count: working });
+      if (shopping > 0) activities.push({ name: 'покупки/отдых', count: shopping });
+    }
 
     return {
       currentPhase,
@@ -635,23 +760,6 @@ export class SimulationDebug extends DebugComponent {
     }
   }
 
-  private translateActivity(activity: string): string {
-    switch (activity) {
-      case 'sleep':
-        return 'сон';
-      case 'wake_up':
-        return 'пробуждение';
-      case 'work':
-        return 'работа';
-      case 'shopping_or_eat':
-        return 'покупки/еда';
-      case 'idle':
-        return 'безделье';
-      default:
-        return activity;
-    }
-  }
-
   private getBuildingTypeName(type: string): string {
     switch (type.toLowerCase()) {
       case 'residential':
@@ -674,41 +782,5 @@ export class SimulationDebug extends DebugComponent {
     if (this.buildingsList) this.buildingsList.innerHTML = errorDiv;
     if (this.economyList) this.economyList.innerHTML = errorDiv;
     if (this.scheduleList) this.scheduleList.innerHTML = errorDiv;
-  }
-
-  private copyCitizenDataToClipboard(citizen: CitizenData): void {
-    const data = {
-      id: citizen.id,
-      age: citizen.age,
-      gender: citizen.gender,
-      happiness: citizen.happiness,
-      energy: citizen.energy,
-      money: citizen.money,
-      home: citizen.home,
-      workplace: citizen.workplace,
-      housingType: citizen.housingType,
-      salary: citizen.salary,
-      needs: citizen.needs,
-      currentActivity: citizen.currentActivity,
-      position: citizen.position,
-    };
-
-    const jsonData = JSON.stringify(data, null, 2);
-
-    // Проверяем доступность clipboard API
-    if (typeof navigator !== 'undefined' && window.navigator.clipboard) {
-      window.navigator.clipboard
-        .writeText(jsonData)
-        .then(() => {
-          console.log('Citizen data copied to clipboard');
-          // Можно добавить визуальную обратную связь
-        })
-        .catch((err) => {
-          console.error('Failed to copy citizen data:', err);
-        });
-    } else {
-      // Fallback для сред без clipboard API
-      console.log('Clipboard data:', jsonData);
-    }
   }
 }

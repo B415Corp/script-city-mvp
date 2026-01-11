@@ -1,11 +1,13 @@
 import { EventBus } from '../event_bus/event_bus';
 import { ECSManager } from '../ecs/ecs_manager';
+import { TickManager } from '../tick/tick_manager';
 import KekModule from './custom_modules/kek_module';
 import MapModule from './base_modules/map_module/map_module';
 import ToolbarModule from './base_modules/toolbar_module/toolbar_module';
 import { ToolsModule } from './base_modules/tools_module/tools_module';
 import { BaseModule, CustomModule } from './extends';
 import { DebugModule } from './base_modules/debug_module/debug_module';
+import { SimulationModule } from './base_modules/simulation_module/simulation_module';
 
 // названия базовых модулей с их классами
 const baseModuleRegistry = {
@@ -13,6 +15,7 @@ const baseModuleRegistry = {
   ToolsModule: ToolsModule,
   ToolbarModule: ToolbarModule,
   DebugModule: DebugModule,
+  SimulationModule: SimulationModule,
 } as const;
 
 // названия кастомных модулей с их классами
@@ -27,7 +30,8 @@ type CustomModuleName = keyof typeof customModuleRegistry;
 export class ModuleManager {
   private scene!: Phaser.Scene;
   private eventBus!: EventBus;
-  private ecsManager!: ECSManager;
+  private ecsManager: ECSManager | null;
+  private tickManager!: TickManager;
 
   // api модулей
   private baseModuleApi: Map<string, BaseModule> = new Map();
@@ -37,10 +41,16 @@ export class ModuleManager {
   private baseModules = baseModuleRegistry;
   private customModules = customModuleRegistry;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+  constructor(
+    scene: Phaser.Scene,
+    eventBus: EventBus,
+    ecsManager: ECSManager | null, // Временно null для Phase 0
+    tickManager: TickManager,
+  ) {
     this.scene = scene;
     this.eventBus = eventBus;
     this.ecsManager = ecsManager;
+    this.tickManager = tickManager;
   }
 
   public init(): void {
@@ -51,19 +61,22 @@ export class ModuleManager {
   // инициализация базовых модулей в порядке очереди
   private initBaseModules(): void {
     Object.entries(this.baseModules).forEach(([name, ModuleClass]) => {
-      // DebugModule получает ECSManager для доступа к статистике entities
+      // DebugModule получает ECSManager и TickManager для доступа к статистике
       let module: BaseModule;
       if (name === 'DebugModule') {
+        // Для Phase 0 передаем null вместо ECSManager
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
           ecsManager: ECSManager,
-        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager);
+          tickManager: TickManager,
+        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager!, this.tickManager);
       } else {
-        module = new (ModuleClass as new (scene: Phaser.Scene, eventBus: EventBus) => BaseModule)(
-          this.scene,
-          this.eventBus,
-        );
+        module = new (ModuleClass as new (
+          scene: Phaser.Scene,
+          eventBus: EventBus,
+          ecsManager: ECSManager,
+        ) => BaseModule)(this.scene, this.eventBus, this.ecsManager!);
       }
       this.baseModuleApi.set(name, module);
     });
@@ -105,6 +118,23 @@ export class ModuleManager {
   public isCustomModuleEnabled(moduleName: CustomModuleName): boolean {
     const module = this.customModuleApi.get(moduleName);
     return module?.enabled ?? false;
+  }
+
+  // очистка ресурсов
+  public destroy(): void {
+    // Очищаем все базовые модули
+    for (const module of this.baseModuleApi.values()) {
+      // TODO: добавить destroy метод в BaseModule если нужен
+      // module.destroy();
+    }
+    this.baseModuleApi.clear();
+
+    // Очищаем все кастомные модули
+    for (const module of this.customModuleApi.values()) {
+      // TODO: добавить destroy метод в CustomModule если нужен
+      // module.destroy();
+    }
+    this.customModuleApi.clear();
   }
 }
 
