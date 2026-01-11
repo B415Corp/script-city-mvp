@@ -8,7 +8,7 @@ import { createEntityFactory } from '../../core/smart_constructors';
 // Фабрика для создания тестовой сущности с базовыми компонентами
 export const createTestEntity = createEntityFactory(
   'test_entity',
-  () => {
+  (_world) => {
     // В реальном приложении здесь будет:
     // const entityId = addEntity(world);
     // addComponent(world, entityId, TestComponent);
@@ -23,7 +23,7 @@ export const createTestEntity = createEntityFactory(
 // Фабрика для создания игрока
 export const createPlayerEntity = createEntityFactory(
   'player_entity',
-  () => {
+  (_world) => {
     // Имитация создания игрока
     console.log('Player entity created with health, position, and inventory');
     return Math.floor(Math.random() * 1000000);
@@ -34,7 +34,7 @@ export const createPlayerEntity = createEntityFactory(
 // Фабрика для создания NPC
 export const createNpcEntity = createEntityFactory(
   'npc_entity',
-  () => {
+  (_world) => {
     // Имитация создания NPC
     console.log('NPC entity created with AI, dialogue, and quest components');
     return Math.floor(Math.random() * 1000000);

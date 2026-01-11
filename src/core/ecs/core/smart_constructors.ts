@@ -118,7 +118,7 @@ export function createCluster(
  * Создает фабрику сущностей и автоматически регистрирует в EntityFactoryRegistry
  *
  * @param name Уникальное имя фабрики
- * @param factoryFn Функция, создающая сущность
+ * @param factoryFn Функция, создающая сущность и принимающая world
  * @param description Описание фабрики
  * @returns Функция фабрики
  *
@@ -126,7 +126,7 @@ export function createCluster(
  * ```typescript
  * export const createPlayer = createEntityFactory(
  *   'player',
- *   () => {
+ *   (world) => {
  *     const entityId = addEntity(world);
  *     // Настройка компонентов сущности
  *     return entityId;
@@ -137,9 +137,9 @@ export function createCluster(
  */
 export function createEntityFactory(
   name: string,
-  factoryFn: () => number,
+  factoryFn: (world: World) => number,
   description?: string,
-): () => number {
+): (world: World) => number {
   EntityFactoryRegistry.getInstance().register(name, factoryFn, description);
 
   return factoryFn;

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { World } from 'bitecs';
 import { EntityFactoryRegistry, EntityFactoryFunction } from '../entity_factory_registry';
 
 describe('EntityFactoryRegistry', () => {
@@ -95,14 +96,18 @@ describe('EntityFactoryRegistry', () => {
       const factoryFn: EntityFactoryFunction = vi.fn().mockReturnValue(42);
       registry.register('PlayerFactory', factoryFn);
 
-      const entityId = registry.create('PlayerFactory');
+      // Создаем mock world для тестирования
+      const mockWorld = {} as World;
+      const entityId = registry.create('PlayerFactory', mockWorld);
 
       expect(entityId).toBe(42);
       expect(factoryFn).toHaveBeenCalledTimes(1);
+      expect(factoryFn).toHaveBeenCalledWith(mockWorld);
     });
 
     it('должен выбрасывать ошибку при попытке создать сущность через незарегистрированную фабрику', () => {
-      expect(() => registry.create('NonExistentFactory')).toThrow(
+      const mockWorld = {} as World;
+      expect(() => registry.create('NonExistentFactory', mockWorld)).toThrow(
         'Entity factory "NonExistentFactory" not found',
       );
     });
@@ -111,12 +116,14 @@ describe('EntityFactoryRegistry', () => {
       const factoryFn: EntityFactoryFunction = vi.fn().mockReturnValue(999);
       registry.register('TestFactory', factoryFn);
 
-      const result1 = registry.create('TestFactory');
-      const result2 = registry.create('TestFactory');
+      const mockWorld = {} as World;
+      const result1 = registry.create('TestFactory', mockWorld);
+      const result2 = registry.create('TestFactory', mockWorld);
 
       expect(result1).toBe(999);
       expect(result2).toBe(999);
       expect(factoryFn).toHaveBeenCalledTimes(2);
+      expect(factoryFn).toHaveBeenCalledWith(mockWorld);
     });
 
     it('должен позволять фабрикам возвращать разные значения', () => {
@@ -125,14 +132,16 @@ describe('EntityFactoryRegistry', () => {
 
       registry.register('CounterFactory', factoryFn);
 
-      const result1 = registry.create('CounterFactory');
-      const result2 = registry.create('CounterFactory');
-      const result3 = registry.create('CounterFactory');
+      const mockWorld = {} as World;
+      const result1 = registry.create('CounterFactory', mockWorld);
+      const result2 = registry.create('CounterFactory', mockWorld);
+      const result3 = registry.create('CounterFactory', mockWorld);
 
       expect(result1).toBe(1);
       expect(result2).toBe(2);
       expect(result3).toBe(3);
       expect(factoryFn).toHaveBeenCalledTimes(3);
+      expect(factoryFn).toHaveBeenCalledWith(mockWorld);
     });
   });
 
@@ -230,12 +239,14 @@ describe('EntityFactoryRegistry', () => {
       expect(registry.has('PlayerFactory')).toBe(true);
 
       // Создание сущностей
-      const entity1 = registry.create('PlayerFactory');
-      const entity2 = registry.create('PlayerFactory');
+      const mockWorld = {} as World;
+      const entity1 = registry.create('PlayerFactory', mockWorld);
+      const entity2 = registry.create('PlayerFactory', mockWorld);
 
       expect(entity1).toBe(100);
       expect(entity2).toBe(100);
       expect(factoryFn).toHaveBeenCalledTimes(2);
+      expect(factoryFn).toHaveBeenCalledWith(mockWorld);
 
       // Получение информации
       const registered = registry.get('PlayerFactory');
@@ -251,7 +262,7 @@ describe('EntityFactoryRegistry', () => {
       registry.clear();
       expect(registry.size()).toBe(0);
       expect(registry.has('PlayerFactory')).toBe(false);
-      expect(() => registry.create('PlayerFactory')).toThrow();
+      expect(() => registry.create('PlayerFactory', mockWorld)).toThrow();
     });
 
     it('должен поддерживать множественные фабрики с разными характеристиками', () => {
@@ -268,11 +279,12 @@ describe('EntityFactoryRegistry', () => {
       registry.register('item', itemFactory, 'Item entities');
 
       // Создание сущностей разных типов
-      const player1 = registry.create('player');
-      const player2 = registry.create('player');
-      const enemy1 = registry.create('enemy');
-      const item1 = registry.create('item');
-      const item2 = registry.create('item');
+      const mockWorld = {} as World;
+      const player1 = registry.create('player', mockWorld);
+      const player2 = registry.create('player', mockWorld);
+      const enemy1 = registry.create('enemy', mockWorld);
+      const item1 = registry.create('item', mockWorld);
+      const item2 = registry.create('item', mockWorld);
 
       expect(player1).toBe(1000);
       expect(player2).toBe(1001);
@@ -283,6 +295,9 @@ describe('EntityFactoryRegistry', () => {
       expect(playerFactory).toHaveBeenCalledTimes(2);
       expect(enemyFactory).toHaveBeenCalledTimes(1);
       expect(itemFactory).toHaveBeenCalledTimes(2);
+      expect(playerFactory).toHaveBeenCalledWith(mockWorld);
+      expect(enemyFactory).toHaveBeenCalledWith(mockWorld);
+      expect(itemFactory).toHaveBeenCalledWith(mockWorld);
     });
   });
 });

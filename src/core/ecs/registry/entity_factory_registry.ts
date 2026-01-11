@@ -1,7 +1,9 @@
+import type { World } from 'bitecs';
+
 /**
  * Фабрика сущностей - функция, создающая сущность
  */
-export type EntityFactoryFunction = () => number; // Возвращает EntityId
+export type EntityFactoryFunction = (world: World) => number; // Принимает world, возвращает EntityId
 
 /**
  * Зарегистрированная фабрика сущностей
@@ -57,14 +59,15 @@ export class EntityFactoryRegistry {
   /**
    * Создать сущность через зарегистрированную фабрику
    * @param name Имя фабрики
+   * @param world Мир BitECS для создания сущности
    * @returns EntityId созданной сущности
    */
-  create(name: string): number {
+  create(name: string, world: World): number {
     const registeredFactory = this.factories.get(name);
     if (!registeredFactory) {
       throw new Error(`Entity factory "${name}" not found`);
     }
-    return registeredFactory.factory();
+    return registeredFactory.factory(world);
   }
 
   /**

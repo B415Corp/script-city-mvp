@@ -195,10 +195,12 @@ describe('Умные конструкторы', () => {
       const factoryFn = vi.fn().mockReturnValue(123);
       const factory = createEntityFactory('TestFactory', factoryFn);
 
-      const result = factory();
+      // Создаем mock world для тестирования
+      const mockWorld = {} as World;
+      const result = factory(mockWorld);
 
       expect(result).toBe(123);
-      expect(factoryFn).toHaveBeenCalled();
+      expect(factoryFn).toHaveBeenCalledWith(mockWorld);
     });
   });
 });

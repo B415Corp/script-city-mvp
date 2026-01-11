@@ -351,10 +351,13 @@ export class ECSManager {
 
     this.logger.info('Testing entity factories...');
 
+    // Создаем mock world для тестирования фабрик
+    const mockWorld = {} as World;
+
     // Тестируем все зарегистрированные фабрики
     for (const [name, factory] of registry.getAll()) {
       try {
-        const entityId = factory.factory();
+        const entityId = factory.factory(mockWorld);
         this.logger.info(`Created entity via factory "${name}": entityId = ${entityId}`);
       } catch (error) {
         this.logger.error(`Error creating entity via factory "${name}":`, error as Error);
