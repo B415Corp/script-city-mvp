@@ -15,38 +15,6 @@ import { ECSDebugStats } from '../modules/base_modules/debug_module/components/e
 // Игровое время за один тик (независимо от скорости игры)
 const GAME_TIME_PER_TICK = 100; // ms
 
-interface ECSStats {
-  totalSystemsCount: number;
-  clustersCount: number;
-  systems: string[];
-  clusters: Record<string, unknown>;
-  entityCount: number;
-  entityCounts: Record<string, number>;
-  gameTime: number;
-  timeData: unknown;
-  totalEntities: number;
-  components: string[];
-  intervalSystems: string[];
-  eventSystems: Record<string, string[]>;
-}
-
-// Временно закомментированы импорты удаленных модулей для Phase 0
-// import { EntityFactory } from './entities';
-// import { createDayNightCycleSystem } from './systems/clusters/day_night_cycle_system';
-// import {
-//   createWorkSystem,
-//   createMovementSystem,
-//   createHappinessSystem,
-// } from './systems/clusters/schedule_activity_systems';
-// import { SystemCluster } from './systems/types';
-// import { LogicTickData } from '../tick/types';
-// import { Person, Citizen, Needs } from './components/population';
-// import { Residential, Workplace, Commercial } from './components/buildings';
-// import { Position } from './components/shared/position_component';
-// import { ID } from './components/shared/id_component';
-// import { Render } from './components/shared/render_component';
-// import { Schedule } from './components/shared/schedule_component';
-
 export class ECSManager {
   private world: World;
   private scheduleManager: ScheduleManager;
