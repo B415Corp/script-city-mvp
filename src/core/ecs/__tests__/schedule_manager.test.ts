@@ -199,7 +199,7 @@ describe('ScheduleManager', () => {
 
       scheduleManager.update(100);
 
-      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 100); // GAME_TIME_PER_TICK = 100
+      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 50); // GAME_TIME_PER_TICK = 50
     });
 
     it('должен выполнять кластеры при каждом обновлении', () => {
@@ -256,11 +256,19 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true },
       });
 
-      // Первый вызов - время = 100, не пора выполнять (100 < 200)
+      // Первый вызов - время = 50, не пора выполнять (50 < 200)
       scheduleManager.update(100);
       expect(mockSystem).not.toHaveBeenCalled();
 
-      // Второй вызов - время = 100 + 100 = 200, пора выполнять
+      // Второй вызов - время = 50 + 50 = 100, не пора выполнять (100 < 200)
+      scheduleManager.update(100);
+      expect(mockSystem).not.toHaveBeenCalled();
+
+      // Третий вызов - время = 100 + 50 = 150, не пора выполнять (150 < 200)
+      scheduleManager.update(100);
+      expect(mockSystem).not.toHaveBeenCalled();
+
+      // Четвертый вызов - время = 150 + 50 = 200, пора выполнять
       scheduleManager.update(100);
       expect(mockSystem).toHaveBeenCalledWith(mockWorld, 100);
       expect(intervalSystem.lastExecuted).toBe(200);
@@ -295,7 +303,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: failingSystem,
         name: 'FailingIntervalSystem',
-        interval: 100,
+        interval: 50,
         lastExecuted: 0,
       };
 
@@ -306,7 +314,7 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true },
       });
 
-      scheduleManager.update(200);
+      scheduleManager.update(100);
 
       expect(consoleSpy).toHaveBeenCalledWith(
         '[ScheduleManager] Error in interval system FailingIntervalSystem:',
@@ -403,15 +411,13 @@ describe('ScheduleManager', () => {
       );
       vi.mocked(mockSystemRegistry.get).mockReturnValue(mockRegisteredSystem);
 
-      // Первый тик - интервальная система не выполняется (100 < 300)
-      scheduleManager.update(100);
-      expect(intervalSystem).not.toHaveBeenCalled();
+      // Первые 5 тиков - интервальная система не выполняется (50*5 = 250 < 300)
+      for (let i = 0; i < 5; i++) {
+        scheduleManager.update(100);
+        expect(intervalSystem).not.toHaveBeenCalled();
+      }
 
-      // Второй тик - интервальная система не выполняется (200 < 300)
-      scheduleManager.update(100);
-      expect(intervalSystem).not.toHaveBeenCalled();
-
-      // Третий тик - интервальная система выполняется (300 >= 300)
+      // Шестой тик - интервальная система выполняется (250 + 50 = 300 >= 300)
       scheduleManager.update(100);
       expect(intervalSystem).toHaveBeenCalledTimes(1);
     });

@@ -9,11 +9,10 @@ import { ClusterRegistry } from './registry/cluster_registry';
 import { EntityFactoryRegistry } from './registry/entity_factory_registry';
 import { SystemFunction } from './core/smart_constructors';
 import { CallSystemPayload } from '../event_bus/types';
-import { LogicTickData } from '../tick/types';
 import { ECSDebugStats } from '../modules/base_modules/debug_module/components/ecs_debug';
 
 // Игровое время за один тик (независимо от скорости игры)
-const GAME_TIME_PER_TICK = 100; // ms
+const GAME_TIME_PER_TICK = 50; // ms
 
 export class ECSManager {
   private world: World;
