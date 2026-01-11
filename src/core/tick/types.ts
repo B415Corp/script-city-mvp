@@ -21,9 +21,19 @@ export interface TickStartedPayload {
 }
 
 /**
+ * Скорости симуляции времени (тиков в секунду)
+ */
+export enum GameSpeeds {
+  PAUSED = 0,
+  NORMAL = 10, // 1x скорость (реальное время)
+  FAST = 60, // 6x скорость
+  VERY_FAST = 240, // 24x скорость
+}
+
+/**
  * Типы для контроллеров
  */
-export type SetSpeedPayload = { speed: 10 | 60 | 240 };
+export type SetSpeedPayload = { speed: GameSpeeds };
 
 /**
  * Условия времени для проверок

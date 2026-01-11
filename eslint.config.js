@@ -54,6 +54,20 @@ export default [
     },
   },
   {
+    files: ['src/core/core.ts'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': [
+        'warn',
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+          allowHigherOrderFunctions: true,
+          allowDirectConstAssertionInArrowFunctions: true,
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts', 'src/test/**/*.ts'],
     languageOptions: {
       parser: tsParser,
@@ -86,7 +100,7 @@ export default [
     rules: {
       'prettier/prettier': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off', // Отключаем для тестов
-      '@typescript-eslint/no-explicit-any': 'warn', // Предупреждение для тестов (доступ к приватным полям)
+      '@typescript-eslint/no-explicit-any': 'off', // Отключаем для тестов (доступ к приватным полям)
       'no-console': ['warn', { allow: ['warn', 'error', 'group', 'groupEnd', 'log'] }],
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',

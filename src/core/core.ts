@@ -9,12 +9,13 @@ import { ComponentRegistry } from './ecs/registry/component_registry';
 import { SystemRegistry } from './ecs/registry/system_registry';
 import { ClusterRegistry } from './ecs/registry/cluster_registry';
 import { EntityFactoryRegistry } from './ecs/registry/entity_factory_registry';
+import { GameSpeeds } from './tick/types';
 
 // Фабрики зависимостей для Dependency Injection
 export interface ICoreDependencies {
   phaserFactory?: () => Phaser.Game;
   eventBusFactory?: () => EventBus;
-  tickManagerFactory?: (eventBus: EventBus) => TickManager;
+  tickManagerFactory?: (eventBus: EventBus, initialSpeed?: GameSpeeds) => TickManager;
   ecsManagerFactory?: (eventBus: EventBus, tickManager: TickManager) => ECSManager;
   moduleManagerFactory?: (
     scene: MainScene,
@@ -45,7 +46,7 @@ export class Core {
   // Фабрики зависимостей с дефолтными значениями
   private phaserFactory: () => Phaser.Game;
   private eventBusFactory: () => EventBus;
-  private tickManagerFactory: (eventBus: EventBus) => TickManager;
+  private tickManagerFactory: (eventBus: EventBus, initialSpeed?: GameSpeeds) => TickManager;
   private ecsManagerFactory: (eventBus: EventBus, tickManager: TickManager) => ECSManager;
   private moduleManagerFactory: (
     scene: MainScene,
@@ -66,17 +67,24 @@ export class Core {
     this.phaserFactory = dependencies.phaserFactory || (() => new Phaser.Game(this.phaserConfig));
     this.eventBusFactory = dependencies.eventBusFactory || (() => new EventBus());
     this.tickManagerFactory =
-      dependencies.tickManagerFactory || ((eventBus) => new TickManager(eventBus, 10));
+      dependencies.tickManagerFactory ||
+      ((eventBus: EventBus, initialSpeed: GameSpeeds = GameSpeeds.NORMAL): TickManager =>
+        new TickManager(eventBus, initialSpeed));
     this.ecsManagerFactory =
       dependencies.ecsManagerFactory ||
-      ((eventBus, tickManager) => new ECSManager(eventBus, tickManager));
+      ((eventBus: EventBus, tickManager: TickManager): ECSManager =>
+        new ECSManager(eventBus, tickManager));
     this.moduleManagerFactory =
       dependencies.moduleManagerFactory ||
-      ((scene, eventBus, ecsManager, tickManager) =>
-        new ModuleManager(scene, eventBus, ecsManager, tickManager));
+      ((
+        scene: MainScene,
+        eventBus: EventBus,
+        ecsManager: ECSManager | null,
+        tickManager: TickManager,
+      ): ModuleManager => new ModuleManager(scene, eventBus, ecsManager, tickManager));
     this.entrySimulationFactory =
       dependencies.entrySimulationFactory ||
-      ((ecsManager, eventBus, tickManager) =>
+      ((ecsManager: ECSManager, eventBus: EventBus, tickManager: TickManager): EntrySimulation =>
         new EntrySimulation(ecsManager, eventBus, tickManager));
 
     this.setupResizeHandler();
@@ -202,7 +210,7 @@ export class Core {
       if (!this.eventBus) {
         throw new Error('EventBus must be initialized before TickManager');
       }
-      this.tickManager = this.tickManagerFactory(this.eventBus);
+      this.tickManager = this.tickManagerFactory(this.eventBus, GameSpeeds.NORMAL);
       // Устанавливаем начальное время на 2:00 ночи (жители спят)
       this.tickManager.getTimeService().setTime(2 * 60); // 2:00 AM
     } catch (error) {
@@ -347,7 +355,7 @@ export class Core {
       if (!this.eventBus) {
         throw new Error('EventBus must be initialized before TickManager');
       }
-      this.tickManager = new TickManager(this.eventBus, 10);
+      this.tickManager = new TickManager(this.eventBus, GameSpeeds.NORMAL);
       // Устанавливаем начальное время на 2:00 ночи (жители спят)
       this.tickManager.getTimeService().setTime(2 * 60); // 2:00 AM
     } catch (error) {
@@ -389,54 +397,56 @@ export class CoreBuilder {
     this.phaserConfig = phaserConfig;
   }
 
-  withPhaser(phaser: Phaser.Game): CoreBuilder {
+  withPhaser(phaser: Phaser.Game): this {
     this.dependencies.phaserFactory = () => phaser;
     return this;
   }
 
-  withEventBus(eventBus: EventBus): CoreBuilder {
+  withEventBus(eventBus: EventBus): this {
     this.dependencies.eventBusFactory = () => eventBus;
     return this;
   }
 
-  withTickManager(tickManager: TickManager): CoreBuilder {
+  withTickManager(tickManager: TickManager): this {
     this.dependencies.tickManagerFactory = () => tickManager;
     return this;
   }
 
-  withECSManager(ecsManager: ECSManager): CoreBuilder {
+  withTickManagerFactory(
+    factory: (eventBus: EventBus, initialSpeed?: GameSpeeds) => TickManager,
+  ): this {
+    this.dependencies.tickManagerFactory = factory;
+    return this;
+  }
+
+  withECSManager(ecsManager: ECSManager): this {
     this.dependencies.ecsManagerFactory = () => ecsManager;
     return this;
   }
 
-  withModuleManager(moduleManager: ModuleManager): CoreBuilder {
+  withModuleManager(moduleManager: ModuleManager): this {
     this.dependencies.moduleManagerFactory = () => moduleManager;
     return this;
   }
 
-  withEntrySimulation(entrySimulation: EntrySimulation): CoreBuilder {
+  withEntrySimulation(entrySimulation: EntrySimulation): this {
     this.dependencies.entrySimulationFactory = () => entrySimulation;
     return this;
   }
 
-  withPhaserFactory(factory: () => Phaser.Game): CoreBuilder {
+  withPhaserFactory(factory: () => Phaser.Game): this {
     this.dependencies.phaserFactory = factory;
     return this;
   }
 
-  withEventBusFactory(factory: () => EventBus): CoreBuilder {
+  withEventBusFactory(factory: () => EventBus): this {
     this.dependencies.eventBusFactory = factory;
-    return this;
-  }
-
-  withTickManagerFactory(factory: (eventBus: EventBus) => TickManager): CoreBuilder {
-    this.dependencies.tickManagerFactory = factory;
     return this;
   }
 
   withECSManagerFactory(
     factory: (eventBus: EventBus, tickManager: TickManager) => ECSManager,
-  ): CoreBuilder {
+  ): this {
     this.dependencies.ecsManagerFactory = factory;
     return this;
   }
@@ -448,7 +458,7 @@ export class CoreBuilder {
       ecsManager: ECSManager | null,
       tickManager: TickManager,
     ) => ModuleManager,
-  ): CoreBuilder {
+  ): this {
     this.dependencies.moduleManagerFactory = factory;
     return this;
   }
@@ -459,7 +469,7 @@ export class CoreBuilder {
       eventBus: EventBus,
       tickManager: TickManager,
     ) => EntrySimulation,
-  ): CoreBuilder {
+  ): this {
     this.dependencies.entrySimulationFactory = factory;
     return this;
   }

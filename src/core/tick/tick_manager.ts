@@ -2,7 +2,7 @@ import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 import { TickController } from './controllers/tick_controller';
 import { TimeService } from './time_service';
-import { LogicTickData, SetSpeedPayload } from './types';
+import { LogicTickData, SetSpeedPayload, GameSpeeds } from './types';
 
 /**
  * TickManager - оркестратор управления тиками и временем
@@ -16,7 +16,7 @@ export class TickManager {
 
   constructor(
     private readonly eventBus: EventBus,
-    initialTickRate = 10,
+    initialTickRate: GameSpeeds = GameSpeeds.NORMAL,
   ) {
     this.tickController = new TickController(initialTickRate);
     this.timeService = new TimeService(eventBus, initialTickRate);
