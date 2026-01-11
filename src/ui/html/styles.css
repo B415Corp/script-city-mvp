@@ -178,7 +178,6 @@
   box-shadow: var(--shadow-lg);
   z-index: var(--z-fixed);
   border-radius: var(--radius-lg);
-  overflow: hidden;
 }
 
 .html-toolbar.floating {
