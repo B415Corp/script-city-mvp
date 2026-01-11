@@ -199,7 +199,7 @@ describe('ScheduleManager', () => {
 
       scheduleManager.update(100);
 
-      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 50); // GAME_TIME_PER_TICK = 50
+      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 28800); // GAME_TIME_PER_TICK = 28800
     });
 
     it('должен выполнять кластеры при каждом обновлении', () => {
@@ -244,7 +244,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: mockSystem,
         name: 'IntervalSystem',
-        interval: 200,
+        interval: 50000, // 50 секунд (больше чем GAME_TIME_PER_TICK = 28800ms)
         lastExecuted: 0,
       };
 
@@ -256,22 +256,14 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true },
       });
 
-      // Первый вызов - время = 50, не пора выполнять (50 < 200)
+      // Первый вызов - время = 28800, пора выполнять (28800 > 50000? Нет, 28800 < 50000)
       scheduleManager.update(100);
       expect(mockSystem).not.toHaveBeenCalled();
 
-      // Второй вызов - время = 50 + 50 = 100, не пора выполнять (100 < 200)
-      scheduleManager.update(100);
-      expect(mockSystem).not.toHaveBeenCalled();
-
-      // Третий вызов - время = 100 + 50 = 150, не пора выполнять (150 < 200)
-      scheduleManager.update(100);
-      expect(mockSystem).not.toHaveBeenCalled();
-
-      // Четвертый вызов - время = 150 + 50 = 200, пора выполнять
+      // Второй вызов - время = 28800 + 28800 = 57600, пора выполнять (57600 > 50000)
       scheduleManager.update(100);
       expect(mockSystem).toHaveBeenCalledWith(mockWorld, 100);
-      expect(intervalSystem.lastExecuted).toBe(200);
+      expect(intervalSystem.lastExecuted).toBe(57600);
     });
 
     it('должен пропускать отключенные интервальные системы', () => {
@@ -303,7 +295,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: failingSystem,
         name: 'FailingIntervalSystem',
-        interval: 50,
+        interval: 25000, // 25 секунд (меньше чем GAME_TIME_PER_TICK = 28800ms)
         lastExecuted: 0,
       };
 
@@ -392,7 +384,7 @@ describe('ScheduleManager', () => {
     it('должен правильно комбинировать обычные и интервальные системы', () => {
       // Регистрируем интервальную систему
       const intervalSystem = vi.fn();
-      scheduleManager.registerIntervalSystem('IntervalSystem', intervalSystem, 300);
+      scheduleManager.registerIntervalSystem('IntervalSystem', intervalSystem, 60000); // 60 секунд
 
       // Настраиваем кластеры с интервальной системой
       const mockCluster = {
@@ -403,7 +395,7 @@ describe('ScheduleManager', () => {
       const mockRegisteredSystem = {
         name: 'IntervalSystem',
         system: intervalSystem,
-        metadata: { enabled: true, interval: 300 },
+        metadata: { enabled: true, interval: 60000 },
       };
 
       vi.mocked(mockClusterRegistry.getAll).mockReturnValue(
@@ -411,13 +403,15 @@ describe('ScheduleManager', () => {
       );
       vi.mocked(mockSystemRegistry.get).mockReturnValue(mockRegisteredSystem);
 
-      // Первые 5 тиков - интервальная система не выполняется (50*5 = 250 < 300)
-      for (let i = 0; i < 5; i++) {
-        scheduleManager.update(100);
-        expect(intervalSystem).not.toHaveBeenCalled();
-      }
+      // Первый тик - интервальная система не выполняется (28800 < 60000)
+      scheduleManager.update(100);
+      expect(intervalSystem).not.toHaveBeenCalled();
 
-      // Шестой тик - интервальная система выполняется (250 + 50 = 300 >= 300)
+      // Второй тик - интервальная система выполняется (28800 + 28800 = 57600 < 60000, еще нет)
+      scheduleManager.update(100);
+      expect(intervalSystem).not.toHaveBeenCalled();
+
+      // Третий тик - интервальная система выполняется (57600 + 28800 = 86400 >= 60000)
       scheduleManager.update(100);
       expect(intervalSystem).toHaveBeenCalledTimes(1);
     });

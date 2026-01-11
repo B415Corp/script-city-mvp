@@ -16,7 +16,7 @@ const excludeList: Array<Events> = [
   Events.MapCentered,
   Events.SceneReady,
   Events.LogicTick,
-  Events.GameTimeUpdated,
+  // Events.GameTimeUpdated,
 
   // tiles
   Events.TileHovered,

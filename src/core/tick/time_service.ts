@@ -3,9 +3,7 @@ import { GameTimeUpdateData } from '../ecs/types';
 import { TimeController } from './controllers/time_controller';
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
-
-// Импорт константы игрового времени за тик
-const GAME_TIME_PER_TICK = 50; // ms
+import { GAME_TIME_PER_TICK } from '../ecs/ecs_manager';
 
 /**
  * TimeService - централизованный сервис для работы с игровым временем
