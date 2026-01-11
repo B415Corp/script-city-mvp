@@ -199,7 +199,7 @@ describe('ScheduleManager', () => {
 
       scheduleManager.update(100);
 
-      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 28800); // GAME_TIME_PER_TICK = 28800
+      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 57600); // GAME_TIME_PER_TICK = 57600
     });
 
     it('должен выполнять кластеры при каждом обновлении', () => {
@@ -244,7 +244,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: mockSystem,
         name: 'IntervalSystem',
-        interval: 50000, // 50 секунд (больше чем GAME_TIME_PER_TICK = 28800ms)
+        interval: 100000, // 100 секунд (больше чем GAME_TIME_PER_TICK = 57600ms)
         lastExecuted: 0,
       };
 
@@ -256,14 +256,14 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true },
       });
 
-      // Первый вызов - время = 28800, пора выполнять (28800 > 50000? Нет, 28800 < 50000)
+      // Первый вызов - время = 57600, пора выполнять (57600 > 100000? Нет, 57600 < 100000)
       scheduleManager.update(100);
       expect(mockSystem).not.toHaveBeenCalled();
 
-      // Второй вызов - время = 28800 + 28800 = 57600, пора выполнять (57600 > 50000)
+      // Второй вызов - время = 57600 + 57600 = 115200, пора выполнять (115200 > 100000)
       scheduleManager.update(100);
       expect(mockSystem).toHaveBeenCalledWith(mockWorld, 100);
-      expect(intervalSystem.lastExecuted).toBe(57600);
+      expect(intervalSystem.lastExecuted).toBe(115200);
     });
 
     it('должен пропускать отключенные интервальные системы', () => {
@@ -295,7 +295,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: failingSystem,
         name: 'FailingIntervalSystem',
-        interval: 25000, // 25 секунд (меньше чем GAME_TIME_PER_TICK = 28800ms)
+        interval: 50000, // 50 секунд (меньше чем GAME_TIME_PER_TICK = 57600ms)
         lastExecuted: 0,
       };
 
@@ -403,15 +403,11 @@ describe('ScheduleManager', () => {
       );
       vi.mocked(mockSystemRegistry.get).mockReturnValue(mockRegisteredSystem);
 
-      // Первый тик - интервальная система не выполняется (28800 < 60000)
+      // Первый тик - интервальная система не выполняется (57600 < 60000)
       scheduleManager.update(100);
       expect(intervalSystem).not.toHaveBeenCalled();
 
-      // Второй тик - интервальная система выполняется (28800 + 28800 = 57600 < 60000, еще нет)
-      scheduleManager.update(100);
-      expect(intervalSystem).not.toHaveBeenCalled();
-
-      // Третий тик - интервальная система выполняется (57600 + 28800 = 86400 >= 60000)
+      // Второй тик - интервальная система выполняется (57600 + 57600 = 115200 >= 60000)
       scheduleManager.update(100);
       expect(intervalSystem).toHaveBeenCalledTimes(1);
     });
