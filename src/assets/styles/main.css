@@ -580,3 +580,6 @@ body {
 .debug-event-color-5 {
   color: oklch(75% 0.15 160);
 }
+
+/* HTML UI Components */
+@import url('../../../ui/html/styles.css');

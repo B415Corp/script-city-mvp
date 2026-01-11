@@ -4,7 +4,7 @@ export interface HTMLButtonConfig extends HTMLElementConfig {
   label: string;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'success' | 'danger';
+  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning';
   size?: 'small' | 'medium' | 'large';
 }
 
@@ -67,26 +67,36 @@ export class HTMLButton extends BaseHTMLElement {
       primary: {
         backgroundColor: '#007bff',
         color: '#ffffff',
+        borderColor: '#007bff',
       },
       secondary: {
         backgroundColor: '#6c757d',
         color: '#ffffff',
+        borderColor: '#6c757d',
       },
       success: {
         backgroundColor: '#28a745',
         color: '#ffffff',
+        borderColor: '#28a745',
       },
       danger: {
         backgroundColor: '#dc3545',
         color: '#ffffff',
+        borderColor: '#dc3545',
+      },
+      warning: {
+        backgroundColor: '#ffc107',
+        color: '#212529',
+        borderColor: '#ffc107',
       },
     };
 
     const variant = this.config.variant || 'primary';
-    const styles = baseStyles[variant];
+    const styles = baseStyles[variant as keyof typeof baseStyles];
 
     this.setStyle('backgroundColor', styles.backgroundColor);
     this.setStyle('color', styles.color);
+    this.setStyle('borderColor', styles.borderColor);
   }
 
   private applySizeStyles(): void {
@@ -138,6 +148,18 @@ export class HTMLButton extends BaseHTMLElement {
 
   public setOnClick(handler: () => void): this {
     this.config.onClick = handler;
+    return this;
+  }
+
+  public setVariant(variant: 'primary' | 'secondary' | 'success' | 'danger' | 'warning'): this {
+    // Удаляем старый вариант
+    ['primary', 'secondary', 'success', 'danger', 'warning'].forEach((v) => {
+      this.removeClass(v);
+    });
+
+    this.addClass(variant);
+    this.config.variant = variant;
+    this.applyVariantStyles();
     return this;
   }
 }

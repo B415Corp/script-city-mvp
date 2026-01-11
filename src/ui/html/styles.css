@@ -77,6 +77,17 @@
   border-color: #bd2130;
 }
 
+.html-button.warning {
+  background-color: #ffc107;
+  color: #212529;
+  border: 1px solid #ffc107;
+}
+
+.html-button.warning:hover:not(.disabled) {
+  background-color: #e0a800;
+  border-color: #e0a800;
+}
+
 /* Button Sizes */
 .html-button.small {
   padding: 4px 12px;
@@ -94,6 +105,51 @@
   padding: 12px 24px;
   font-size: 16px;
   line-height: 1.5;
+}
+
+/* Badge Styles */
+.html-badge {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.html-badge.default {
+  background-color: #f8f9fa;
+  color: #212529;
+  border: 1px solid #dee2e6;
+}
+
+.html-badge.primary {
+  background-color: #007bff;
+  color: #ffffff;
+  border: 1px solid #007bff;
+}
+
+.html-badge.secondary {
+  background-color: #6c757d;
+  color: #ffffff;
+  border: 1px solid #6c757d;
+}
+
+.html-badge.success {
+  background-color: #28a745;
+  color: #ffffff;
+  border: 1px solid #28a745;
+}
+
+.html-badge.warning {
+  background-color: #ffc107;
+  color: #212529;
+  border: 1px solid #ffc107;
+}
+
+.html-badge.danger {
+  background-color: #dc3545;
+  color: #ffffff;
+  border: 1px solid #dc3545;
 }
 
 /* Toolbar Styles */

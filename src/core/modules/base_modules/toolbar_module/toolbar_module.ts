@@ -1,10 +1,9 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { ECSManager } from '@/core/ecs/ecs_manager';
-import { ButtonUI } from '@/ui/phaser/button.ui';
+import { HTMLToolbar, HTMLButton, HTMLBadge } from '@/ui/html';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
-import { BadgeUI } from '@/ui/phaser/badge.ui';
 import { Logger } from '@/core/utils/logger';
 
 export class ToolbarModule extends BaseModule {
@@ -12,8 +11,11 @@ export class ToolbarModule extends BaseModule {
   protected eventBus!: EventBus;
   private logger!: Logger;
 
-  // UI элементы
-  private container!: Phaser.GameObjects.Container;
+  // HTML UI элементы
+  private toolbar!: HTMLToolbar;
+  private toolButtons: Map<string, HTMLButton> = new Map();
+  private speedButtons: Map<string, HTMLButton> = new Map();
+  private gameTimeBadge!: HTMLBadge;
 
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus, ecsManager);
@@ -21,200 +23,156 @@ export class ToolbarModule extends BaseModule {
     this.logger.info('ToolbarModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
-    this.container = scene.add.container();
-    this.container.setDepth(1000);
 
     this.createToolbar();
   }
 
-  // UI контейнер в модуле
-  private barContainer!: Phaser.GameObjects.Container;
-
   private createToolbar(): void {
-    const margin = { left: 10, right: 10, top: 10, bottom: 10 };
-    const height = 140; // Уменьшили высоту до 140px
-    const width = this.scene.cameras.main.width - (margin.right + margin.left);
-    const x = this.scene.cameras.main.width / 2 - width / 2;
-    const y = this.scene.cameras.main.height - height - margin.bottom;
+    // Создаем HTML панель инструментов в нижней части экрана
+    this.toolbar = new HTMLToolbar({
+      position: 'bottom',
+      orientation: 'horizontal',
+    });
 
-    // Первый ряд кнопок (инструменты)
-    const livingZoneBtn = new ButtonUI(this.scene, {
-      xPos: 15,
-      yPos: 30, // Подняли верхний ряд ближе к верху
-      w: 150,
-      h: 30,
-      text: 'Жилая зона',
-      depth: 1001,
-      onClick: (): void => {
+    // Создаем кнопки инструментов зоны
+    const livingZoneBtn = this.toolbar.addTool({
+      label: '🏠 Жилая зона',
+      variant: 'secondary',
+      size: 'medium',
+      onClick: () => {
         this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
-        switchActiveTool('living_zone');
+        this.switchActiveTool('living_zone');
       },
     });
+    this.toolButtons.set('living_zone', livingZoneBtn);
 
-    const commercialZoneBtn = new ButtonUI(this.scene, {
-      xPos: 15 + livingZoneBtn.width + 15,
-      yPos: 30,
-      w: 220,
-      h: 30,
-      text: 'Коммерческая зона',
-      depth: 1001,
-      onClick: (): void => {
+    const commercialZoneBtn = this.toolbar.addTool({
+      label: '🏪 Коммерческая зона',
+      variant: 'secondary',
+      size: 'medium',
+      onClick: () => {
         this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
-        switchActiveTool('commercial_zone');
+        this.switchActiveTool('commercial_zone');
       },
     });
+    this.toolButtons.set('commercial_zone', commercialZoneBtn);
 
-    const clearZoneBtn = new ButtonUI(this.scene, {
-      xPos: commercialZoneBtn.xPosition + commercialZoneBtn.width + 15,
-      yPos: 30,
-      w: 175,
-      h: 30,
-      text: 'Очистить зону',
-      depth: 1001,
-      onClick: (): void => {
+    const clearZoneBtn = this.toolbar.addTool({
+      label: '🗑️ Очистить зону',
+      variant: 'danger',
+      size: 'medium',
+      onClick: () => {
         this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
-        switchActiveTool('clear_zone');
+        this.switchActiveTool('clear_zone');
       },
     });
+    this.toolButtons.set('clear_zone', clearZoneBtn);
 
-    this.eventBus.on(Events.ResetToolToDefault, (payload) => {
-      switchActiveTool('select');
-    });
-
-    // Второй ряд кнопок (скорость игры)
-    const pauseBtn = new ButtonUI(this.scene, {
-      xPos: 15,
-      yPos: 75, // Уменьшили gap, второй ряд ближе к первому (разрыв всего 15px)
-      w: 80,
-      h: 30,
-      text: 'Пауза',
-      depth: 1001,
-      onClick: (): void => {
+    // Создаем кнопки управления скоростью
+    const pauseBtn = this.toolbar.addTool({
+      label: '⏸️ Пауза',
+      variant: 'warning',
+      size: 'small',
+      onClick: () => {
         this.eventBus.emit(Events.GamePauseToggle, undefined);
-        switchTimeButton('pause');
+        this.switchTimeButton('pause');
       },
     });
+    this.speedButtons.set('pause', pauseBtn);
 
-    const speedX1Btn = new ButtonUI(this.scene, {
-      xPos: 15 + pauseBtn.width + 15,
-      yPos: 75,
-      w: 60,
-      h: 30,
-      text: 'X1',
-      depth: 1001,
-      isActive: true,
-      onClick: (): void => {
+    const speedX1Btn = this.toolbar.addTool({
+      label: '🐌 X1',
+      variant: 'success',
+      size: 'small',
+      onClick: () => {
         this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
-        switchTimeButton('speedX1');
+        this.switchTimeButton('speedX1');
       },
     });
-    speedX1Btn.setActiveTab(true);
+    this.speedButtons.set('speedX1', speedX1Btn);
+    // X1 активен по умолчанию
+    speedX1Btn.setVariant('success');
 
-    const speedX2Btn = new ButtonUI(this.scene, {
-      xPos: speedX1Btn.xPosition + speedX1Btn.width + 15,
-      yPos: 75,
-      w: 60,
-      h: 30,
-      text: 'X2',
-      depth: 1001,
-      onClick: (): void => {
+    const speedX2Btn = this.toolbar.addTool({
+      label: '🐕 X2',
+      variant: 'secondary',
+      size: 'small',
+      onClick: () => {
         this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
-        switchTimeButton('speedX2');
+        this.switchTimeButton('speedX2');
       },
     });
+    this.speedButtons.set('speedX2', speedX2Btn);
 
-    const speedX3Btn = new ButtonUI(this.scene, {
-      xPos: speedX2Btn.xPosition + speedX2Btn.width + 15,
-      yPos: 75,
-      w: 60,
-      h: 30,
-      text: 'X3',
-      depth: 1001,
-      onClick: (): void => {
+    const speedX3Btn = this.toolbar.addTool({
+      label: '🐆 X3',
+      variant: 'secondary',
+      size: 'small',
+      onClick: () => {
         this.eventBus.emit(Events.SetGameSpeed, { speed: 240 });
-        switchTimeButton('speedX3');
+        this.switchTimeButton('speedX3');
       },
     });
+    this.speedButtons.set('speedX3', speedX3Btn);
 
-    const gameTimeText = new BadgeUI(this.scene, {
-      xPos: speedX3Btn.xPosition + speedX3Btn.width + 15,
-      yPos: 75,
-      w: 220,
-      h: 30,
+    // Создаем бейдж для времени игры
+    this.gameTimeBadge = new HTMLBadge({
       text: '16:00',
-      depth: 1001,
+      variant: 'primary',
+      size: 'medium',
+    });
+
+    // Добавляем бейдж к панели инструментов
+    this.toolbar.getElement().appendChild(this.gameTimeBadge.getElement());
+
+    // Подписываемся на события
+    this.eventBus.on(Events.ResetToolToDefault, () => {
+      this.switchActiveTool('select');
     });
 
     this.eventBus.on(Events.GameTimeUpdated, (payload) => {
       if (payload) {
         const { date, timeOfDay } = payload;
-        gameTimeText.update(`${date} ${timeOfDay}`);
+        this.gameTimeBadge.updateText(`${date} ${timeOfDay}`);
       }
     });
 
-    // Контейнер бара
-    this.barContainer = this.scene.add.container(x, y);
-    this.barContainer.setDepth(1001);
-    // маска для перхвата нажатия
-    // Пустой обработчик поглощает событие
+    // Добавляем панель в DOM
+    this.toolbar.appendTo(document.body);
+  }
 
-    // Фон бара
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x222222, 0.8);
-    bg.fillRoundedRect(0, 0, width, height, 16);
-    bg.strokeRoundedRect(0, 0, width, height, 16);
+  private switchActiveTool(toolName: string): void {
+    // Сбрасываем все инструменты
+    this.toolButtons.forEach((button) => {
+      button.setVariant('secondary');
+    });
 
-    this.barContainer.add(bg);
-
-    // Добавляем кнопки первого ряда
-    this.barContainer.add(livingZoneBtn.container);
-    this.barContainer.add(commercialZoneBtn.container);
-    this.barContainer.add(clearZoneBtn.container);
-
-    // Добавляем кнопки второго ряда
-    this.barContainer.add(gameTimeText.container);
-    this.barContainer.add(pauseBtn.container);
-    this.barContainer.add(speedX1Btn.container);
-    this.barContainer.add(speedX2Btn.container);
-    this.barContainer.add(speedX3Btn.container);
-
-    function switchActiveTool(toolName: string): void {
-      livingZoneBtn.setActiveTab(false);
-      commercialZoneBtn.setActiveTab(false);
-      clearZoneBtn.setActiveTab(false);
-
-      if (toolName === 'living_zone') {
-        livingZoneBtn.setActiveTab(true);
-      }
-      if (toolName === 'commercial_zone') {
-        commercialZoneBtn.setActiveTab(true);
-      }
-      if (toolName === 'clear_zone') {
-        clearZoneBtn.setActiveTab(true);
-      }
+    // Активируем выбранный инструмент
+    const activeButton = this.toolButtons.get(toolName);
+    if (activeButton) {
+      activeButton.setVariant('primary');
     }
+  }
 
-    function switchTimeButton(buttonName: string): void {
-      pauseBtn.setActiveTab(false);
-      speedX1Btn.setActiveTab(false);
-      speedX2Btn.setActiveTab(false);
-      speedX3Btn.setActiveTab(false);
+  private switchTimeButton(buttonName: string): void {
+    // Сбрасываем все кнопки скорости
+    this.speedButtons.forEach((button, key) => {
+      if (key === 'pause') {
+        button.setVariant('warning');
+      } else {
+        button.setVariant('secondary');
+      }
+    });
 
+    // Активируем выбранную кнопку
+    const activeButton = this.speedButtons.get(buttonName);
+    if (activeButton) {
       if (buttonName === 'pause') {
-        pauseBtn.setActiveTab(true);
-      }
-      if (buttonName === 'speedX1') {
-        speedX1Btn.setActiveTab(true);
-      }
-      if (buttonName === 'speedX2') {
-        speedX2Btn.setActiveTab(true);
-      }
-      if (buttonName === 'speedX3') {
-        speedX3Btn.setActiveTab(true);
+        activeButton.setVariant('danger');
+      } else {
+        activeButton.setVariant('success');
       }
     }
-    // Добавляем бар в контейнер модуля
-    this.container.add(this.barContainer);
   }
 }
 
