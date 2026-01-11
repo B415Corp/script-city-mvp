@@ -159,6 +159,10 @@ export const LevelUpSystem = createSystem(
 
 ## 🏭 3. Создание фабрик сущностей
 
+Фабрики сущностей - это функции, которые создают новые сущности в мире BitECS. Каждая фабрика принимает `world: World` как параметр и возвращает `entityId` созданной сущности.
+
+**Важно**: Начиная с версии где фабрики принимают `world` параметр, это breaking change. Ранее фабрики не принимали параметров.
+
 ### Шаг 1: Структура папок
 
 ```
@@ -170,13 +174,14 @@ src/core/ecs/entities/
 ### Шаг 2: Создание фабрики
 
 ```typescript
+import { addEntity, addComponent } from 'bitecs';
 import { createEntityFactory } from '../../core/smart_constructors';
 import { Position } from '../components/Position';
 import { Health } from '../components/Health';
 
 export const createPlayer = createEntityFactory(
   'player', // Уникальное имя фабрики
-  () => {
+  (world) => {
     // Создание сущности
     const entityId = addEntity(world);
 
@@ -196,7 +201,7 @@ export const createPlayer = createEntityFactory(
 
 export const createEnemy = createEntityFactory(
   'enemy',
-  () => {
+  (world) => {
     const entityId = addEntity(world);
 
     addComponent(world, entityId, Position);
@@ -215,13 +220,15 @@ export const createEnemy = createEntityFactory(
 ### ✅ Что происходит автоматически:
 
 - Фабрика регистрируется в `EntityFactoryRegistry`
-- Фабрика становится доступна для тестирования через `core.ecsRegistries().entityFactories()`
+- Фабрика становится доступна для создания сущностей через `registry.create(name, world)`
+- Фабрика доступна для тестирования через `core.ecsRegistries().entityFactories()`
 
 ### 📝 Соглашения:
 
 - Имена фабрик в snake_case
 - Описание обязательно для документации
 - Фабрика должна возвращать `entityId`
+- Фабрика принимает `world: World` как первый параметр для работы с BitECS
 
 ## 📦 4. Создание кластеров
 
@@ -391,6 +398,9 @@ const clusters = registries.clusters().getAll();
 
 // Получить фабрики сущностей
 const factories = registries.entityFactories().getAll();
+
+// Создать сущность через фабрику
+const entityId = registries.entityFactories().create('player', world);
 ```
 
 ## 🎯 7. Workflow разработки
@@ -430,13 +440,16 @@ export const InventorySystem = createSystem(
 // 3. Фабрика сущностей
 export const createItem = createEntityFactory(
   'item',
-  () => {
+  (world) => {
     const entityId = addEntity(world);
     addComponent(world, entityId, Item);
     return entityId;
   },
   'Создает предмет в мире',
 );
+
+// Использование фабрики
+const itemId = registry.create('item', world);
 
 // 4. Модуль (если нужен UI)
 export class InventoryModule extends BaseModule {
