@@ -155,46 +155,53 @@
 /* Toolbar Styles */
 .html-toolbar {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--html-bg-toolbar);
-  border: 1px solid var(--html-border-light);
-  box-shadow: var(--shadow-md);
+  background-color: rgba(248, 249, 250, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(222, 226, 230, 0.8);
+  box-shadow: var(--shadow-lg);
   z-index: var(--z-fixed);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.html-toolbar.floating {
+  left: 0;
+  right: 0;
+  width: 100vw;
+  margin: 0;
+  border-radius: 0;
 }
 
 .html-toolbar.top {
   top: 0;
-  left: 0;
-  right: 0;
-  border-bottom: 1px solid var(--html-border-light);
+  border-bottom: 1px solid rgba(222, 226, 230, 0.8);
 }
 
 .html-toolbar.bottom {
   bottom: 0;
-  left: 0;
-  right: 0;
-  border-top: 1px solid var(--html-border-light);
+  border-top: 1px solid rgba(222, 226, 230, 0.8);
 }
 
 .html-toolbar.left {
   top: 0;
   left: 0;
   bottom: 0;
-  border-right: 1px solid var(--html-border-light);
+  border-right: 1px solid rgba(222, 226, 230, 0.8);
 }
 
 .html-toolbar.right {
   top: 0;
   right: 0;
   bottom: 0;
-  border-left: 1px solid var(--html-border-light);
+  border-left: 1px solid rgba(222, 226, 230, 0.8);
 }
 
 .html-toolbar.horizontal {
-  flex-direction: row;
+  flex-direction: column;
   height: calc(var(--space-xl) * 2.5);
-  align-items: center;
-  padding: 0 var(--space-lg);
-  gap: var(--space-sm);
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
 }
 
 .html-toolbar.vertical {
@@ -203,6 +210,47 @@
   justify-content: flex-start;
   padding: var(--space-lg) 0;
   gap: var(--space-sm);
+}
+
+/* Toolbar Sections */
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  padding: calc(var(--space-xs) * 1.5) var(--space-lg);
+  border-bottom: 1px solid rgba(222, 226, 230, 0.3);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.toolbar-section:last-child {
+  border-bottom: none;
+}
+
+.toolbar-section-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+/* Специфические секции для панели инструментов */
+.toolbar-section.upper-section {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.toolbar-section.upper-section .toolbar-section-tools {
+  flex: none;
+}
+
+.toolbar-section.lower-section {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toolbar-section.lower-section .toolbar-section-tools {
+  gap: var(--space-lg);
+  flex-wrap: wrap;
 }
 
 /* Toolbar animations */
@@ -229,18 +277,22 @@
 @keyframes slideInTop {
   from {
     transform: translateY(-100%);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
 @keyframes slideInBottom {
   from {
     transform: translateY(100%);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
@@ -260,6 +312,41 @@
   to {
     transform: translateX(0);
   }
+}
+
+/* Tools Dropdown Menu */
+.tools-dropdown {
+  position: fixed;
+  z-index: 10000;
+  margin-top: var(--space-xs);
+}
+
+.tools-dropdown-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(222, 226, 230, 0.8);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 200px;
+  padding: var(--space-sm) 0;
+}
+
+.tool-option {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: var(--font-sm);
+  color: var(--html-text-dark);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.tool-option:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+  color: var(--html-bg-primary);
 }
 
 /* Responsive design */
@@ -283,5 +370,9 @@
   .html-button.large {
     padding: var(--space-sm) var(--space-lg);
     font-size: var(--font-base);
+  }
+
+  .tools-dropdown-content {
+    min-width: 180px;
   }
 }

@@ -31,99 +31,96 @@ export class ToolbarModule extends BaseModule {
     // Создаем HTML панель инструментов в нижней части экрана
     this.toolbar = new HTMLToolbar({
       position: 'bottom',
-      orientation: 'horizontal',
+      orientation: 'horizontal', // Горизонтальная ориентация для полной ширины
+      sections: [
+        {
+          id: 'upper',
+          className: 'upper-section',
+          tools: [
+            // Левая часть - кнопка инструментов
+            {
+              label: '🔧 Инструменты',
+              variant: 'primary',
+              size: 'medium',
+              onClick: () => this.showToolsMenu(),
+            },
+            // Правая часть - режим редактирования
+            {
+              label: '✏️ Редактирование',
+              variant: 'secondary',
+              size: 'medium',
+              onClick: () => this.toggleEditMode(),
+            },
+          ],
+        },
+        {
+          id: 'lower',
+          className: 'lower-section',
+          tools: [
+            // Управление временем
+            {
+              label: '⏸️ Пауза',
+              variant: 'warning',
+              size: 'small',
+              onClick: () => {
+                this.eventBus.emit(Events.GamePauseToggle, undefined);
+                this.switchTimeButton('pause');
+              },
+            },
+            {
+              label: '🐌 X1',
+              variant: 'success',
+              size: 'small',
+              onClick: () => {
+                this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
+                this.switchTimeButton('speedX1');
+              },
+            },
+            {
+              label: '🐕 X2',
+              variant: 'secondary',
+              size: 'small',
+              onClick: () => {
+                this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
+                this.switchTimeButton('speedX2');
+              },
+            },
+            {
+              label: '🐆 X3',
+              variant: 'secondary',
+              size: 'small',
+              onClick: () => {
+                this.eventBus.emit(Events.SetGameSpeed, { speed: 240 });
+                this.switchTimeButton('speedX3');
+              },
+            },
+          ],
+        },
+      ],
     });
 
-    // Создаем кнопки инструментов зоны
-    const livingZoneBtn = this.toolbar.addTool({
-      label: '🏠 Жилая зона',
-      variant: 'secondary',
-      size: 'medium',
-      onClick: () => {
-        this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
-        this.switchActiveTool('living_zone');
-      },
-    });
-    this.toolButtons.set('living_zone', livingZoneBtn);
-
-    const commercialZoneBtn = this.toolbar.addTool({
-      label: '🏪 Коммерческая зона',
-      variant: 'secondary',
-      size: 'medium',
-      onClick: () => {
-        this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
-        this.switchActiveTool('commercial_zone');
-      },
-    });
-    this.toolButtons.set('commercial_zone', commercialZoneBtn);
-
-    const clearZoneBtn = this.toolbar.addTool({
-      label: '🗑️ Очистить зону',
-      variant: 'danger',
-      size: 'medium',
-      onClick: () => {
-        this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
-        this.switchActiveTool('clear_zone');
-      },
-    });
-    this.toolButtons.set('clear_zone', clearZoneBtn);
-
-    // Создаем кнопки управления скоростью
-    const pauseBtn = this.toolbar.addTool({
-      label: '⏸️ Пауза',
-      variant: 'warning',
-      size: 'small',
-      onClick: () => {
-        this.eventBus.emit(Events.GamePauseToggle, undefined);
-        this.switchTimeButton('pause');
-      },
-    });
-    this.speedButtons.set('pause', pauseBtn);
-
-    const speedX1Btn = this.toolbar.addTool({
-      label: '🐌 X1',
-      variant: 'success',
-      size: 'small',
-      onClick: () => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
-        this.switchTimeButton('speedX1');
-      },
-    });
-    this.speedButtons.set('speedX1', speedX1Btn);
     // X1 активен по умолчанию
-    speedX1Btn.setVariant('success');
+    const speedX1Btn = this.toolbar.getTool('lower', '🐌 X1');
+    if (speedX1Btn) {
+      speedX1Btn.setVariant('success');
+      this.speedButtons.set('speedX1', speedX1Btn);
+    }
 
-    const speedX2Btn = this.toolbar.addTool({
-      label: '🐕 X2',
-      variant: 'secondary',
-      size: 'small',
-      onClick: () => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
-        this.switchTimeButton('speedX2');
-      },
-    });
-    this.speedButtons.set('speedX2', speedX2Btn);
-
-    const speedX3Btn = this.toolbar.addTool({
-      label: '🐆 X3',
-      variant: 'secondary',
-      size: 'small',
-      onClick: () => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 240 });
-        this.switchTimeButton('speedX3');
-      },
-    });
-    this.speedButtons.set('speedX3', speedX3Btn);
+    // Сохраняем ссылки на кнопки для управления
+    this.saveToolReferences();
 
     // Создаем бейдж для времени игры
     this.gameTimeBadge = new HTMLBadge({
       text: '16:00',
       variant: 'primary',
-      size: 'medium',
+      size: 'large',
     });
 
-    // Добавляем бейдж к панели инструментов
-    this.toolbar.getElement().appendChild(this.gameTimeBadge.getElement());
+    // Добавляем бейдж к нижней секции
+    const lowerSection = this.toolbar.getSection('lower');
+    if (lowerSection) {
+      lowerSection.appendChild(this.gameTimeBadge.getElement());
+    }
 
     // Подписываемся на события
     this.eventBus.on(Events.ResetToolToDefault, () => {
@@ -141,17 +138,84 @@ export class ToolbarModule extends BaseModule {
     this.toolbar.appendTo(document.body);
   }
 
-  private switchActiveTool(toolName: string): void {
-    // Сбрасываем все инструменты
-    this.toolButtons.forEach((button) => {
-      button.setVariant('secondary');
+  private saveToolReferences(): void {
+    // Сохраняем ссылки на кнопки управления временем
+    const pauseBtn = this.toolbar.getTool('lower', '⏸️ Пауза');
+    const speedX2Btn = this.toolbar.getTool('lower', '🐕 X2');
+    const speedX3Btn = this.toolbar.getTool('lower', '🐆 X3');
+
+    if (pauseBtn) this.speedButtons.set('pause', pauseBtn);
+    if (speedX2Btn) this.speedButtons.set('speedX2', speedX2Btn);
+    if (speedX3Btn) this.speedButtons.set('speedX3', speedX3Btn);
+  }
+
+  private showToolsMenu(): void {
+    // Создаем инструменты зоны как выпадающий список или модальное окно
+    const toolsMenu = document.createElement('div');
+    toolsMenu.className = 'tools-dropdown';
+    toolsMenu.innerHTML = `
+      <div class="tools-dropdown-content">
+        <button class="tool-option" data-tool="living_zone">🏠 Жилая зона</button>
+        <button class="tool-option" data-tool="commercial_zone">🏪 Коммерческая зона</button>
+        <button class="tool-option" data-tool="clear_zone">🗑️ Очистить зону</button>
+      </div>
+    `;
+
+    // Добавляем обработчики
+    toolsMenu.querySelectorAll('.tool-option').forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const toolType = (e.target as HTMLElement).dataset.tool;
+        if (toolType) {
+          this.eventBus.emit(Events.SelectTool, { type: toolType });
+          this.switchActiveTool(toolType);
+          toolsMenu.remove();
+        }
+      });
     });
 
-    // Активируем выбранный инструмент
-    const activeButton = this.toolButtons.get(toolName);
-    if (activeButton) {
-      activeButton.setVariant('primary');
+    // Закрываем меню при клике вне
+    document.addEventListener(
+      'click',
+      (e) => {
+        if (
+          !toolsMenu.contains(e.target as Node) &&
+          !this.toolbar.getElement().contains(e.target as Node)
+        ) {
+          toolsMenu.remove();
+        }
+      },
+      { once: true },
+    );
+
+    // Позиционируем меню
+    const toolsButton = this.toolbar.getTool('upper', '🔧 Инструменты');
+    if (toolsButton) {
+      const rect = toolsButton.getElement().getBoundingClientRect();
+      toolsMenu.style.position = 'fixed';
+      toolsMenu.style.top = `${rect.bottom + 5}px`;
+      toolsMenu.style.left = `${rect.left}px`;
+      toolsMenu.style.zIndex = '10000';
     }
+
+    document.body.appendChild(toolsMenu);
+  }
+
+  private toggleEditMode(): void {
+    // Пока просто UI - ничего не делает, как указано в требованиях
+    const editButton = this.toolbar.getTool('upper', '✏️ Редактирование');
+    if (editButton) {
+      const currentVariant = editButton.getElement().className.includes('success')
+        ? 'secondary'
+        : 'success';
+      editButton.setVariant(currentVariant);
+    }
+  }
+
+  private switchActiveTool(toolName: string): void {
+    // Логика переключения активного инструмента
+    // Поскольку инструменты теперь в выпадающем меню,
+    // здесь можно добавить визуальную индикацию активного инструмента
+    this.logger.debug(`Tool switched to: ${toolName}`);
   }
 
   private switchTimeButton(buttonName: string): void {
