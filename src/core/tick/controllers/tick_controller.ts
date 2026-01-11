@@ -40,7 +40,7 @@ export class TickController {
   /**
    * Устанавливает скорость тиков
    */
-  setSpeed(speed: GameSpeeds): void {
+  setSpeed(speed: GameSpeeds | number): void {
     // speed = пауза
     if (speed === GameSpeeds.PAUSED || !Number.isFinite(speed) || speed <= 0) {
       this.paused = true;

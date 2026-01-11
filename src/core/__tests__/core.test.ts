@@ -220,8 +220,8 @@ describe('Core', () => {
         .build();
 
       expect(core).toBeDefined();
-      expect((core as any).phaser).toBeUndefined(); // Не инициализирован
-      expect((core as any).eventBus).toBeUndefined(); // Не инициализирован
+      expect(core._phaser).toBeUndefined(); // Не инициализирован
+      expect(core._eventBus).toBeUndefined(); // Не инициализирован
     });
 
     it('должен инициализировать Phaser с помощью фабрики', async () => {
@@ -229,7 +229,7 @@ describe('Core', () => {
 
       await core.initializePhaser();
 
-      expect((core as any).phaser).toBe(mockPhaserGame);
+      expect(core._phaser).toBe(mockPhaserGame);
     });
 
     it('должен инициализировать EventBus с помощью фабрики', async () => {
@@ -237,7 +237,7 @@ describe('Core', () => {
 
       await core.initializeEventBus();
 
-      expect((core as any).eventBus).toBe(mockEventBus);
+      expect(core._eventBus).toBe(mockEventBus);
     });
 
     it('должен инициализировать TickManager с EventBus', async () => {
@@ -249,7 +249,7 @@ describe('Core', () => {
       await core.initializeEventBus();
       core.initializeTickManager();
 
-      expect((core as any).tickManager).toBe(mockTickManager);
+      expect(core._tickManager).toBe(mockTickManager);
       expect(mockTimeService.setTime).toHaveBeenCalledWith(2 * 60);
     });
 
@@ -272,7 +272,7 @@ describe('Core', () => {
       core.initializeTickManager();
       await core.initializeECSManager();
 
-      expect((core as any).ecsManager).toBe(mockECSManager);
+      expect(core._ecsManager).toBe(mockECSManager);
     });
 
     it('должен выбрасывать ошибку при инициализации ECSManager без зависимостей', async () => {
@@ -294,22 +294,22 @@ describe('Core', () => {
       const core = new Core(mockPhaserConfig);
 
       expect(core).toBeDefined();
-      expect((core as any).phaserConfig).toBe(mockPhaserConfig);
-      expect((core as any).enableSimulation).toBe(false);
+      expect(core._phaserConfig).toBe(mockPhaserConfig);
+      expect(core._enableSimulation).toBe(false);
     });
 
     it('должен настраивать resize handler в конструкторе', () => {
       const core = new Core(mockPhaserConfig);
 
       expect(addEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
-      expect((core as any).resizeHandler).toBeDefined();
+      expect(core._resizeHandler).toBeDefined();
     });
   });
 
   describe('setupResizeHandler', () => {
     it('должен корректно настраивать обработчик resize', () => {
       const core = new Core(mockPhaserConfig);
-      const resizeHandler = (core as any).resizeHandler;
+      const resizeHandler = core._resizeHandler;
 
       expect(resizeHandler).toBeDefined();
       expect(typeof resizeHandler).toBe('function');
@@ -317,10 +317,11 @@ describe('Core', () => {
 
     it('должен изменять размер Phaser при resize события', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).phaser = mockPhaserGame;
+      core._phaser = mockPhaserGame;
 
-      const resizeHandler = (core as any).resizeHandler;
-      resizeHandler();
+      const resizeHandler = core._resizeHandler;
+      expect(resizeHandler).toBeDefined();
+      resizeHandler!();
 
       expect(mockPhaserGame.scale.resize).toHaveBeenCalledWith(
         window.innerWidth,
@@ -330,11 +331,12 @@ describe('Core', () => {
 
     it('не должен падать если Phaser не инициализирован', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).phaser = undefined;
+      core._phaser = undefined;
 
-      const resizeHandler = (core as any).resizeHandler;
+      const resizeHandler = core._resizeHandler;
+      expect(resizeHandler).toBeDefined();
 
-      expect(() => resizeHandler()).not.toThrow();
+      expect(() => resizeHandler!()).not.toThrow();
     });
   });
 
@@ -343,18 +345,18 @@ describe('Core', () => {
 
     beforeEach(() => {
       core = new Core(mockPhaserConfig);
-      (core as any).phaser = mockPhaserGame;
-      (core as any).eventBus = mockEventBus;
-      (core as any).tickManager = mockTickManager;
-      (core as any).ecsManager = mockECSManager;
-      (core as any).moduleManager = mockModuleManager;
+      core._phaser = mockPhaserGame;
+      core._eventBus = mockEventBus;
+      core._tickManager = mockTickManager;
+      core._ecsManager = mockECSManager;
+      core._moduleManager = mockModuleManager;
     });
 
     it('должен удалять resize listener', () => {
       core.destroy();
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
-      expect((core as any).resizeHandler).toBeUndefined();
+      expect(core._resizeHandler).toBeUndefined();
     });
 
     it('должен уничтожать ModuleManager с error handling', () => {
@@ -363,7 +365,7 @@ describe('Core', () => {
       core.destroy();
 
       expect(destroySpy).toHaveBeenCalled();
-      expect((core as any).moduleManager).toBeUndefined();
+      expect(core._moduleManager).toBeUndefined();
     });
 
     it('должен обрабатывать ошибки при уничтожении ModuleManager', () => {
@@ -378,7 +380,7 @@ describe('Core', () => {
         '[Core] Error destroying ModuleManager:',
         expect.any(Error),
       );
-      expect((core as any).moduleManager).toBeUndefined();
+      expect(core._moduleManager).toBeUndefined();
     });
 
     it('должен уничтожать ECSManager с error handling', () => {
@@ -387,7 +389,7 @@ describe('Core', () => {
       core.destroy();
 
       expect(destroySpy).toHaveBeenCalled();
-      expect((core as any).ecsManager).toBeNull();
+      expect(core._ecsManager).toBeNull();
     });
 
     it('должен обрабатывать ошибки при уничтожении ECSManager', () => {
@@ -402,7 +404,7 @@ describe('Core', () => {
         '[Core] Error destroying ECSManager:',
         expect.any(Error),
       );
-      expect((core as any).ecsManager).toBeNull();
+      expect(core._ecsManager).toBeNull();
     });
 
     it('должен уничтожать TickManager с error handling', () => {
@@ -411,7 +413,7 @@ describe('Core', () => {
       core.destroy();
 
       expect(destroySpy).toHaveBeenCalled();
-      expect((core as any).tickManager).toBeUndefined();
+      expect(core._tickManager).toBeUndefined();
     });
 
     it('должен обрабатывать ошибки при уничтожении TickManager', () => {
@@ -426,7 +428,7 @@ describe('Core', () => {
         '[Core] Error destroying TickManager:',
         expect.any(Error),
       );
-      expect((core as any).tickManager).toBeUndefined();
+      expect(core._tickManager).toBeUndefined();
     });
 
     it('должен уничтожать EventBus с error handling', () => {
@@ -435,7 +437,7 @@ describe('Core', () => {
       core.destroy();
 
       expect(clearSpy).toHaveBeenCalled();
-      expect((core as any).eventBus).toBeUndefined();
+      expect(core._eventBus).toBeUndefined();
     });
 
     it('должен обрабатывать ошибки при уничтожении EventBus', () => {
@@ -450,7 +452,7 @@ describe('Core', () => {
         '[Core] Error destroying EventBus:',
         expect.any(Error),
       );
-      expect((core as any).eventBus).toBeUndefined();
+      expect(core._eventBus).toBeUndefined();
     });
 
     it('должен уничтожать Phaser последним с error handling', () => {
@@ -459,7 +461,7 @@ describe('Core', () => {
       core.destroy();
 
       expect(destroySpy).toHaveBeenCalledWith(true);
-      expect((core as any).phaser).toBeUndefined();
+      expect(core._phaser).toBeUndefined();
     });
 
     it('должен обрабатывать ошибки при уничтожении Phaser', () => {
@@ -471,7 +473,7 @@ describe('Core', () => {
       core.destroy();
 
       expect(consoleSpy).toHaveBeenCalledWith('[Core] Error destroying Phaser:', expect.any(Error));
-      expect((core as any).phaser).toBeUndefined();
+      expect(core._phaser).toBeUndefined();
     });
   });
 
@@ -481,7 +483,7 @@ describe('Core', () => {
 
       await core.initializePhaser();
 
-      expect((core as any).phaser).toBe(mockPhaserGame);
+      expect(core._phaser).toBe(mockPhaserGame);
     });
 
     it('должен инициализировать EventBus с дефолтными фабриками', async () => {
@@ -489,7 +491,7 @@ describe('Core', () => {
 
       await core.initializeEventBus();
 
-      expect((core as any).eventBus).toBe(mockEventBus);
+      expect(core._eventBus).toBe(mockEventBus);
     });
 
     it('должен инициализировать TickManager с EventBus', async () => {
@@ -501,7 +503,7 @@ describe('Core', () => {
       await core.initializeEventBus();
       core.initializeTickManager();
 
-      expect((core as any).tickManager).toBe(mockTickManager);
+      expect(core._tickManager).toBe(mockTickManager);
       expect(mockTimeService.setTime).toHaveBeenCalledWith(2 * 60); // 2:00 AM
     });
 
@@ -516,7 +518,7 @@ describe('Core', () => {
       core.initializeTickManager();
       await core.initializeECSManager();
 
-      expect((core as any).ecsManager).toBe(mockECSManager);
+      expect(core._ecsManager).toBe(mockECSManager);
     });
 
     it('должен инициализировать модули после готовности Phaser', async () => {
@@ -529,10 +531,10 @@ describe('Core', () => {
         .build();
 
       // Настраиваем все зависимости
-      (core as any).phaser = mockPhaserGame;
-      (core as any).eventBus = mockEventBus;
-      (core as any).tickManager = mockTickManager;
-      (core as any).ecsManager = mockECSManager;
+      core._phaser = mockPhaserGame;
+      core._eventBus = mockEventBus;
+      core._tickManager = mockTickManager;
+      core._ecsManager = mockECSManager;
 
       // Эмулируем событие 'ready'
       setTimeout(() => {
@@ -565,10 +567,10 @@ describe('Core', () => {
       await core.initializeECSManager();
 
       // Проверяем что все компоненты инициализированы правильно
-      expect((core as any).phaser).toBe(mockPhaserGame);
-      expect((core as any).eventBus).toBe(mockEventBus);
-      expect((core as any).tickManager).toBe(mockTickManager);
-      expect((core as any).ecsManager).toBe(mockECSManager);
+      expect(core._phaser).toBe(mockPhaserGame);
+      expect(core._eventBus).toBe(mockEventBus);
+      expect(core._tickManager).toBe(mockTickManager);
+      expect(core._ecsManager).toBe(mockECSManager);
     });
 
     it('должен запускать симуляцию если enableSimulation = true', async () => {
@@ -580,10 +582,10 @@ describe('Core', () => {
         .build();
 
       // Инициализируем менеджеры
-      (core as any).ecsManager = mockECSManager;
-      (core as any).eventBus = mockEventBus;
-      (core as any).tickManager = mockTickManager;
-      (core as any).enableSimulation = true;
+      core._ecsManager = mockECSManager;
+      core._eventBus = mockEventBus;
+      core._tickManager = mockTickManager;
+      core._enableSimulation = true;
 
       await core.startSimulation();
 
@@ -593,7 +595,7 @@ describe('Core', () => {
     it('не должен запускать симуляцию если enableSimulation = false', async () => {
       const core = new CoreBuilder(mockPhaserConfig).build();
 
-      (core as any).enableSimulation = false;
+      core._enableSimulation = false;
 
       await core.startSimulation();
 
@@ -604,14 +606,14 @@ describe('Core', () => {
   describe('ecsRegistries getter', () => {
     it('должен возвращать null если ECSManager не инициализирован', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).ecsManager = null;
+      core._ecsManager = null;
 
       expect(core.ecsRegistries).toBeNull();
     });
 
     it('должен возвращать объект с функциями доступа к реестрам если ECSManager инициализирован', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).ecsManager = mockECSManager;
+      core._ecsManager = mockECSManager;
 
       const registries = core.ecsRegistries;
 
@@ -625,7 +627,7 @@ describe('Core', () => {
 
     it('components() должен возвращать ComponentRegistry', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).ecsManager = mockECSManager;
+      core._ecsManager = mockECSManager;
 
       const registries = core.ecsRegistries;
       const componentRegistry = registries?.components();
@@ -636,7 +638,7 @@ describe('Core', () => {
 
     it('systems() должен возвращать SystemRegistry', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).ecsManager = mockECSManager;
+      core._ecsManager = mockECSManager;
 
       const registries = core.ecsRegistries;
       const systemRegistry = registries?.systems();
@@ -647,7 +649,7 @@ describe('Core', () => {
 
     it('clusters() должен возвращать ClusterRegistry', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).ecsManager = mockECSManager;
+      core._ecsManager = mockECSManager;
 
       const registries = core.ecsRegistries;
       const clusterRegistry = registries?.clusters();
@@ -658,7 +660,7 @@ describe('Core', () => {
 
     it('entityFactories() должен возвращать EntityFactoryRegistry', () => {
       const core = new Core(mockPhaserConfig);
-      (core as any).ecsManager = mockECSManager;
+      core._ecsManager = mockECSManager;
 
       const registries = core.ecsRegistries;
       const entityFactoryRegistry = registries?.entityFactories();

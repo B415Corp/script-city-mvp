@@ -16,7 +16,7 @@ export class TickManager {
 
   constructor(
     private readonly eventBus: EventBus,
-    initialTickRate: GameSpeeds = GameSpeeds.NORMAL,
+    initialTickRate: GameSpeeds | number = GameSpeeds.NORMAL,
   ) {
     this.tickController = new TickController(initialTickRate);
     this.timeService = new TimeService(eventBus, initialTickRate);

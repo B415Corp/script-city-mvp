@@ -33,7 +33,7 @@ export enum GameSpeeds {
 /**
  * Типы для контроллеров
  */
-export type SetSpeedPayload = { speed: GameSpeeds };
+export type SetSpeedPayload = { speed: GameSpeeds | number };
 
 /**
  * Условия времени для проверок
