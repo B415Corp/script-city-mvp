@@ -19,7 +19,7 @@ export class TickManager {
     initialTickRate: GameSpeeds | number = GameSpeeds.NORMAL,
   ) {
     this.tickController = new TickController(initialTickRate);
-    this.timeService = new TimeService(eventBus, initialTickRate);
+    this.timeService = new TimeService(eventBus);
 
     // Создаем именованные handlers для корректной отписки
     this.pauseHandler = (): void => this.tickController.togglePause();

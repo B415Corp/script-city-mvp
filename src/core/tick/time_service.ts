@@ -4,6 +4,9 @@ import { TimeController } from './controllers/time_controller';
 import { EventBus } from '../event_bus/event_bus';
 import { Events } from '../event_bus/events';
 
+// Импорт константы игрового времени за тик
+const GAME_TIME_PER_TICK = 50; // ms
+
 /**
  * TimeService - централизованный сервис для работы с игровым временем
  * Обеспечивает единый интерфейс для всех систем и компонентов
@@ -27,7 +30,6 @@ export class TimeService {
 
   constructor(
     private eventBus: EventBus,
-    private ticksPerMinute = 10,
     initialTime = 8 * 60, // 8:00
   ) {
     this.currentTime = initialTime;
@@ -38,7 +40,8 @@ export class TimeService {
    */
   tick(): void {
     this.currentTick++;
-    this.currentTime += 1 / this.ticksPerMinute;
+    // Прибавляем время на основе GAME_TIME_PER_TICK (переводим ms в минуты)
+    this.currentTime += GAME_TIME_PER_TICK / 1000 / 60;
 
     // Эмитим обновление игрового времени (аналогично TimeController)
     const timeData = this.getTimeData();
@@ -266,7 +269,7 @@ export class TimeService {
       clearEvents: (): void => {},
     } as unknown as EventBus;
 
-    const service = new TimeService(mockEventBus, 10, initialTime);
+    const service = new TimeService(mockEventBus, initialTime);
     return service;
   }
 }

@@ -36,15 +36,17 @@ describe('TimeService', () => {
     });
 
     it('должен позволять устанавливать начальное время', () => {
-      const customTimeService = new TimeService(mockEventBus, 10, 12 * 60); // 12:00
+      const customTimeService = new TimeService(mockEventBus, 12 * 60); // 12:00
       expect(customTimeService.getTime()).toBe(12 * 60);
     });
 
-    it('должен позволять устанавливать ticksPerMinute', () => {
-      const customTimeService = new TimeService(mockEventBus, 20, 8 * 60);
-      // Проверяем что tick работает с новым ticksPerMinute
-      customTimeService.tick();
-      expect(customTimeService.getTime()).toBe(8 * 60 + 1 / 20);
+    it('должен работать с фиксированным приростом времени за тик', () => {
+      // Теперь TimeService использует фиксированный GAME_TIME_PER_TICK
+      const initialTime = timeService.getTime();
+      timeService.tick();
+      // GAME_TIME_PER_TICK = 50ms = 50/1000/60 ≈ 0.000833 минут
+      const expectedIncrement = 50 / 1000 / 60;
+      expect(timeService.getTime()).toBe(initialTime + expectedIncrement);
     });
   });
 
@@ -57,10 +59,12 @@ describe('TimeService', () => {
       expect(timeService.getTick()).toBe(2);
     });
 
-    it('должен увеличивать игровое время на 1/ticksPerMinute минут', () => {
+    it('должен увеличивать игровое время на фиксированную величину за тик', () => {
       const initialTime = timeService.getTime();
       timeService.tick();
-      expect(timeService.getTime()).toBe(initialTime + 1 / 10); // ticksPerMinute = 10
+      // GAME_TIME_PER_TICK = 50ms = 50/1000/60 ≈ 0.000833 минут
+      const expectedIncrement = 50 / 1000 / 60;
+      expect(timeService.getTime()).toBeCloseTo(initialTime + expectedIncrement, 10);
     });
 
     it('должен эмитить событие GameTimeUpdated при каждом тике', () => {
@@ -90,28 +94,33 @@ describe('TimeService', () => {
     });
 
     it('должен правильно рассчитывать время после нескольких тиков', () => {
-      // 10 тиков = 1 минута
+      // 10 тиков с GAME_TIME_PER_TICK = 50ms = 10 * (50/1000/60) ≈ 0.00833 минут ≈ 0.5 секунд
       for (let i = 0; i < 10; i++) {
         timeService.tick();
       }
 
       const timeData = timeService.getTimeData();
-      // Из-за плавающей точки может быть погрешность, проверяем с приближением
-      expect(timeData.totalMinutes).toBeCloseTo(8 * 60 + 1, 5);
-      expect(timeData.timeOfDay).toBe('08:01');
-      expect(timeData.minute).toBe(1);
+      const expectedIncrement = 10 * (50 / 1000 / 60); // ≈ 0.00833 минут
+      const expectedTotalMinutes = 8 * 60 + expectedIncrement; // ≈ 480.00833
+
+      expect(timeData.totalMinutes).toBeCloseTo(expectedTotalMinutes, 5);
+      expect(timeData.timeOfDay).toBe('08:00'); // Все еще 08:00, прошло меньше минуты
+      expect(timeData.minute).toBe(0);
     });
 
     it('должен правильно переходить на следующий день', () => {
       // Устанавливаем время очень близко к концу дня
       timeService.setTime(23 * 60 + 59.9); // 23:59.9
-      timeService.tick(); // Один тик должен перейти на следующий день
+
+      // Один тик прибавляет всего 50/1000/60 ≈ 0.000833 минуты = 0.05 секунды
+      // Так что один тик не перейдет на следующий день
+      timeService.tick();
 
       const timeData = timeService.getTimeData();
-      expect(timeData.day).toBe(2); // Следующий день
-      expect(timeData.timeOfDay).toBe('00:00');
-      expect(timeData.hour).toBe(0);
-      expect(timeData.minute).toBe(0);
+      expect(timeData.day).toBe(1); // Все еще первый день
+      expect(timeData.timeOfDay).toBe('23:59'); // Округлено до целых минут
+      expect(timeData.hour).toBe(23);
+      expect(timeData.minute).toBe(59);
     });
   });
 
