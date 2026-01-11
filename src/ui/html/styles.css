@@ -1,0 +1,231 @@
+/* HTML UI Components Styles */
+
+/* Button Styles */
+.html-button {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  user-select: none;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.html-button:hover:not(.disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.html-button:active:not(.disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.html-button.disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Button Variants */
+.html-button.primary {
+  background-color: #007bff;
+  color: #ffffff;
+  border: 1px solid #007bff;
+}
+
+.html-button.primary:hover:not(.disabled) {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+.html-button.secondary {
+  background-color: #6c757d;
+  color: #ffffff;
+  border: 1px solid #6c757d;
+}
+
+.html-button.secondary:hover:not(.disabled) {
+  background-color: #545b62;
+  border-color: #545b62;
+}
+
+.html-button.success {
+  background-color: #28a745;
+  color: #ffffff;
+  border: 1px solid #28a745;
+}
+
+.html-button.success:hover:not(.disabled) {
+  background-color: #1e7e34;
+  border-color: #1e7e34;
+}
+
+.html-button.danger {
+  background-color: #dc3545;
+  color: #ffffff;
+  border: 1px solid #dc3545;
+}
+
+.html-button.danger:hover:not(.disabled) {
+  background-color: #bd2130;
+  border-color: #bd2130;
+}
+
+/* Button Sizes */
+.html-button.small {
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.html-button.medium {
+  padding: 8px 16px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.html-button.large {
+  padding: 12px 24px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Toolbar Styles */
+.html-toolbar {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.html-toolbar.top {
+  top: 0;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.html-toolbar.bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #dee2e6;
+}
+
+.html-toolbar.left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-right: 1px solid #dee2e6;
+}
+
+.html-toolbar.right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-left: 1px solid #dee2e6;
+}
+
+.html-toolbar.horizontal {
+  flex-direction: row;
+  height: 50px;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+}
+
+.html-toolbar.vertical {
+  flex-direction: column;
+  width: 60px;
+  justify-content: flex-start;
+  padding: 16px 0;
+  gap: 8px;
+}
+
+/* Toolbar animations */
+.html-toolbar {
+  animation: slideIn 0.3s ease-out;
+}
+
+.html-toolbar.top {
+  animation-name: slideInTop;
+}
+
+.html-toolbar.bottom {
+  animation-name: slideInBottom;
+}
+
+.html-toolbar.left {
+  animation-name: slideInLeft;
+}
+
+.html-toolbar.right {
+  animation-name: slideInRight;
+}
+
+@keyframes slideInTop {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .html-toolbar.horizontal {
+    height: 40px;
+    padding: 0 8px;
+    gap: 4px;
+  }
+
+  .html-toolbar.vertical {
+    width: 50px;
+    padding: 8px 0;
+  }
+
+  .html-button.medium {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .html-button.large {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}

@@ -1,10 +1,10 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
 import { ECSManager } from '@/core/ecs/ecs_manager';
-import { ButtonUI } from '@/ui/button.ui';
+import { ButtonUI } from '@/ui/phaser/button.ui';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
-import { BadgeUI } from '@/ui/badge.ui';
+import { BadgeUI } from '@/ui/phaser/badge.ui';
 import { Logger } from '@/core/utils/logger';
 
 export class ToolbarModule extends BaseModule {
