@@ -23,6 +23,7 @@ export class HTMLBadge extends BaseHTMLElement {
       ...defaultConfig,
       textContent: defaultConfig.text,
       className: `html-badge ${defaultConfig.variant} ${defaultConfig.size}`,
+      style: { minWidth: '165px' },
     });
 
     this.config = defaultConfig;
