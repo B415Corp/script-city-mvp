@@ -12,8 +12,8 @@ import { CallSystemPayload } from '../event_bus/types';
 import { ECSDebugStats } from '../modules/base_modules/debug_module/components/ecs_debug';
 
 // Игровое время за один тик (независимо от скорости игры)
-// 57600ms = игровой день (24ч) за 2.5 мин реального времени при 10 тиках/сек
-export const GAME_TIME_PER_TICK = 57600; // ms
+// 144000ms = игровой день (24ч) за 1 мин реального времени при 10 тиках/сек
+export const GAME_TIME_PER_TICK = 144000; // ms
 
 export class ECSManager {
   private world: World;

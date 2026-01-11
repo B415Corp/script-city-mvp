@@ -199,7 +199,7 @@ describe('ScheduleManager', () => {
 
       scheduleManager.update(100);
 
-      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 57600); // GAME_TIME_PER_TICK = 57600
+      expect((scheduleManager as any).gameTime).toBe(initialGameTime + 144000); // GAME_TIME_PER_TICK = 144000
     });
 
     it('должен выполнять кластеры при каждом обновлении', () => {
@@ -244,7 +244,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: mockSystem,
         name: 'IntervalSystem',
-        interval: 100000, // 100 секунд (больше чем GAME_TIME_PER_TICK = 57600ms)
+        interval: 200000, // 200 секунд (больше чем GAME_TIME_PER_TICK = 144000ms)
         lastExecuted: 0,
       };
 
@@ -256,14 +256,14 @@ describe('ScheduleManager', () => {
         metadata: { enabled: true },
       });
 
-      // Первый вызов - время = 57600, пора выполнять (57600 > 100000? Нет, 57600 < 100000)
+      // Первый вызов - время = 144000, пора выполнять (144000 > 200000? Нет, 144000 < 200000)
       scheduleManager.update(100);
       expect(mockSystem).not.toHaveBeenCalled();
 
-      // Второй вызов - время = 57600 + 57600 = 115200, пора выполнять (115200 > 100000)
+      // Второй вызов - время = 144000 + 144000 = 288000, пора выполнять (288000 > 200000)
       scheduleManager.update(100);
       expect(mockSystem).toHaveBeenCalledWith(mockWorld, 100);
-      expect(intervalSystem.lastExecuted).toBe(115200);
+      expect(intervalSystem.lastExecuted).toBe(288000);
     });
 
     it('должен пропускать отключенные интервальные системы', () => {
@@ -295,7 +295,7 @@ describe('ScheduleManager', () => {
       const intervalSystem = {
         system: failingSystem,
         name: 'FailingIntervalSystem',
-        interval: 50000, // 50 секунд (меньше чем GAME_TIME_PER_TICK = 57600ms)
+        interval: 100000, // 100 секунд (меньше чем GAME_TIME_PER_TICK = 144000ms)
         lastExecuted: 0,
       };
 
@@ -384,7 +384,7 @@ describe('ScheduleManager', () => {
     it('должен правильно комбинировать обычные и интервальные системы', () => {
       // Регистрируем интервальную систему
       const intervalSystem = vi.fn();
-      scheduleManager.registerIntervalSystem('IntervalSystem', intervalSystem, 60000); // 60 секунд
+      scheduleManager.registerIntervalSystem('IntervalSystem', intervalSystem, 300000); // 300 секунд (5 минут)
 
       // Настраиваем кластеры с интервальной системой
       const mockCluster = {
@@ -395,7 +395,7 @@ describe('ScheduleManager', () => {
       const mockRegisteredSystem = {
         name: 'IntervalSystem',
         system: intervalSystem,
-        metadata: { enabled: true, interval: 60000 },
+        metadata: { enabled: true, interval: 300000 },
       };
 
       vi.mocked(mockClusterRegistry.getAll).mockReturnValue(
@@ -403,11 +403,15 @@ describe('ScheduleManager', () => {
       );
       vi.mocked(mockSystemRegistry.get).mockReturnValue(mockRegisteredSystem);
 
-      // Первый тик - интервальная система не выполняется (57600 < 60000)
+      // Первый тик - интервальная система не выполняется (144000 < 300000)
       scheduleManager.update(100);
       expect(intervalSystem).not.toHaveBeenCalled();
 
-      // Второй тик - интервальная система выполняется (57600 + 57600 = 115200 >= 60000)
+      // Второй тик - интервальная система не выполняется (144000 + 144000 = 288000 < 300000)
+      scheduleManager.update(100);
+      expect(intervalSystem).not.toHaveBeenCalled();
+
+      // Третий тик - интервальная система выполняется (288000 + 144000 = 432000 >= 300000)
       scheduleManager.update(100);
       expect(intervalSystem).toHaveBeenCalledTimes(1);
     });

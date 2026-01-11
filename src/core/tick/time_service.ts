@@ -39,7 +39,10 @@ export class TimeService {
   tick(): void {
     this.currentTick++;
     // Прибавляем время на основе GAME_TIME_PER_TICK (переводим ms в минуты)
-    this.currentTime += GAME_TIME_PER_TICK / 1000 / 60;
+    const increment = GAME_TIME_PER_TICK / 1000 / 60;
+    this.currentTime += increment;
+
+    console.log(`[TimeService] tick() - increment: ${increment}, currentTime: ${this.currentTime}`);
 
     // Эмитим обновление игрового времени (аналогично TimeController)
     const timeData = this.getTimeData();
