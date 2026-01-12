@@ -1,75 +1,61 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { DebugComponent } from './debug_component';
 import { Events } from '@/core/event_bus/events';
+import { TimeService } from '@/core/tick/time_service';
 
 export class TickDebug extends DebugComponent {
   // данные
   private tick: number = 0;
   private deltaTime: number = 0;
   private fps: number = 0;
+  private timeService: TimeService;
 
-  // Phaser UI элементы
-  private tickText!: Phaser.GameObjects.Text;
-  private deltaTimeText!: Phaser.GameObjects.Text;
-  private fpsText!: Phaser.GameObjects.Text;
+  // DOM элементы
+  private tickElement!: HTMLElement;
+  private deltaTimeElement!: HTMLElement;
+  private fpsElement!: HTMLElement;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
+  constructor(scene: Phaser.Scene, eventBus: EventBus, timeService: TimeService) {
     super(scene, eventBus);
+    this.timeService = timeService;
 
-    this.eventBus.on(Events.LogicTick, (payload) => {
-      const { time, delta } = payload as { time: number; delta: number };
-      this.tick = time;
-      this.deltaTime = Math.round(delta);
-      this.fps = Math.round(1000 / delta);
+    this.eventBus.on(Events.TickStarted, (payload) => {
+      if (payload) {
+        // Используем данные из события для кадра
+        this.tick = this.timeService.getTick();
+        this.deltaTime = Math.round(payload.delta);
+        this.fps = Math.round(1000 / payload.delta);
 
-      this.updateContent();
+        this.updateContent();
+      }
     });
   }
 
-  public onActivate(): void {}
+  private initDOM(): void {
+    this.tickElement = document.getElementById('current-tick')!;
+    this.deltaTimeElement = document.getElementById('delta-time')!;
+    this.fpsElement = document.getElementById('fps')!;
+  }
+
+  public onActivate(): void {
+    this.initDOM();
+  }
 
   public onDeactivate(): void {}
 
-  public createContent(contentContainer: Phaser.GameObjects.Container): void {
-    const yOffset = 50;
-
-    // Создаем и сохраняем текст для tick
-    this.tickText = this.scene.add
-      .text(15, yOffset + 25, '• Current tick: 0', {
-        fontSize: '12px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-      })
-      .setOrigin(0, 0);
-    contentContainer.add(this.tickText);
-
-    // Создаем и сохраняем текст для delta time
-    this.deltaTimeText = this.scene.add
-      .text(15, yOffset + 45, '• Delta time: 16ms', {
-        fontSize: '12px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-      })
-      .setOrigin(0, 0);
-    contentContainer.add(this.deltaTimeText);
-
-    // Создаем и сохраняем текст для FPS
-    this.fpsText = this.scene.add
-      .text(15, yOffset + 65, '• FPS: 0', {
-        fontSize: '12px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-      })
-      .setOrigin(0, 0);
-    contentContainer.add(this.fpsText);
+  public createContent(contentContainer: HTMLElement): void {
+    this.contentContainer = contentContainer;
+    // DOM элементы уже инициализированы в конструкторе
   }
 
   private updateContent(): void {
-    if (!this.tickText || !this.deltaTimeText || !this.fpsText) {
+    if (!this.tickElement || !this.deltaTimeElement || !this.fpsElement) {
       return;
     }
-    this.tickText.setText(`• Current tick: ${this.tick}`);
-    this.deltaTimeText.setText(`• Delta time: ${this.deltaTime}ms`);
-    this.fpsText.setText(`• FPS: ${this.fps}`);
+
+    // Информация о тиках (на русском языке как в HTML)
+    this.tickElement.textContent = `• Текущий тик: ${this.tick}`;
+    this.deltaTimeElement.textContent = `• Время кадра: ${this.deltaTime}мс`;
+    this.fpsElement.textContent = `• FPS: ${this.fps}`;
   }
 }

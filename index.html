@@ -8,6 +8,92 @@
   </head>
   <body>
     <div id="game-root"></div>
+    <div id="debug-panel" class="debug-panel hidden">
+      <div class="debug-panel-header">
+        <button class="debug-toggle-btn" id="debug-toggle">🐛</button>
+      </div>
+      <div class="debug-panel-content">
+        <div class="debug-tabs">
+          <button class="debug-tab active" data-tab="events">События</button>
+          <button class="debug-tab" data-tab="tick">Тики</button>
+          <button class="debug-tab" data-tab="ecs">ECS</button>
+          <button class="debug-tab" data-tab="simulation">Симуляция</button>
+        </div>
+        <div class="debug-content">
+          <div class="debug-tab-content active" data-tab="events">
+            <div class="debug-events-header">
+              <h3>СОБЫТИЯ</h3>
+              <button class="debug-clear-btn" id="clear-events">Очистить</button>
+            </div>
+            <div class="debug-events-list" id="events-list">
+              <div class="debug-no-events">• Событий пока нет</div>
+            </div>
+          </div>
+          <div class="debug-tab-content" data-tab="tick">
+            <h3>ТИКИ</h3>
+            <div class="debug-tick-list">
+              <div class="debug-tick-info">
+                <div class="debug-tick-item" id="current-tick">• Текущий тик: 0</div>
+                <div class="debug-tick-item" id="delta-time">• Время кадра: 16мс</div>
+                <div class="debug-tick-item" id="fps">• FPS: 0</div>
+              </div>
+            </div>
+          </div>
+          <div class="debug-tab-content" data-tab="ecs">
+            <h3>ECS</h3>
+            <div class="debug-ecs-content">
+              <div class="debug-ecs-section">
+                <h4>Статус Систем</h4>
+                <div class="debug-ecs-list" id="systems-list">
+                  <div class="debug-no-data">• Загрузка систем...</div>
+                </div>
+              </div>
+              <div class="debug-ecs-section">
+                <h4>Компоненты</h4>
+                <div class="debug-ecs-list" id="components-list">
+                  <div class="debug-no-data">• Загрузка компонентов...</div>
+                </div>
+              </div>
+              <div class="debug-ecs-section">
+                <h4>Сущности</h4>
+                <div class="debug-ecs-list" id="entities-list">
+                  <div class="debug-no-data">• Загрузка сущностей...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="debug-tab-content" data-tab="simulation">
+            <h3>СИМУЛЯЦИЯ</h3>
+            <div class="debug-simulation-content">
+              <div class="debug-simulation-section">
+                <h4>Население</h4>
+                <div class="debug-simulation-list" id="citizens-list">
+                  <div class="debug-no-data">• Загрузка жителей...</div>
+                </div>
+              </div>
+              <div class="debug-simulation-section">
+                <h4>Здания</h4>
+                <div class="debug-simulation-list" id="buildings-list">
+                  <div class="debug-no-data">• Загрузка зданий...</div>
+                </div>
+              </div>
+              <div class="debug-simulation-section">
+                <h4>Экономика</h4>
+                <div class="debug-simulation-list" id="economy-list">
+                  <div class="debug-no-data">• Загрузка экономических данных...</div>
+                </div>
+              </div>
+              <div class="debug-simulation-section">
+                <h4>Расписание и Активности</h4>
+                <div class="debug-simulation-list" id="schedule-list">
+                  <div class="debug-no-data">• Загрузка данных расписания...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

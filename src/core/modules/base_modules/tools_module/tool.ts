@@ -1,8 +1,12 @@
-// Предназначен для создания/наследования инструментовF
-export abstract class Tool {
-  constructor() {}
+import { EventBus } from '@/core/event_bus/event_bus';
+import { Events } from '@/core/event_bus/events';
+import { ToolActivatedPayload, ToolId } from './types';
 
-  emit<T>(payload: T | null = null): void {
-    console.log('test tool emit', payload);
+export abstract class Tool {
+  abstract readonly id: ToolId;
+  abstract getActivatedPayload(): ToolActivatedPayload;
+
+  public activate(eventBus: EventBus): void {
+    eventBus.emit(Events.ToolActivated, this.getActivatedPayload());
   }
 }

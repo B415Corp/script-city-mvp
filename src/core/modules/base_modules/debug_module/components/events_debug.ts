@@ -1,7 +1,6 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { DebugComponent } from './debug_component';
 import { Events } from '@/core/event_bus/events';
-import { ButtonUI } from '@/ui/button.ui';
 
 interface EventLogEntry {
   event: Events;
@@ -17,6 +16,7 @@ const excludeList: Array<Events> = [
   Events.MapCentered,
   Events.SceneReady,
   Events.LogicTick,
+  // Events.GameTimeUpdated,
 
   // tiles
   Events.TileHovered,
@@ -27,32 +27,38 @@ const palette = ['#9cdcfe', '#c586c0', '#ce9178', '#b5cea8', '#dcdcaa', '#4ec9b0
 const eventColorCache = new Map<Events, string>();
 
 // получение цвета для события
-const getEventColor = (event: Events): string => {
+const getEventColorClass = (event: Events): string => {
   const cached = eventColorCache.get(event);
   if (cached) return cached;
 
   // цвет на основе имени события
   const hash = Array.from(event).reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 0);
-  const color = palette[hash % palette.length];
-  eventColorCache.set(event, color);
-  return color;
+  const colorIndex = hash % palette.length;
+  const colorClass = `debug-event-color-${colorIndex}`;
+  eventColorCache.set(event, colorClass);
+  return colorClass;
 };
 
 export class EventsDebug extends DebugComponent {
-  private container!: Phaser.GameObjects.Container;
+  private eventsList!: HTMLElement;
   private eventLog: EventLogEntry[] = [];
   private maxEvents = 10;
-  private eventTexts: Phaser.GameObjects.Text[] = [];
   private eventUnsubscribers: (() => void)[] = [];
 
   constructor(scene: Phaser.Scene, eventBus: EventBus) {
     super(scene, eventBus);
+    this.initDOM();
+  }
+
+  private initDOM(): void {
+    this.eventsList = document.getElementById('events-list')!;
+    this.setupClearButton();
   }
 
   // создание контента
-  public createContent(contentContainer: Phaser.GameObjects.Container): void {
-    this.container = contentContainer;
-    this.container.add(this.clearButton());
+  public createContent(contentContainer: HTMLElement): void {
+    this.contentContainer = contentContainer;
+    // DOM элементы уже инициализированы в конструкторе
   }
 
   // активация компонента
@@ -71,10 +77,10 @@ export class EventsDebug extends DebugComponent {
     events
       .filter((el) => !excludeList.includes(el))
       .forEach((event) => {
-        const subscription = this.eventBus.on(event, (payload) => {
+        const unsubscribe = this.eventBus.on(event, (payload) => {
           this.addEvent(event, payload);
         });
-        this.eventUnsubscribers.push(subscription.unsubscribe);
+        this.eventUnsubscribers.push(unsubscribe);
       });
   }
 
@@ -98,25 +104,14 @@ export class EventsDebug extends DebugComponent {
 
   // обновление отображения событий
   private updateEventDisplay(): void {
-    // Очищаем предыдущие текстовые объекты
-    this.eventTexts.forEach((text) => text.destroy());
-    this.eventTexts = [];
-
-    const yOffset = 50;
-    const maxWidth = 200; // ширина текста с учётом левого/правого отступа
-    let currentY = yOffset + 25;
+    // Очищаем список
+    this.eventsList.innerHTML = '';
 
     if (this.eventLog.length === 0) {
-      const noEventsText = this.scene.add.text(15, currentY, '• No events yet', {
-        fontSize: '12px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        wordWrap: { width: maxWidth, useAdvancedWrap: true },
-      });
-      noEventsText.setWordWrapWidth(maxWidth, true);
-      noEventsText.setOrigin(0, 0);
-      this.container.add(noEventsText);
-      this.eventTexts.push(noEventsText);
+      const noEventsDiv = document.createElement('div');
+      noEventsDiv.className = 'debug-no-events';
+      noEventsDiv.textContent = '• No events yet';
+      this.eventsList.appendChild(noEventsDiv);
       return;
     }
 
@@ -124,40 +119,28 @@ export class EventsDebug extends DebugComponent {
       const time = new Date(entry.timestamp).toLocaleTimeString();
       const payloadStr = entry.payload ? ` (${JSON.stringify(entry.payload)})` : '';
       const textContent = `• ${time} - ${entry.event}${payloadStr}`;
-      const color = getEventColor(entry.event);
 
-      const text = this.scene.add.text(15, currentY, textContent, {
-        fontSize: '12px',
-        fontFamily: 'Arial',
-        color,
-        wordWrap: { width: maxWidth, useAdvancedWrap: true },
-      });
-      text.setWordWrapWidth(maxWidth, true);
-      text.setOrigin(0, 0);
+      const eventDiv = document.createElement('div');
+      eventDiv.className = 'debug-event-item';
+      eventDiv.textContent = textContent;
 
-      this.container.add(text);
-      this.eventTexts.push(text);
+      // Добавляем цветовой класс
+      const colorClass = getEventColorClass(entry.event);
+      eventDiv.classList.add(colorClass);
 
-      // Обновляем позицию для следующего элемента с учетом реальной высоты текста
-      currentY += text.displayHeight + 4;
+      this.eventsList.appendChild(eventDiv);
     });
+
+    // Автопрокрутка вниз
+    this.eventsList.scrollTop = this.eventsList.scrollHeight;
   }
 
-  // кнопка очистки логов
-  private clearButton(): Phaser.GameObjects.Container {
-    const { container } = new ButtonUI(this.scene, {
-      xPos: 220,
-      yPos: 10,
-      // w: 85,
-      h: 30,
-      text: 'clear',
-      depth: 1,
-      onClick: (): void => {
-        this.clearLogs();
-      },
+  // настройка кнопки очистки
+  private setupClearButton(): void {
+    const clearBtn = document.getElementById('clear-events')!;
+    clearBtn.addEventListener('click', () => {
+      this.clearLogs();
     });
-
-    return container;
   }
 
   // очистка логов

@@ -6,32 +6,48 @@ export interface ButtonConfig {
   text: string;
   depth: number;
   onClick?: () => void;
+  isActive?: boolean;
+  isActiveTab?: boolean;
+  isHovered?: boolean;
+  isPressed?: boolean;
 }
 
-export class ButtonUI {
+export class BaseUI {
+  // Сцена
   private scene: Phaser.Scene;
-  private button!: Phaser.GameObjects.Graphics;
+  private graphics!: Phaser.GameObjects.Graphics;
 
+  // Контейнер
   public container: Phaser.GameObjects.Container;
   public textObj!: Phaser.GameObjects.Text;
 
-  public isHovered = false;
-  public isPressed = false;
-  public isActive = true; // разрешает/запрещает клики
-  public isActiveTab = false; // особая подсветка, если активно
+  // Позиционирование и размеры
   public xPosition!: number;
   public yPosition!: number;
   public width!: number;
   public height!: number;
 
+  // Состояния
+  public isActive = false;
+  public isActiveTab = false;
+  public isHovered = false;
+  public isPressed = false;
+
   constructor(scene: Phaser.Scene, config: ButtonConfig) {
     this.scene = scene;
-    this.initializeButton(config);
+
+    // Сначала инициализируем состояния из конфига
+    this.isActive = config.isActive ?? false;
+    this.isActiveTab = config.isActiveTab ?? false;
+    this.isHovered = config.isHovered ?? false;
+    this.isPressed = config.isPressed ?? false;
+
+    this.initialize(config);
     this.container = this.createContainer(config);
     this.setupInteractivity(config);
   }
 
-  private initializeButton(config: ButtonConfig): void {
+  private initialize(config: ButtonConfig): void {
     const margin = { left: 0, right: 10, top: 0, bottom: 0 };
     this.height = config.h;
 
@@ -50,8 +66,8 @@ export class ButtonUI {
     const container = this.scene.add.container(0, 0);
 
     // Создаем graphics для кнопки
-    this.button = this.scene.add.graphics();
-    this.updateButtonAppearance();
+    this.graphics = this.scene.add.graphics();
+    this.updateAppearance();
 
     // Создаем текст
     this.textObj = this.scene.add
@@ -62,7 +78,7 @@ export class ButtonUI {
       })
       .setOrigin(0.5, 0.5);
 
-    container.add(this.button);
+    container.add(this.graphics);
     container.add(this.textObj);
 
     // Делаем контейнер интерактивным только если активен
@@ -83,24 +99,24 @@ export class ButtonUI {
     // Обработчики событий
     this.container.on('pointerover', () => {
       this.isHovered = true;
-      this.updateButtonAppearance();
+      this.updateAppearance();
       this.scene.input.setDefaultCursor('pointer');
     });
 
     this.container.on('pointerout', () => {
       this.isHovered = false;
-      this.updateButtonAppearance();
+      this.updateAppearance();
       this.scene.input.setDefaultCursor('default');
     });
 
     this.container.on('pointerdown', () => {
       this.isPressed = true;
-      this.updateButtonAppearance();
+      this.updateAppearance();
     });
 
     this.container.on('pointerup', () => {
       this.isPressed = false;
-      this.updateButtonAppearance();
+      this.updateAppearance();
 
       // Вызываем callback при клике
       if (config.onClick) {
@@ -127,33 +143,33 @@ export class ButtonUI {
       this.isPressed = false;
     }
 
-    this.updateButtonAppearance();
+    this.updateAppearance();
   }
 
   /** Устанавливает состояние активной вкладки */
   public setActiveTab(active: boolean): void {
     this.isActiveTab = active;
-    this.updateButtonAppearance();
+    this.updateAppearance();
   }
 
-  private updateButtonAppearance(): void {
-    this.button.clear();
+  protected updateAppearance(): void {
+    this.graphics.clear();
 
     // Если неактивна - серая кнопка без интерактива
     if (!this.isActive) {
-      this.button.fillStyle(0x333333, 1);
-      this.button.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
-      this.button.lineStyle(1, 0x555555, 0.5);
-      this.button.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+      this.graphics.fillStyle(0x333333, 1);
+      this.graphics.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+      this.graphics.lineStyle(1, 0x555555, 0.5);
+      this.graphics.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
       return;
     }
 
     // Активная вкладка - ярко-зеленая подсветка
     if (this.isActiveTab) {
-      this.button.fillStyle(0x4caf50, 1); // зеленый
-      this.button.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
-      this.button.lineStyle(3, 0x66bb6a, 1);
-      this.button.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+      this.graphics.fillStyle(0x4caf50, 1); // зеленый
+      this.graphics.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+      this.graphics.lineStyle(3, 0x66bb6a, 1);
+      this.graphics.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
       return;
     }
 
@@ -170,10 +186,10 @@ export class ButtonUI {
       strokeColor = 0x999999;
     }
 
-    this.button.fillStyle(fillColor, 1);
-    this.button.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
-    this.button.lineStyle(strokeWidth, strokeColor, 1);
-    this.button.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+    this.graphics.fillStyle(fillColor, 1);
+    this.graphics.fillRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
+    this.graphics.lineStyle(strokeWidth, strokeColor, 1);
+    this.graphics.strokeRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 10);
   }
 
   private calculateTextWidth(text: string): number {

@@ -1,150 +1,232 @@
 import { EventBus } from '@/core/event_bus/event_bus';
 import { Events } from '@/core/event_bus/events';
-import { ButtonUI } from '@/ui/button.ui';
+import { ECSManager } from '@/core/ecs/ecs_manager';
+import { HTMLToolbar, HTMLButton, HTMLBadge } from '@/ui/html';
 import { BaseModule } from '../../extends';
 import { ToolsEvents } from '../tools_module/types';
+import { Logger } from '@/core/utils/logger';
 
 export class ToolbarModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
+  private logger!: Logger;
 
-  // UI элементы
-  private container!: Phaser.GameObjects.Container;
+  // HTML UI элементы
+  private toolbar!: HTMLToolbar;
+  private toolButtons: Map<string, HTMLButton> = new Map();
+  private speedButtons: Map<string, HTMLButton> = new Map();
+  private gameTimeBadge!: HTMLBadge;
 
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('ToolbarModule init');
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
+    this.logger = Logger.create('ToolbarModule');
+    this.logger.info('ToolbarModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
-    this.container = scene.add.container();
-    this.container.setDepth(1000);
 
     this.createToolbar();
   }
 
-  // UI контейнер в модуле
-  private barContainer!: Phaser.GameObjects.Container;
-
   private createToolbar(): void {
-    const margin = { left: 10, right: 10, top: 10, bottom: 10 };
-    const height = 140; // Уменьшили высоту до 140px
-    const width = this.scene.cameras.main.width - (margin.right + margin.left);
-    const x = this.scene.cameras.main.width / 2 - width / 2;
-    const y = this.scene.cameras.main.height - height - margin.bottom;
-
-    // Первый ряд кнопок (инструменты)
-    const livingZoneBtn = new ButtonUI(this.scene, {
-      xPos: 15,
-      yPos: 30, // Подняли верхний ряд ближе к верху
-      w: 150,
-      h: 30,
-      text: 'Жилая зона',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit<ToolsEvents>(Events.SelectTool, { type: 'living_zone' });
-      },
+    // Создаем HTML панель инструментов в нижней части экрана
+    this.toolbar = new HTMLToolbar({
+      position: 'bottom',
+      orientation: 'horizontal', // Горизонтальная ориентация для полной ширины
+      sections: [
+        {
+          id: 'upper',
+          className: 'upper-section',
+          expandable: true,
+          expanded: false,
+          tools: [
+            // Левая часть - кнопка инструментов
+            {
+              label: '🔧 Инструменты',
+              variant: 'primary',
+              size: 'medium',
+              onClick: (): void => this.toggleToolsSection(),
+            },
+            // Правая часть - режим редактирования
+            {
+              label: '✏️ Редактирование',
+              variant: 'secondary',
+              size: 'medium',
+              onClick: (): void => this.toggleEditMode(),
+            },
+          ],
+        },
+        {
+          id: 'lower',
+          className: 'lower-section',
+          tools: [
+            // Управление временем
+            {
+              label: '⏸️ Пауза',
+              variant: 'warning',
+              size: 'small',
+              onClick: (): void => {
+                this.eventBus.emit(Events.GamePauseToggle, undefined);
+                this.switchTimeButton('pause');
+              },
+            },
+            {
+              label: '🐌 X1',
+              variant: 'success',
+              size: 'small',
+              onClick: (): void => {
+                this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
+                this.switchTimeButton('speedX1');
+              },
+            },
+            {
+              label: '🐕 X2',
+              variant: 'secondary',
+              size: 'small',
+              onClick: (): void => {
+                this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
+                this.switchTimeButton('speedX2');
+              },
+            },
+            {
+              label: '🐆 X3',
+              variant: 'secondary',
+              size: 'small',
+              onClick: (): void => {
+                this.eventBus.emit(Events.SetGameSpeed, { speed: 240 });
+                this.switchTimeButton('speedX3');
+              },
+            },
+          ],
+        },
+      ],
     });
 
-    const commercialZoneBtn = new ButtonUI(this.scene, {
-      xPos: 15 + livingZoneBtn.width + 15,
-      yPos: 30,
-      w: 220,
-      h: 30,
-      text: 'Коммерческая зона',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
-      },
+    // X1 активен по умолчанию
+    const speedX1Btn = this.toolbar.getTool('lower', '🐌 X1');
+    if (speedX1Btn) {
+      speedX1Btn.setVariant('success');
+      this.speedButtons.set('speedX1', speedX1Btn);
+    }
+
+    // Сохраняем ссылки на кнопки для управления
+    this.saveToolReferences();
+
+    // Создаем бейдж для времени игры
+    this.gameTimeBadge = new HTMLBadge({
+      text: '16:00',
+      variant: 'primary',
+      size: 'large',
     });
 
-    const clearZoneBtn = new ButtonUI(this.scene, {
-      xPos: commercialZoneBtn.xPosition + commercialZoneBtn.width + 15,
-      yPos: 30,
-      w: 175,
-      h: 30,
-      text: 'Очистить зону',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
-      },
+    // Добавляем бейдж к нижней секции
+    const lowerSection = this.toolbar.getSection('lower');
+    if (lowerSection) {
+      lowerSection.appendChild(this.gameTimeBadge.getElement());
+    }
+
+    // Подписываемся на события
+    this.eventBus.on(Events.ResetToolToDefault, () => {
+      this.switchActiveTool('select');
     });
 
-    // Второй ряд кнопок (скорость игры)
-    const pauseBtn = new ButtonUI(this.scene, {
-      xPos: 15,
-      yPos: 75, // Уменьшили gap, второй ряд ближе к первому (разрыв всего 15px)
-      w: 80,
-      h: 30,
-      text: 'Пауза',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit(Events.GamePauseToggle, {});
-      },
+    this.eventBus.on(Events.GameTimeUpdated, (payload) => {
+      if (payload) {
+        const { date, timeOfDay } = payload;
+        this.gameTimeBadge.updateText(`${date} ${timeOfDay}`);
+      }
     });
 
-    const speedX1Btn = new ButtonUI(this.scene, {
-      xPos: 15 + pauseBtn.width + 15,
-      yPos: 75,
-      w: 60,
-      h: 30,
-      text: 'X1',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 10 });
+    // Добавляем панель в DOM
+    this.toolbar.appendTo(document.body);
+  }
+
+  private saveToolReferences(): void {
+    // Сохраняем ссылки на кнопки управления временем
+    const pauseBtn = this.toolbar.getTool('lower', '⏸️ Пауза');
+    const speedX2Btn = this.toolbar.getTool('lower', '🐕 X2');
+    const speedX3Btn = this.toolbar.getTool('lower', '🐆 X3');
+
+    if (pauseBtn) this.speedButtons.set('pause', pauseBtn);
+    if (speedX2Btn) this.speedButtons.set('speedX2', speedX2Btn);
+    if (speedX3Btn) this.speedButtons.set('speedX3', speedX3Btn);
+  }
+
+  private toggleToolsSection(): void {
+    // Определяем инструменты для expandable секции
+    const tools = [
+      {
+        label: '🏠 Жилая зона',
+        variant: 'secondary' as const,
+        size: 'medium' as const,
+        onClick: (): void => {
+          this.eventBus.emit(Events.SelectTool, { type: 'living_zone' });
+          this.switchActiveTool('living_zone');
+        },
       },
+      {
+        label: '🏪 Коммерческая зона',
+        variant: 'secondary' as const,
+        size: 'medium' as const,
+        onClick: (): void => {
+          this.eventBus.emit(Events.SelectTool, { type: 'commercial_zone' });
+          this.switchActiveTool('commercial_zone');
+        },
+      },
+      {
+        label: '🗑️ Очистить зону',
+        variant: 'danger' as const,
+        size: 'medium' as const,
+        onClick: (): void => {
+          this.eventBus.emit(Events.SelectTool, { type: 'clear_zone' });
+          this.switchActiveTool('clear_zone');
+        },
+      },
+    ];
+
+    // Добавляем инструменты в expandable секцию
+    this.toolbar.addToolsToExpandable('upper', tools);
+
+    // Переключаем видимость секции
+    this.toolbar.toggleSection('upper');
+  }
+
+  private toggleEditMode(): void {
+    // Пока просто UI - ничего не делает, как указано в требованиях
+    const editButton = this.toolbar.getTool('upper', '✏️ Редактирование');
+    if (editButton) {
+      const currentVariant = editButton.getElement().className.includes('success')
+        ? 'secondary'
+        : 'success';
+      editButton.setVariant(currentVariant);
+    }
+  }
+
+  private switchActiveTool(toolName: string): void {
+    // Логика переключения активного инструмента
+    // Поскольку инструменты теперь в выпадающем меню,
+    // здесь можно добавить визуальную индикацию активного инструмента
+    this.logger.debug(`Tool switched to: ${toolName}`);
+  }
+
+  private switchTimeButton(buttonName: string): void {
+    // Сбрасываем все кнопки скорости
+    this.speedButtons.forEach((button, key) => {
+      if (key === 'pause') {
+        button.setVariant('warning');
+      } else {
+        button.setVariant('secondary');
+      }
     });
 
-    const speedX2Btn = new ButtonUI(this.scene, {
-      xPos: speedX1Btn.xPosition + speedX1Btn.width + 15,
-      yPos: 75,
-      w: 60,
-      h: 30,
-      text: 'X2',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 30 });
-      },
-    });
-
-    const speedX3Btn = new ButtonUI(this.scene, {
-      xPos: speedX2Btn.xPosition + speedX2Btn.width + 15,
-      yPos: 75,
-      w: 60,
-      h: 30,
-      text: 'X3',
-      depth: 1001,
-      onClick: (): void => {
-        this.eventBus.emit(Events.SetGameSpeed, { speed: 60 });
-      },
-    });
-
-    // Контейнер бара
-    this.barContainer = this.scene.add.container(x, y);
-    this.barContainer.setDepth(1001);
-    // маска для перхвата нажатия
-    // Пустой обработчик поглощает событие
-
-    // Фон бара
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x222222, 0.8);
-    bg.fillRoundedRect(0, 0, width, height, 16);
-    bg.strokeRoundedRect(0, 0, width, height, 16);
-
-    this.barContainer.add(bg);
-
-    // Добавляем кнопки первого ряда
-    this.barContainer.add(livingZoneBtn.container);
-    this.barContainer.add(commercialZoneBtn.container);
-    this.barContainer.add(clearZoneBtn.container);
-
-    // Добавляем кнопки второго ряда
-    this.barContainer.add(pauseBtn.container);
-    this.barContainer.add(speedX1Btn.container);
-    this.barContainer.add(speedX2Btn.container);
-    this.barContainer.add(speedX3Btn.container);
-
-    // Добавляем бар в контейнер модуля
-    this.container.add(this.barContainer);
+    // Активируем выбранную кнопку
+    const activeButton = this.speedButtons.get(buttonName);
+    if (activeButton) {
+      if (buttonName === 'pause') {
+        activeButton.setVariant('danger');
+      } else {
+        activeButton.setVariant('success');
+      }
+    }
   }
 }
 

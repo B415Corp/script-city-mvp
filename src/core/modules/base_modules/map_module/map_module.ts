@@ -1,555 +1,164 @@
-import { EventBus } from '@/core/event_bus/event_bus';
-import { getTextureType } from '@/core/scenes';
 import { BaseModule } from '../../extends';
-import { IsometricMath } from './infrastructure/isometric_math';
-import { DEFAULT_MAP } from './infrastructure/maps/default_map';
 import { Events } from '@/core/event_bus/events';
+import { EventBus } from '@/core/event_bus/event_bus';
+import { ECSManager } from '@/core/ecs/ecs_manager';
+import { Logger } from '@/core/utils/logger';
+import { CameraController } from './camera/camera_controller';
+import { InputHandler } from './input/input_handler';
+import { TileRenderer } from './rendering/tile_renderer';
+import { TileHighlighter } from './selection/tile_highlighter';
+import { TileSelector } from './selection/tile_selector';
+import { TileInfo } from './types';
+import { ToolActivatedPayload } from '../tools_module/types';
 
 export class MapModule extends BaseModule {
   protected scene!: Phaser.Scene;
   protected eventBus!: EventBus;
-  private isometricMath?: IsometricMath;
-  private container?: Phaser.GameObjects.Container;
-  private highlightGraphics?: Phaser.GameObjects.Graphics;
+  private logger: Logger;
+
+  private container?: Phaser.GameObjects.Container; // контейнер для рендеринга тайлов
+  private renderer?: TileRenderer; // рендер тайлов
+  private cameraController?: CameraController; // контроллер камеры
+  private highlighter?: TileHighlighter; // выделение тайла
+  private selector?: TileSelector; // селектор тайлов
+  private inputHandler?: InputHandler; // обработчик ввода
+
   // Параметры сетки
   private readonly gridWidth: number = 100;
   private readonly gridHeight: number = 100;
   private readonly tileWidth: number = 128;
   private readonly tileHeight: number = 64;
 
-  // Управление камерой
-  private isDragging = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
-
-  // Текущий подсвеченный тайл
-  private highlightedTile: { x: number; y: number } | null = null;
-
-  constructor(scene: Phaser.Scene, eventBus: EventBus) {
-    console.log('MapModule init');
-    super(scene, eventBus);
+  constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
+    super(scene, eventBus, ecsManager);
+    this.logger = Logger.create('🗺️ MapModule', '#f7dc6f');
+    this.logger = Logger.create('🗺️ MapModule', '#f7dc6f');
+    this.logger.info('MapModule initialized');
     this.scene = scene;
     this.eventBus = eventBus;
-    this.isometricMath = new IsometricMath(this.tileWidth, this.tileHeight);
     this.attachToScene(scene);
   }
 
-  public getTileInfo(
-    tileX: number,
-    tileY: number,
-  ): {
-    x: number;
-    y: number;
-    type: number;
-    typeName: string;
-  } | null {
-    if (tileX < 0 || tileX >= this.gridWidth || tileY < 0 || tileY >= this.gridHeight) {
-      return null;
-    }
-
-    const tileType = DEFAULT_MAP.tiles[tileY][tileX];
-    const typeName = getTextureType(tileType);
-
-    return {
-      x: tileX,
-      y: tileY,
-      type: tileType,
-      typeName,
-    };
+  public getTileInfo(tileX: number, tileY: number): TileInfo | null {
+    return this.renderer?.getTileInfo(tileX, tileY) ?? null;
   }
 
+  // Прикрепление к сцене
   attachToScene(scene: Phaser.Scene): void {
     this.scene = scene;
-
-    if (!this.isometricMath) {
-      throw new Error('GridModule not initialized');
-    }
-
-    // Контейнер карты
     this.container = scene.add.container(0, 0).setDepth(10);
 
-    // Graphics только под подсветку!
-    this.highlightGraphics = scene.add.graphics();
-    this.container.add(this.highlightGraphics);
+    // Инициализация модулей
+    this.renderer = new TileRenderer(
+      scene,
+      this.container,
+      this.tileWidth,
+      this.tileHeight,
+      this.gridWidth,
+      this.gridHeight,
+    );
 
-    this.centerMap();
-    this.setupCameraControls();
-
-    scene.input.on('pointermove', this.handlePointerMove, this);
-    scene.input.on('pointerout', this.clearHighlight, this);
-    scene.input.on('pointerdown', this.handlePointerDown, this);
-    scene.input.on('pointerup', this.handlePointerUp, this);
+    this.cameraController = new CameraController(scene, this.container, this.eventBus);
+    this.cameraController.centerMap();
 
     // Подписываемся на событие готовности сцены
-    this.eventBus.on(Events.SceneReady, () => this.onSceneReady());
+    this.eventBus.on(Events.SceneReady, () => {
+      this.onSceneReady();
+    });
   }
 
-  /** Обработчик события готовности сцены */
+  // Событие готовности сцены
   private onSceneReady(): void {
-    this.drawGrid();
-  }
+    if (!this.container || !this.renderer) return;
 
-  /** Центрирование карты */
-  private centerMap(): void {
-    if (!this.scene || !this.container) return;
+    // Рисуем тайлы
+    this.renderer.renderGrid();
 
-    const camera = this.scene.cameras.main;
-    const cx = camera.width / 2;
-    const cy = camera.height / 2;
+    const isometricMath = this.renderer.getIsometricMath(); // получаем изометрическую математику
 
-    this.container.setPosition(cx, cy);
-    this.isometricMath?.setOffset(0, 0);
-
-    // Эмитим событие центрирования карты
-    this.eventBus?.emit(Events.MapCentered, {
-      x: cx,
-      y: cy,
-    });
-  }
-
-  /** Основная отрисовка сетки — теперь плитки рендерятся как Image */
-  private drawGrid(): void {
-    if (!this.scene || !this.container || !this.isometricMath) return;
-
-    for (let y = 0; y < this.gridHeight; y++) {
-      for (let x = 0; x < this.gridWidth; x++) {
-        this.drawTileTexture(x, y, DEFAULT_MAP.tiles[y][x]);
-      }
-    }
-  }
-
-  /** Отрисовка плитки текстурой */
-  private drawTileTexture(tileX: number, tileY: number, tileType: number): void {
-    if (!this.scene || !this.container || !this.isometricMath) return;
-
-    const textureKey = getTextureType(tileType);
-
-    // КРИТИЧНО: Проверяем текстуру ПЕРЕД созданием
-    if (!this.scene.textures.exists(textureKey)) {
-      console.warn(`Texture ${textureKey} missing for tile ${tileX},${tileY}`);
-      return; // НЕ рисуем ничего вместо fallback
-    }
-
-    const center = this.isometricMath.tileToScreen(tileX, tileY);
-
-    // Создаем image с явной проверкой
-    const img = this.scene.add.image(center.x, center.y, textureKey);
-
-    const texture = this.scene.textures.get(textureKey);
-
-    img.setOrigin(0.5, 0.5);
-    img.setScale(
-      this.tileWidth / texture.source[0]?.width!,
-      this.tileHeight / texture.source[0]?.height!,
+    // Инициализация интерактивных модулей
+    this.highlighter = new TileHighlighter( // инициализация выделения тайла
+      this.scene,
+      this.container,
+      isometricMath,
+      this.eventBus,
+      this.tileWidth,
+      this.tileHeight,
     );
 
-    // Depth для сортировки изометрии (базовая глубина карты 10 + небольшое смещение для правильного порядка)
-    const baseDepth = 10;
-    const sortOffset = (tileY + tileX) * 0.01; // Минимальное смещение для сортировки
-    img.setDepth(baseDepth + sortOffset);
+    this.selector = new TileSelector( // инициализация селектора тайлов
+      this.scene,
+      this.container,
+      isometricMath,
+      this.eventBus,
+      this.tileWidth,
+      this.tileHeight,
+      this.gridWidth,
+      this.gridHeight,
+    );
 
-    this.container.add(img);
-  }
+    this.inputHandler = new InputHandler( // инициализация обработчика ввода
+      this.scene,
+      this.container,
+      isometricMath,
+      this.highlighter,
+      this.selector,
+      this.eventBus,
+      this.gridWidth,
+      this.gridHeight,
+      () => this.cameraController?.isDraggingCamera() ?? false,
+      (x, y) => this.getTileInfo(x, y),
+    );
 
-  /** Подсветка */
-  private drawHighlight(tileX: number, tileY: number): void {
-    if (!this.highlightGraphics || !this.isometricMath) return;
+    // 1) слушаем активацию инструмента
+    this.eventBus.on(Events.ToolActivated, this.onToolActivated);
 
-    this.highlightGraphics.clear();
-
-    const center = this.isometricMath.tileToScreen(tileX, tileY);
-    const hw = this.tileWidth / 2;
-    const hh = this.tileHeight / 2;
-
-    this.highlightGraphics.fillStyle(0xffffff, 1);
-    this.highlightGraphics.lineStyle(2, 0xffffff, 1);
-
-    // Фигура ромба
-    this.highlightGraphics.beginPath();
-    this.highlightGraphics.moveTo(center.x, center.y - hh);
-    this.highlightGraphics.lineTo(center.x + hw, center.y);
-    this.highlightGraphics.lineTo(center.x, center.y + hh);
-    this.highlightGraphics.lineTo(center.x - hw, center.y);
-    this.highlightGraphics.closePath();
-
-    this.highlightGraphics.fillPath();
-    this.highlightGraphics.strokePath();
-  }
-
-  /** Очистка подсветки */
-  private clearHighlight(): void {
-    if (this.highlightedTile) {
-      // Эмитим событие ухода с тайла
-      this.eventBus?.emit(Events.TileUnhovered, {
-        tileX: this.highlightedTile.x,
-        tileY: this.highlightedTile.y,
-      });
-    }
-    this.highlightGraphics?.clear();
-    this.highlightedTile = null;
-  }
-
-  /** Обработка зума */
-  private handleZoom(pointer: Phaser.Input.Pointer, deltaY: number): void {
-    if (!this.container) return;
-
-    const oldScale = this.container.scale;
-    const zoomSpeed = 0.001;
-
-    const newScale = Phaser.Math.Clamp(oldScale - deltaY * zoomSpeed, 0.1, 2.0);
-
-    const worldX = (pointer.x - this.container.x) / oldScale;
-    const worldY = (pointer.y - this.container.y) / oldScale;
-
-    const newX = pointer.x - worldX * newScale;
-    const newY = pointer.y - worldY * newScale;
-
-    this.container.setScale(newScale);
-    this.container.setPosition(newX, newY);
-
-    // Эмитим событие изменения зума камеры
-    this.eventBus?.emit(Events.CameraZoomed, {
-      scale: newScale,
-      x: newX,
-      y: newY,
+    // 2) при закрытии/рестарте сцены снимаем слушатель (чтобы не дублировался)
+    this.scene.sys.events.once('shutdown', () => {
+      this.eventBus.off(Events.ToolActivated, this.onToolActivated);
     });
+
+    const escKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+    escKey?.on('down', () => {
+      this.selector?.cancel(); // убрать рамку выделения
+      this.eventBus.emit(Events.ResetToolToDefault, null); // сказать tools-module вернуть select
+    });
+
+    // 3) сбросить tool на select
+    this.eventBus.emit(Events.ResetToolToDefault, null);
   }
 
-  /** Публичные методы для управления камерой из UI */
+  // Публичное API для UI
+  // Увеличение масштаба камеры
   public zoomIn(): void {
-    if (!this.container || !this.scene) return;
-
-    const oldScale = this.container.scale;
-    const newScale = Phaser.Math.Clamp(oldScale + 0.1, 0.1, 2.0);
-
-    // Зумим к центру экрана
-    const centerX = this.scene.cameras.main.width / 2;
-    const centerY = this.scene.cameras.main.height / 2;
-
-    const worldX = (centerX - this.container.x) / oldScale;
-    const worldY = (centerY - this.container.y) / oldScale;
-
-    const newX = centerX - worldX * newScale;
-    const newY = centerY - worldY * newScale;
-
-    this.container.setScale(newScale);
-    this.container.setPosition(newX, newY);
-
-    this.eventBus?.emit(Events.CameraZoomed, {
-      scale: newScale,
-      x: newX,
-      y: newY,
-    });
+    this.cameraController?.zoomIn();
   }
 
+  // Уменьшение масштаба камеры
   public zoomOut(): void {
-    if (!this.container || !this.scene) return;
-
-    const oldScale = this.container.scale;
-    const newScale = Phaser.Math.Clamp(oldScale - 0.1, 0.1, 2.0);
-
-    // Зумим от центра экрана
-    const centerX = this.scene.cameras.main.width / 2;
-    const centerY = this.scene.cameras.main.height / 2;
-
-    const worldX = (centerX - this.container.x) / oldScale;
-    const worldY = (centerY - this.container.y) / oldScale;
-
-    const newX = centerX - worldX * newScale;
-    const newY = centerY - worldY * newScale;
-
-    this.container.setScale(newScale);
-    this.container.setPosition(newX, newY);
-
-    this.eventBus?.emit(Events.CameraZoomed, {
-      scale: newScale,
-      x: newX,
-      y: newY,
-    });
+    this.cameraController?.zoomOut();
   }
 
+  // Перемещение камеры
   public moveCamera(direction: 'up' | 'down' | 'left' | 'right'): void {
-    if (!this.container) return;
-
-    const speed = 50;
-
-    switch (direction) {
-      case 'up':
-        this.container.y += speed;
-        break;
-      case 'down':
-        this.container.y -= speed;
-        break;
-      case 'left':
-        this.container.x += speed;
-        break;
-      case 'right':
-        this.container.x -= speed;
-        break;
-    }
-
-    // this.eventBus?.emit(Events.CameraMoved, {
-    //   x: this.container.x,
-    //   y: this.container.y,
-    //   scale: this.container.scale,
-    // });
+    this.cameraController?.moveCamera(direction);
   }
 
-  /** Обработка клика по тайлу */
-  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.isDragging) return;
-    if (!this.scene || !this.container || !this.isometricMath) return;
+  private onToolActivated = (payload?: ToolActivatedPayload): void => {
+    if (!payload) return;
 
-    // Проверка попадания над UI
+    this.highlighter?.setStyle(payload.style.hover);
+    this.selector?.setStyle(payload.style.selection);
 
-    // Обрабатываем только левый клик
-    if (!pointer.leftButtonDown()) {
-      return;
-    }
+    this.inputHandler?.setMode(payload.mode);
 
-    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
-    const containerX = (pointer.x - this.container.x) / this.container.scale;
-    const containerY = (pointer.y - this.container.y) / this.container.scale;
+    // курсор
+    this.scene.input.setDefaultCursor(payload.cursor); // Phaser API [web:61]
 
-    // Получаем приблизительный тайл
-    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
-
-    // Проверяем точное попадание в тайл
-    const tile = this.findTileAtPoint(
-      containerX,
-      containerY,
-      approximateTile.tileX,
-      approximateTile.tileY,
-    );
-
-    if (
-      tile &&
-      tile.tileX >= 0 &&
-      tile.tileX < this.gridWidth &&
-      tile.tileY >= 0 &&
-      tile.tileY < this.gridHeight
-    ) {
-      // Эмитим событие клика по тайлу
-      this.eventBus?.emit(Events.TileClicked, {
-        tileX: tile.tileX,
-        tileY: tile.tileY,
-      });
-    }
-  }
-
-  /** Обработка клика по тайлу */
-  private handlePointerUp(pointer: Phaser.Input.Pointer): void {
-    if (this.isDragging) return;
-    if (!this.scene || !this.container || !this.isometricMath) return;
-
-    // Проверка попадания над UI
-
-    // Обрабатываем только левый клик
-    if (!pointer.leftButtonReleased()) {
-      return;
-    }
-
-    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
-    const containerX = (pointer.x - this.container.x) / this.container.scale;
-    const containerY = (pointer.y - this.container.y) / this.container.scale;
-
-    // Получаем приблизительный тайл
-    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
-
-    // Проверяем точное попадание в тайл
-    const tile = this.findTileAtPoint(
-      containerX,
-      containerY,
-      approximateTile.tileX,
-      approximateTile.tileY,
-    );
-
-    if (
-      tile &&
-      tile.tileX >= 0 &&
-      tile.tileX < this.gridWidth &&
-      tile.tileY >= 0 &&
-      tile.tileY < this.gridHeight
-    ) {
-      // Эмитим событие клика по тайлу
-      this.eventBus?.emit(Events.TileClickedUp, {
-        tileX: tile.tileX,
-        tileY: tile.tileY,
-      });
-    }
-  }
-
-  /** Реакция на передвижение мыши */
-  private handlePointerMove(pointer: Phaser.Input.Pointer): void {
-    if (this.isDragging) return;
-    if (!this.scene || !this.container || !this.isometricMath) return;
-
-    // Проверка попадания над UI
-
-    // Преобразуем координаты мыши в координаты относительно контейнера с учетом масштаба
-    const containerX = (pointer.x - this.container.x) / this.container.scale;
-    const containerY = (pointer.y - this.container.y) / this.container.scale;
-
-    // Получаем приблизительный тайл
-    const approximateTile = this.isometricMath.screenToTile(containerX, containerY);
-
-    // Проверяем точное попадание в тайл и соседние тайлы
-    const tile = this.findTileAtPoint(
-      containerX,
-      containerY,
-      approximateTile.tileX,
-      approximateTile.tileY,
-    );
-
-    if (
-      tile &&
-      tile.tileX >= 0 &&
-      tile.tileX < this.gridWidth &&
-      tile.tileY >= 0 &&
-      tile.tileY < this.gridHeight
-    ) {
-      if (
-        !this.highlightedTile ||
-        this.highlightedTile.x !== tile.tileX ||
-        this.highlightedTile.y !== tile.tileY
-      ) {
-        // Эмитим событие ухода со старого тайла, если был подсвечен другой
-        if (this.highlightedTile) {
-          this.eventBus?.emit(Events.TileUnhovered, {
-            tileX: this.highlightedTile.x,
-            tileY: this.highlightedTile.y,
-          });
-        }
-
-        this.highlightedTile = { x: tile.tileX, y: tile.tileY };
-        this.drawHighlight(tile.tileX, tile.tileY);
-
-        // Получаем информацию о тайле
-        const tileInfo = this.getTileInfo(tile.tileX, tile.tileY);
-
-        // Эмитим событие наведения на тайл
-        this.eventBus?.emit(Events.TileHovered, {
-          tileX: tile.tileX,
-          tileY: tile.tileY,
-          tileType: tileInfo?.type,
-          tileTypeName: tileInfo?.typeName,
-        });
-      }
-    } else {
-      this.clearHighlight();
-    }
-  }
-
-  /** Поиск тайла в точке с проверкой соседних тайлов */
-  private findTileAtPoint(
-    screenX: number,
-    screenY: number,
-    centerTileX: number,
-    centerTileY: number,
-  ): { tileX: number; tileY: number } | null {
-    if (!this.isometricMath) return null;
-
-    // Проверяем центральный тайл и соседние (включая диагональные)
-    const offsets = [
-      [0, 0], // Центральный
-      [-1, 0], // Слева
-      [1, 0], // Справа
-      [0, -1], // Сверху
-      [0, 1], // Снизу
-      [-1, -1], // Слева-сверху
-      [1, -1], // Справа-сверху
-      [-1, 1], // Слева-снизу
-      [1, 1], // Справа-снизу
-    ];
-
-    for (const [dx, dy] of offsets) {
-      const tileX = centerTileX + dx;
-      const tileY = centerTileY + dy;
-
-      if (tileX >= 0 && tileX < this.gridWidth && tileY >= 0 && tileY < this.gridHeight) {
-        if (this.isometricMath.isPointInTile(screenX, screenY, tileX, tileY)) {
-          return { tileX, tileY };
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /** Камера: zoom + drag + стрелки */
-  private setupCameraControls(): void {
-    if (!this.scene || !this.container) return;
-
-    this.scene.input.mouse?.disableContextMenu();
-
-    // Zoom - правильная подписка на событие колесика
-    this.scene.input.on(
-      'wheel',
-      (
-        pointer: Phaser.Input.Pointer,
-        _currentlyOver: Phaser.GameObjects.GameObject[],
-        deltaX: number,
-        deltaY: number,
-        _deltaZ: number,
-      ) => {
-        this.handleZoom(pointer, deltaY);
-      },
-    );
-
-    // Drag
-    this.scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      if (p.rightButtonDown() || p.middleButtonDown()) {
-        this.isDragging = true;
-        this.dragStartX = p.x;
-        this.dragStartY = p.y;
-      }
-    });
-
-    this.scene.input.on('pointerup', (p: Phaser.Input.Pointer) => {
-      if (p.rightButtonReleased() || p.middleButtonReleased()) {
-        this.isDragging = false;
-        // Эмитим событие перемещения камеры после завершения drag
-        if (this.container) {
-          // this.eventBus?.emit(Events.CameraMoved, {
-          //   x: this.container.x,
-          //   y: this.container.y,
-          //   scale: this.container.scale,
-          // });
-        }
-      }
-    });
-
-    this.scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (this.isDragging && this.container) {
-        const dx = p.x - this.dragStartX;
-        const dy = p.y - this.dragStartY;
-        this.container.x += dx;
-        this.container.y += dy;
-        this.dragStartX = p.x;
-        this.dragStartY = p.y;
-
-        // Эмитим событие перемещения камеры во время drag
-        // this.eventBus?.emit(Events.CameraMoved, {
-        //   x: this.container.x,
-        //   y: this.container.y,
-        //   scale: this.container.scale,
-        // });
-      }
-    });
-
-    const arrows = this.scene.input.keyboard?.createCursorKeys();
-    if (arrows) {
-      const speed = 10;
-      this.scene.events.on('update', () => {
-        if (!this.container || this.isDragging) return;
-
-        if (arrows.left?.isDown) this.container.x += speed;
-        if (arrows.right?.isDown) this.container.x -= speed;
-        if (arrows.up?.isDown) this.container.y += speed;
-        if (arrows.down?.isDown) this.container.y -= speed;
-      });
-    }
-  }
+    // опционально: очистить выделение при смене инструмента
+    this.selector?.cancel();
+  };
 }
 
 export default MapModule;

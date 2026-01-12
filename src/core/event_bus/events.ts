@@ -12,6 +12,11 @@ export enum Events {
   LogicTick = 'LogicTick',
   GamePauseToggle = 'GamePauseToggle',
   SetGameSpeed = 'SetGameSpeed',
+  GameTimeUpdated = 'GameTimeUpdated',
+
+  // Legacy time events for tests
+  TimeTick = 'time:tick',
+  TimeDay = 'time:day',
 
   // Состояние карты
   TileUnhovered = 'TileUnhovered',
@@ -19,12 +24,22 @@ export enum Events {
   CameraZoomed = 'CameraZoomed',
   TileClicked = 'TileClickedDown',
   TileClickedUp = 'TileClickedUp',
+  TilesSelected = 'TilesSelected',
 
   // Ивенты инструментов
   SelectTool = 'SelectTool',
+  ToolActivated = 'ToolActivated',
+  ResetToolToDefault = 'ResetToolToDefault',
 
   // модули
   ModuleEnabled = 'ModuleEnabled',
   ModuleDisabled = 'ModuleDisabled',
   ModuleError = 'ModuleError',
+
+  // ECS системы
+  CallSystem = 'CallSystem',
+  SystemError = 'SystemError',
+
+  // Citizen events
+  CitizenHired = 'citizen:hired',
 }
