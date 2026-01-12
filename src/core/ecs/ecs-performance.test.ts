@@ -13,6 +13,18 @@ import './__tests__/performance/entities';
 import './__tests__/performance/systems';
 import './__tests__/performance/clusters';
 
+// Явный импорт фабрик для доступа к ним
+import { createPerformanceCitizen, createPerformanceBuilding, createPerformanceVehicle, createSimplePerformanceEntity } from './__tests__/performance/entities/performance_factories';
+
+// Импорт компонентов для явной регистрации
+import { PerformanceCitizenComponent, PerformanceBuildingComponent, SimplePerformanceComponent } from './__tests__/performance/components/performance_components';
+
+// Импорт систем для явной регистрации
+import { PerformanceCitizenUpdateSystem, PerformanceBuildingUpdateSystem, SimplePerformanceSystem } from './__tests__/performance/systems/performance_systems';
+
+// Импорт addEntity для создания сущностей
+import { addEntity } from 'bitecs';
+
 describe('ECS Performance Tests', () => {
   let eventBus: EventBus;
   let tickManager: TickManager;
@@ -24,6 +36,28 @@ describe('ECS Performance Tests', () => {
     SystemRegistry.getInstance().clear();
     ClusterRegistry.getInstance().clear();
     EntityFactoryRegistry.getInstance().clear();
+
+    // Перерегистрируем фабрики после очистки
+    EntityFactoryRegistry.getInstance().register(
+      'performance_citizen',
+      createPerformanceCitizen,
+      'Создает жителя для тестов производительности'
+    );
+    EntityFactoryRegistry.getInstance().register(
+      'performance_building',
+      createPerformanceBuilding,
+      'Создает здание для тестов производительности'
+    );
+    EntityFactoryRegistry.getInstance().register(
+      'performance_vehicle',
+      createPerformanceVehicle,
+      'Создает транспортное средство для тестов производительности'
+    );
+    EntityFactoryRegistry.getInstance().register(
+      'simple_performance_entity',
+      createSimplePerformanceEntity,
+      'Создает простую сущность для тестов максимальной производительности'
+    );
 
     // Создаем реальные экземпляры зависимостей
     eventBus = new EventBus();
@@ -309,8 +343,58 @@ describe('ECS Performance Tests', () => {
   });
 
   describe('Registry Performance Tests', () => {
+    // Для этих тестов НЕ очищаем реестры, чтобы проверить производительность поиска
+    beforeEach(() => {
+      // Создаем реальные экземпляры зависимостей без очистки реестров
+      eventBus = new EventBus();
+      tickManager = new TickManager(eventBus);
+      ecsManager = new ECSManager(eventBus, tickManager);
+
+      // Принудительно регистрируем компоненты в реестре
+      const componentRegistry = ComponentRegistry.getInstance();
+      if (!componentRegistry.has('PerformanceCitizen')) {
+        componentRegistry.register('PerformanceCitizen', PerformanceCitizenComponent);
+      }
+      if (!componentRegistry.has('PerformanceBuilding')) {
+        componentRegistry.register('PerformanceBuilding', PerformanceBuildingComponent);
+      }
+      if (!componentRegistry.has('SimplePerformance')) {
+        componentRegistry.register('SimplePerformance', SimplePerformanceComponent);
+      }
+
+      // Регистрируем системы в реестре
+      const systemRegistry = SystemRegistry.getInstance();
+      if (!systemRegistry.has('performance_citizen_update')) {
+        systemRegistry.register('performance_citizen_update', PerformanceCitizenUpdateSystem, {
+          name: 'performance_citizen_update',
+          cluster: 'performance_simulation',
+          interval: undefined
+        });
+      }
+      if (!systemRegistry.has('performance_building_update')) {
+        systemRegistry.register('performance_building_update', PerformanceBuildingUpdateSystem, {
+          name: 'performance_building_update',
+          cluster: 'performance_simulation',
+          interval: undefined
+        });
+      }
+      if (!systemRegistry.has('simple_performance_update')) {
+        systemRegistry.register('simple_performance_update', SimplePerformanceSystem, {
+          name: 'simple_performance_update',
+          cluster: 'performance_benchmark',
+          interval: undefined
+        });
+      }
+
+      console.log(`Компонентов после регистрации: ${componentRegistry.size()}`);
+      console.log(`Систем после регистрации: ${systemRegistry.size()}`);
+    });
+
     it('должен быстро регистрировать и получать компоненты', () => {
       const registry = ComponentRegistry.getInstance();
+
+      console.log(`Компонентов в реестре: ${registry.size()}`);
+      console.log(`Доступные компоненты: ${Array.from(registry.getAll().keys()).join(', ')}`);
 
       const registerStartTime = performance.now();
 
@@ -334,6 +418,9 @@ describe('ECS Performance Tests', () => {
 
       console.log(`Регистрация компонентов: ${registerDuration.toFixed(2)}ms`);
       console.log(`Поиск компонентов: ${lookupDuration.toFixed(2)}ms`);
+      console.log(`Найден PerformanceCitizen: ${!!citizenComponent}`);
+      console.log(`Найден PerformanceBuilding: ${!!buildingComponent}`);
+      console.log(`Найден SimplePerformance: ${!!simpleComponent}`);
 
       expect(citizenComponent).toBeDefined();
       expect(buildingComponent).toBeDefined();

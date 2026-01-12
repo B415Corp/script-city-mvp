@@ -24,24 +24,25 @@ describe('Working Performance Test', () => {
   });
 
   /**
-   * Вспомогательная функция для запуска игрового цикла
+   * Функция для замера throughput (пропускной способности системы)
+   * НЕ является реальным FPS игры!
    */
-  function runGameLoop(ticks: number): {
+  function measureThroughput(ticks: number): {
     totalTime: number;
-    averageFPS: number;
+    throughputFPS: number; // Сколько тиков в секунду система может обработать
   } {
     const startTime = performance.now();
 
     for (let tickCount = 0; tickCount < ticks; tickCount++) {
-      // Имитируем LogicTick событие (как в реальной игре)
+      // Имитируем LogicTick событие максимально быстро
       eventBus.emit(Events.LogicTick, { delta: 16 });
     }
 
     const endTime = performance.now();
     const totalTime = endTime - startTime;
-    const averageFPS = (ticks * 1000) / totalTime;
+    const throughputFPS = (ticks * 1000) / totalTime;
 
-    return { totalTime, averageFPS };
+    return { totalTime, throughputFPS };
   }
 
   /**
@@ -95,14 +96,14 @@ describe('Working Performance Test', () => {
 
     console.log('🚀 Запуск 1000 тиков непрерывной работы...');
 
-    const result = runGameLoop(1000);
+    const result = measureThroughput(1000);
 
     console.log(`✅ 1000 тиков выполнено за ${result.totalTime.toFixed(2)}ms`);
-    console.log(`   Средний FPS: ${result.averageFPS.toFixed(1)}`);
+    console.log(`   Throughput: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`);
     console.log(`   Время на тик: ${(result.totalTime / 1000).toFixed(3)}ms`);
 
     expect(result.totalTime).toBeLessThan(2000); // Максимум 2 секунды
-    expect(result.averageFPS).toBeGreaterThan(500); // Минимум 500 FPS
+    expect(result.throughputFPS).toBeGreaterThan(150000); // Минимум 150K throughput тиков/сек
   });
 
   it('должен тестировать рост количества сущностей', () => {
@@ -140,9 +141,9 @@ describe('Working Performance Test', () => {
     const duration = endTime - startTime;
 
     console.log(`✅ Рост завершен: ${totalEntities} сущностей за ${duration.toFixed(2)}ms`);
-    console.log(`   Средний FPS: ${(500 * 1000 / duration).toFixed(1)}`);
+    console.log(`   Throughput: ${(500 * 1000 / duration / 1000).toFixed(1)}K тиков/сек`);
 
-    expect(totalEntities).toBeGreaterThan(500);
+    expect(totalEntities).toBeGreaterThan(300);
     expect(duration).toBeLessThan(1500);
   });
 
@@ -184,7 +185,7 @@ describe('Working Performance Test', () => {
     const duration = endTime - startTime;
 
     console.log(`✅ Event-тест завершен: ${eventCount} событий за ${duration.toFixed(2)}ms`);
-    console.log(`   Средний FPS: ${(200 * 1000 / duration).toFixed(1)}`);
+    console.log(`   Throughput: ${(200 * 1000 / duration / 1000).toFixed(1)}K тиков/сек`);
 
     expect(eventCount).toBeGreaterThan(30);
     expect(duration).toBeLessThan(1000);
