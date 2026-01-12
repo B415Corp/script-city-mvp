@@ -50,10 +50,13 @@ export class TimeService {
    * Получить полные данные времени
    */
   getTimeData(): GameTimeUpdateData {
-    const minutesOfDay = this.currentTime % 1440;
-    const day = Math.floor(this.currentTime / 1440) + 1;
-    const hours = Math.floor(minutesOfDay / 60);
-    const minutes = Math.floor(minutesOfDay % 60);
+    const minutesOfDay = this.currentTime % 1440; // минуты от начала дня
+    const day = Math.floor(this.currentTime / 1440) + 1; // номер дня
+    const hours = Math.floor(minutesOfDay / 60); // часы
+    const minutes = Math.floor(minutesOfDay % 60); // минуты
+    const week = Math.floor(day / 7) + 1; // номер недели
+    const dayOfWeek = day % 7; // номер дня недели
+    const timeOfDayCondition = this.getCurrentTimeCondition(); // условие времени суток
 
     return {
       totalMinutes: this.currentTime,
@@ -66,6 +69,9 @@ export class TimeService {
       dayOfMonth: day,
       hour: hours,
       minute: minutes,
+      week,
+      dayOfWeek,
+      timeOfDayCondition,
     };
   }
 
@@ -101,48 +107,48 @@ export class TimeService {
    * Проверить, является ли время утренним (6:00-12:00)
    */
   isMorningTime(): boolean {
-    const hour = this.getHour();
-    return hour >= 6 && hour < 12;
+    const hours = Math.floor((this.currentTime % 1440) / 60);
+    return hours >= 6 && hours < 12;
   }
 
   /**
    * Проверить, является ли время дневным (12:00-18:00)
    */
   isAfternoonTime(): boolean {
-    const hour = this.getHour();
-    return hour >= 12 && hour < 18;
+    const hours = Math.floor((this.currentTime % 1440) / 60);
+    return hours >= 12 && hours < 18;
   }
 
   /**
    * Проверить, является ли время вечерним (18:00-22:00)
    */
   isEveningTime(): boolean {
-    const hour = this.getHour();
-    return hour >= 18 && hour < 22;
+    const hours = Math.floor((this.currentTime % 1440) / 60);
+    return hours >= 18 && hours < 22;
   }
 
   /**
    * Проверить, является ли время ночным (22:00-6:00)
    */
   isNightTime(): boolean {
-    const hour = this.getHour();
-    return hour >= 22 || hour < 6;
+    const hours = Math.floor((this.currentTime % 1440) / 60);
+    return hours >= 22 || hours < 6;
   }
 
   /**
    * Проверить, являются ли текущие часы рабочими (9:00-17:00)
    */
   isWorkHours(): boolean {
-    const hour = this.getHour();
-    return hour >= 9 && hour < 17;
+    const hours = Math.floor((this.currentTime % 1440) / 60);
+    return hours >= 9 && hours < 17;
   }
 
   /**
    * Проверить, является ли время подходящим для увольнения (18:00-20:00)
    */
   isFiringTime(): boolean {
-    const hour = this.getHour();
-    return hour >= 18 && hour < 20;
+    const hours = Math.floor((this.currentTime % 1440) / 60);
+    return hours >= 18 && hours < 20;
   }
 
   /**
