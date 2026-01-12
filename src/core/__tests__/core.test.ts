@@ -134,7 +134,6 @@ import { TickManager } from '../tick/tick_manager';
 import { ECSManager } from '../ecs/ecs_manager';
 import { ModuleManager } from '../modules/module_manager';
 import { MainScene } from '../scenes';
-import { EntrySimulation } from '../simulations/entry_simulation';
 import { ComponentRegistry } from '../ecs/registry/component_registry';
 import { SystemRegistry } from '../ecs/registry/system_registry';
 import { ClusterRegistry } from '../ecs/registry/cluster_registry';
@@ -147,7 +146,6 @@ const MockTickManager = vi.mocked(TickManager);
 const MockECSManager = vi.mocked(ECSManager);
 const MockModuleManager = vi.mocked(ModuleManager);
 const MockMainScene = vi.mocked(MainScene);
-const MockEntrySimulation = vi.mocked(EntrySimulation);
 
 describe('Core', () => {
   let mockPhaserConfig: Phaser.Types.Core.GameConfig;
