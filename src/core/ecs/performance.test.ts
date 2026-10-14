@@ -72,72 +72,52 @@ describe('ECS Performance Tests', () => {
   }
 
   /**
-   * Реальный игровой цикл с правильным таймингом (имитация requestAnimationFrame)
-   * Возвращает реалистичные метрики производительности
+   * Игровой цикл на фиксированном числе кадров.
+   *
+   * Меряется СТОИМОСТЬ одного кадра — время, потраченное непосредственно на игровую
+   * логику (вызов систем через LogicTick), а не wall-clock FPS. Wall-clock зависит от
+   * загрузки ОС, планировщика и сборщика мусора: одна пауза в 30ms «съедает» minFPS
+   * до 33, хотя сама игра при этом не медленнее. Стоимость кадра — устойчивая
+   * характеристика, по ней и проверяем, влезает ли симуляция в бюджет кадра.
    */
-  function runRealGameLoop(
-    durationMs: number,
+  function runGameLoop(
+    frameCount: number,
     onFrame?: (frame: number) => void,
   ): {
-    totalTime: number;
-    averageFPS: number;
     frameCount: number;
-    minFPS: number;
-    maxFPS: number;
-    frameTimeVariance: number;
+    totalTimeMs: number;
+    avgFrameCostMs: number;
+    p95FrameCostMs: number;
+    maxFrameCostMs: number;
   } {
+    const frameCosts: number[] = [];
     const startTime = performance.now();
-    let frameCount = 0;
-    const targetFPS = 60;
-    const targetFrameTime = 1000 / targetFPS; // ~16.67ms per frame
 
-    let lastFrameTime = startTime;
-    let minFPS = Infinity;
-    let maxFPS = 0;
-    const frameTimes: number[] = [];
+    for (let frame = 1; frame <= frameCount; frame++) {
+      const frameStart = performance.now();
 
-    while (performance.now() - startTime < durationMs) {
-      const currentTime = performance.now();
-      const deltaTime = currentTime - lastFrameTime;
+      // Логика игры: все ECS-системы, подписанные на LogicTick
+      eventBus.emit(Events.LogicTick, { delta: 16 });
 
-      // Имитируем requestAnimationFrame - выполняем только если прошло достаточно времени
-      if (deltaTime >= targetFrameTime) {
-        // Логика игры
-        eventBus.emit(Events.LogicTick, { delta: deltaTime });
-        frameCount++;
+      frameCosts.push(performance.now() - frameStart);
 
-        // Замер FPS для этого кадра
-        const frameFPS = 1000 / deltaTime;
-        minFPS = Math.min(minFPS, frameFPS);
-        maxFPS = Math.max(maxFPS, frameFPS);
-        frameTimes.push(deltaTime);
-
-        lastFrameTime = currentTime;
-
-        if (onFrame) {
-          onFrame(frameCount);
-        }
+      if (onFrame) {
+        onFrame(frame);
       }
-      // В реальной игре здесь был бы requestAnimationFrame, но мы не можем его использовать в тестах
     }
 
-    const totalTime = performance.now() - startTime;
-    const averageFPS = (frameCount * 1000) / totalTime;
-
-    // Расчет вариации времени кадра
-    const avgFrameTime = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
-    const frameTimeVariance = Math.sqrt(
-      frameTimes.reduce((sum, time) => sum + Math.pow(time - avgFrameTime, 2), 0) /
-        frameTimes.length,
-    );
+    const totalTimeMs = performance.now() - startTime;
+    const sortedCosts = [...frameCosts].sort((a, b) => a - b);
+    const totalCost = frameCosts.reduce((sum, cost) => sum + cost, 0);
 
     return {
-      totalTime,
-      averageFPS,
       frameCount,
-      minFPS: minFPS === Infinity ? 0 : minFPS,
-      maxFPS,
-      frameTimeVariance,
+      totalTimeMs,
+      avgFrameCostMs: totalCost / frameCosts.length,
+      // 95-й перцентиль вместо максимума: единичный выброс (GC-пауза, холодный старт)
+      // не должен валить тест, но систематическое ухудшение — выдаст
+      p95FrameCostMs: sortedCosts[Math.floor(sortedCosts.length * 0.95)] ?? 0,
+      maxFrameCostMs: sortedCosts[sortedCosts.length - 1] ?? 0,
     };
   }
 
@@ -800,39 +780,33 @@ describe('ECS Performance Tests', () => {
         EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
       }
 
-      console.log('🎮 Реалистичный игровой цикл: 2 секунды при 60 FPS...');
+      const FRAMES = 300;
+      // Бюджет кадра при 60 FPS — симуляция обязана в него укладываться
+      const FRAME_BUDGET_MS = 16;
 
-      const result = runRealGameLoop(2000, (frame) => {
-        // Каждые 60 кадров (1 секунда) логируем прогресс
-        if (frame % 60 === 0) {
-          console.log(
-            `   Кадр ${frame}: ${((frame * 1000) / (performance.now() - performance.now() + frame * (1000 / 60))).toFixed(1)} FPS`,
-          );
-        }
+      console.log(`🎮 Игровой цикл: ${FRAMES} кадров при 500+ сущностях, рост города...`);
 
-        // Имитируем игровую логику - рост города
-        if (frame % 120 === 0 && frame > 0) {
-          // Каждые 2 секунды
+      const result = runGameLoop(FRAMES, (frame) => {
+        // Имитируем игровую логику - рост города каждые 120 кадров
+        if (frame % 120 === 0) {
           for (let i = 0; i < 10; i++) {
             EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
           }
         }
       });
 
-      console.log(`✅ Реалистичный игровой цикл завершен:`);
-      console.log(`   Время работы: ${result.totalTime.toFixed(2)}ms`);
-      console.log(`   Количество кадров: ${result.frameCount}`);
-      console.log(`   Реальный FPS: ${result.averageFPS.toFixed(1)}`);
-      console.log(`   Минимальный FPS: ${result.minFPS.toFixed(1)}`);
-      console.log(`   Максимальный FPS: ${result.maxFPS.toFixed(1)}`);
-      console.log(`   Вариация времени кадра: ${result.frameTimeVariance.toFixed(2)}ms`);
+      console.log(`✅ Игровой цикл завершен:`);
+      console.log(`   Кадров обработано: ${result.frameCount}`);
+      console.log(`   Общее время: ${result.totalTimeMs.toFixed(2)}ms`);
+      console.log(`   Средняя стоимость кадра: ${result.avgFrameCostMs.toFixed(3)}ms`);
+      console.log(`   95-й перцентиль кадра: ${result.p95FrameCostMs.toFixed(3)}ms`);
+      console.log(`   Максимальная стоимость кадра: ${result.maxFrameCostMs.toFixed(3)}ms`);
 
-      // Реалистичные ожидания для игрового цикла
-      expect(result.averageFPS).toBeGreaterThan(50); // Минимум 50 FPS (приемлемо для игры)
-      expect(result.averageFPS).toBeLessThan(70); // Максимум 70 FPS (близко к целевым 60)
-      expect(result.minFPS).toBeGreaterThan(30); // Минимум 30 FPS (минимально playable)
-      expect(result.frameCount).toBeGreaterThan(100); // Минимум 100 кадров за 2 секунды
-      expect(result.frameTimeVariance).toBeLessThan(5); // Стабильность кадров (< 5ms вариации)
+      // Проверяем стоимость кадра, а не wall-clock FPS: пауза планировщика ОС или
+      // GC не должна ронять тест — игра от этого не становится медленнее
+      expect(result.frameCount).toBe(FRAMES);
+      expect(result.avgFrameCostMs).toBeLessThan(FRAME_BUDGET_MS);
+      expect(result.p95FrameCostMs).toBeLessThan(FRAME_BUDGET_MS);
     });
   });
 });

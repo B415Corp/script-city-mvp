@@ -140,25 +140,25 @@ body {
     pointer-events: none;
     transform: translateX(100%);
   }
+}
 
-  &-header {
-    padding: var(--space-md);
-    border-block-end: 1px solid var(--border-primary);
-    position: relative;
+.debug-panel-header {
+  padding: var(--space-md);
+  border-block-end: 1px solid var(--border-primary);
+  position: relative;
 
-    &::after {
-      content: 'Ctrl+D to toggle';
-      position: absolute;
-      inset-inline-end: var(--space-md);
-      inset-block-start: 50%;
-      transform: translateY(-50%);
-      font-size: var(--font-xs);
-      color: var(--text-muted);
-      background: var(--bg-tertiary);
-      padding: calc(var(--space-xs) / 2) var(--space-sm);
-      border-radius: var(--radius-sm);
-      pointer-events: none;
-    }
+  &::after {
+    content: 'Ctrl+D to toggle';
+    position: absolute;
+    inset-inline-end: var(--space-md);
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+    font-size: var(--font-xs);
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: calc(var(--space-xs) / 2) var(--space-sm);
+    border-radius: var(--radius-sm);
+    pointer-events: none;
   }
 }
 
@@ -376,16 +376,16 @@ body {
   background: oklch(from var(--bg-primary) calc(l + 5%) c h / 0.05);
   border-radius: var(--radius-sm);
   border-inline-start: 3px solid var(--color-primary);
+}
 
-  &-header {
-    font-weight: 700;
-    color: oklch(from var(--color-primary) calc(l + 10%) c h);
-    margin-block-end: calc(var(--space-xs) / 2);
+.debug-ecs-cluster-header {
+  font-weight: 700;
+  color: oklch(from var(--color-primary) calc(l + 10%) c h);
+  margin-block-end: calc(var(--space-xs) / 2);
 
-    &.debug-ecs-disabled {
-      color: var(--text-muted);
-      text-decoration: line-through;
-    }
+  &.debug-ecs-disabled {
+    color: var(--text-muted);
+    text-decoration: line-through;
   }
 }
 
@@ -466,47 +466,45 @@ body {
   background: oklch(from var(--bg-primary) calc(l + 5%) c h / 0.05);
   border-radius: var(--radius-sm);
   border-inline-start: 3px solid oklch(70% 0.2 200);
+}
 
-  &-header {
-    font-size: calc(var(--font-xs) - 1px);
-    font-weight: 700;
-    color: var(--color-success);
-    margin-block-end: var(--space-xs);
-  }
+.debug-simulation-citizen-header {
+  font-size: calc(var(--font-xs) - 1px);
+  font-weight: 700;
+  color: var(--color-success);
+  margin-block-end: var(--space-xs);
+}
 
-  &-section {
-    margin-block-end: var(--space-sm);
-    padding: var(--space-xs);
-    background: oklch(from var(--bg-primary) calc(l + 3%) c h / 0.03);
-    border-radius: var(--radius-sm);
+.debug-simulation-citizen-section {
+  margin-block-end: var(--space-sm);
+  padding: var(--space-xs);
+  background: oklch(from var(--bg-primary) calc(l + 3%) c h / 0.03);
+  border-radius: var(--radius-sm);
+}
 
-    &-title {
-      font-size: calc(var(--font-xs) - 1px);
-      font-weight: 700;
-      color: oklch(70% 0.2 200);
-      margin-block-end: var(--space-xs);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-  }
+.debug-simulation-citizen-section-title {
+  font-size: calc(var(--font-xs) - 1px);
+  font-weight: 700;
+  color: oklch(70% 0.2 200);
+  margin-block-end: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
-  &-stat {
-    &-item {
-      display: flex;
-      align-items: center;
-      font-size: calc(var(--font-xs) - 2px);
-      color: oklch(90% 0 0);
-      margin-block-end: calc(var(--space-xs) / 2);
-      line-height: 1.2;
-    }
+.debug-simulation-citizen-stat-item {
+  display: flex;
+  align-items: center;
+  font-size: calc(var(--font-xs) - 2px);
+  color: oklch(90% 0 0);
+  margin-block-end: calc(var(--space-xs) / 2);
+  line-height: 1.2;
+}
 
-    &-icon {
-      margin-inline-end: var(--space-sm);
-      inline-size: 14px;
-      text-align: center;
-      font-size: calc(var(--font-xs) - 1px);
-    }
-  }
+.debug-simulation-citizen-stat-icon {
+  margin-inline-end: var(--space-sm);
+  inline-size: 14px;
+  text-align: center;
+  font-size: calc(var(--font-xs) - 1px);
 }
 
 .debug-simulation-citizen-copy-btn {

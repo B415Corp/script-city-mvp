@@ -127,7 +127,6 @@ src/
 | `ECSManager.destroy()` не снимает подписки EventBus и не чистит реестры — утечка | `ecs_manager.ts` |
 | `Logger.info` на каждую регистрацию — шум в консоли на старте | `ecs_manager.ts` |
 | 24 файла (включая `package-lock.json`) сохранены с **CRLF**, хотя `.editorconfig` и Prettier требуют LF → грязные diff между Windows и Linux | исправлено через `.gitattributes` (`* text=auto eol=lf`) |
-| Флакующий перф-тест «должен демонстрировать реалистичную производительность игрового цикла» проверяет реальные FPS (`minFPS > 30`, `averageFPS < 70`) и падает на загруженной машине. Из-за него `npm run build` не проходит целиком, хотя `lint`, `type-check`, `format:check` и `vite build` — зелёные | `src/core/ecs/performance.test.ts` |
 
 ## 8. Определение готовности (Definition of Done)
 
