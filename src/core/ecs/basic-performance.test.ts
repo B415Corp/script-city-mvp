@@ -30,7 +30,10 @@ describe('Basic ECS Performance Tests', () => {
       // Создаем 10 простых сущностей
       const entities = [];
       for (let i = 0; i < 10; i++) {
-        const entityId = EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
+        const entityId = EntityFactoryRegistry.getInstance().create(
+          'simple_performance_entity',
+          world,
+        );
         entities.push(entityId);
       }
 
@@ -50,7 +53,10 @@ describe('Basic ECS Performance Tests', () => {
       // Создаем 50 простых сущностей
       const entities = [];
       for (let i = 0; i < 50; i++) {
-        const entityId = EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
+        const entityId = EntityFactoryRegistry.getInstance().create(
+          'simple_performance_entity',
+          world,
+        );
         entities.push(entityId);
       }
 

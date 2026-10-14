@@ -56,7 +56,9 @@ describe('Working Performance Test', () => {
     console.log(`   Интервальных систем: ${stats.intervalSystems.length}`);
 
     Object.entries(stats.clusters).forEach(([name, cluster]) => {
-      console.log(`   Кластер "${name}": ${cluster.systemsCount} систем, интервал: ${cluster.interval || 'каждый тик'}`);
+      console.log(
+        `   Кластер "${name}": ${cluster.systemsCount} систем, интервал: ${cluster.interval || 'каждый тик'}`,
+      );
     });
 
     return stats;
@@ -81,7 +83,9 @@ describe('Working Performance Test', () => {
     const endTime = performance.now();
     const duration = endTime - startTime;
 
-    console.log(`⚡ Создание 1000 сущностей: ${duration.toFixed(2)}ms (${(duration / 1000).toFixed(3)}ms на сущность)`);
+    console.log(
+      `⚡ Создание 1000 сущностей: ${duration.toFixed(2)}ms (${(duration / 1000).toFixed(3)}ms на сущность)`,
+    );
 
     expect(duration).toBeLessThan(500);
   });
@@ -141,7 +145,7 @@ describe('Working Performance Test', () => {
     const duration = endTime - startTime;
 
     console.log(`✅ Рост завершен: ${totalEntities} сущностей за ${duration.toFixed(2)}ms`);
-    console.log(`   Throughput: ${(500 * 1000 / duration / 1000).toFixed(1)}K тиков/сек`);
+    console.log(`   Throughput: ${((500 * 1000) / duration / 1000).toFixed(1)}K тиков/сек`);
 
     expect(totalEntities).toBeGreaterThan(300);
     expect(duration).toBeLessThan(1500);
@@ -185,7 +189,7 @@ describe('Working Performance Test', () => {
     const duration = endTime - startTime;
 
     console.log(`✅ Event-тест завершен: ${eventCount} событий за ${duration.toFixed(2)}ms`);
-    console.log(`   Throughput: ${(200 * 1000 / duration / 1000).toFixed(1)}K тиков/сек`);
+    console.log(`   Throughput: ${((200 * 1000) / duration / 1000).toFixed(1)}K тиков/сек`);
 
     expect(eventCount).toBeGreaterThan(30);
     expect(duration).toBeLessThan(1000);

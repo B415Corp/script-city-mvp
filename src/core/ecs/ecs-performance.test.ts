@@ -14,13 +14,26 @@ import './__tests__/performance/systems';
 import './__tests__/performance/clusters';
 
 // Явный импорт фабрик для доступа к ним
-import { createPerformanceCitizen, createPerformanceBuilding, createPerformanceVehicle, createSimplePerformanceEntity } from './__tests__/performance/entities/performance_factories';
+import {
+  createPerformanceCitizen,
+  createPerformanceBuilding,
+  createPerformanceVehicle,
+  createSimplePerformanceEntity,
+} from './__tests__/performance/entities/performance_factories';
 
 // Импорт компонентов для явной регистрации
-import { PerformanceCitizenComponent, PerformanceBuildingComponent, SimplePerformanceComponent } from './__tests__/performance/components/performance_components';
+import {
+  PerformanceCitizenComponent,
+  PerformanceBuildingComponent,
+  SimplePerformanceComponent,
+} from './__tests__/performance/components/performance_components';
 
 // Импорт систем для явной регистрации
-import { PerformanceCitizenUpdateSystem, PerformanceBuildingUpdateSystem, SimplePerformanceSystem } from './__tests__/performance/systems/performance_systems';
+import {
+  PerformanceCitizenUpdateSystem,
+  PerformanceBuildingUpdateSystem,
+  SimplePerformanceSystem,
+} from './__tests__/performance/systems/performance_systems';
 
 // Импорт addEntity для создания сущностей
 import { addEntity } from 'bitecs';
@@ -41,22 +54,22 @@ describe('ECS Performance Tests', () => {
     EntityFactoryRegistry.getInstance().register(
       'performance_citizen',
       createPerformanceCitizen,
-      'Создает жителя для тестов производительности'
+      'Создает жителя для тестов производительности',
     );
     EntityFactoryRegistry.getInstance().register(
       'performance_building',
       createPerformanceBuilding,
-      'Создает здание для тестов производительности'
+      'Создает здание для тестов производительности',
     );
     EntityFactoryRegistry.getInstance().register(
       'performance_vehicle',
       createPerformanceVehicle,
-      'Создает транспортное средство для тестов производительности'
+      'Создает транспортное средство для тестов производительности',
     );
     EntityFactoryRegistry.getInstance().register(
       'simple_performance_entity',
       createSimplePerformanceEntity,
-      'Создает простую сущность для тестов максимальной производительности'
+      'Создает простую сущность для тестов максимальной производительности',
     );
 
     // Создаем реальные экземпляры зависимостей
@@ -237,7 +250,9 @@ describe('ECS Performance Tests', () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
 
-      console.log(`Создано 1000 жителей + 500 зданий + 200 транспортных средств за ${duration.toFixed(2)}ms`);
+      console.log(
+        `Создано 1000 жителей + 500 зданий + 200 транспортных средств за ${duration.toFixed(2)}ms`,
+      );
 
       expect(duration).toBeLessThan(2000);
     });
@@ -368,21 +383,21 @@ describe('ECS Performance Tests', () => {
         systemRegistry.register('performance_citizen_update', PerformanceCitizenUpdateSystem, {
           name: 'performance_citizen_update',
           cluster: 'performance_simulation',
-          interval: undefined
+          interval: undefined,
         });
       }
       if (!systemRegistry.has('performance_building_update')) {
         systemRegistry.register('performance_building_update', PerformanceBuildingUpdateSystem, {
           name: 'performance_building_update',
           cluster: 'performance_simulation',
-          interval: undefined
+          interval: undefined,
         });
       }
       if (!systemRegistry.has('simple_performance_update')) {
         systemRegistry.register('simple_performance_update', SimplePerformanceSystem, {
           name: 'simple_performance_update',
           cluster: 'performance_benchmark',
-          interval: undefined
+          interval: undefined,
         });
       }
 

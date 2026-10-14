@@ -6,10 +6,7 @@ import { createCluster } from '../../../core/smart_constructors';
  */
 export const PerformanceSimulationCluster = createCluster(
   'performance_simulation',
-  [
-    'performance_citizen_update',
-    'performance_building_update'
-  ],
+  ['performance_citizen_update', 'performance_building_update'],
   {
     enabled: true,
     description: 'Системы симуляции города для тестов производительности',
@@ -23,9 +20,7 @@ export const PerformanceSimulationCluster = createCluster(
  */
 export const PerformanceBenchmarkCluster = createCluster(
   'performance_benchmark',
-  [
-    'simple_performance_update'
-  ],
+  ['simple_performance_update'],
   {
     enabled: true,
     description: 'Простые системы для измерения базовой производительности ECS',
@@ -39,9 +34,7 @@ export const PerformanceBenchmarkCluster = createCluster(
  */
 export const PerformanceStressTestCluster = createCluster(
   'performance_stress_test',
-  [
-    'bulk_performance_update'
-  ],
+  ['bulk_performance_update'],
   {
     enabled: true,
     description: 'Системы для стресс-тестирования ECS с максимальными нагрузками',

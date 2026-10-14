@@ -21,7 +21,7 @@ export const PerformanceCitizenComponent = createComponent('PerformanceCitizen',
 
   // Флаги активности
   isWorking: 0, // 0 или 1
-  isAlive: 1,   // 0 или 1
+  isAlive: 1, // 0 или 1
 });
 
 /**
@@ -36,8 +36,8 @@ export const PerformanceBuildingComponent = createComponent('PerformanceBuilding
   maintenanceCost: 10,
 
   // Вместимость
-  capacity: 50,        // uint16
-  occupants: 0,        // uint16
+  capacity: 50, // uint16
+  occupants: 0, // uint16
 
   // Координаты
   tileX: 0,
@@ -52,7 +52,7 @@ export const PerformanceBuildingComponent = createComponent('PerformanceBuilding
  */
 export const PerformanceVehicleComponent = createComponent('PerformanceVehicle', {
   // Тип транспорта
-  vehicleType: 0,      // 0=car, 1=bus, 2=truck
+  vehicleType: 0, // 0=car, 1=bus, 2=truck
 
   // Движение
   speed: 0,
@@ -73,7 +73,7 @@ export const PerformanceVehicleComponent = createComponent('PerformanceVehicle',
  * Минимум полей для максимальной скорости
  */
 export const SimplePerformanceComponent = createComponent('SimplePerformance', {
-  id: 0,      // uint32
-  value: 0,   // uint32
-  active: 1,  // uint8
+  id: 0, // uint32
+  value: 0, // uint32
+  active: 1, // uint8
 });

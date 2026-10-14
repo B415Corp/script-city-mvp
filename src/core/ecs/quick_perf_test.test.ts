@@ -59,7 +59,7 @@ describe('Quick Performance Test', () => {
     console.log(`⚡ Performance Results:`);
     console.log(`   Created 100 entities: ${createTime.toFixed(2)}ms`);
     console.log(`   100 continuous ticks: ${updateTime.toFixed(2)}ms`);
-    console.log(`   Average FPS: ${(100 * 1000 / updateTime).toFixed(1)}`);
+    console.log(`   Average FPS: ${((100 * 1000) / updateTime).toFixed(1)}`);
 
     expect(createTime).toBeLessThan(200);
     expect(updateTime).toBeLessThan(500);

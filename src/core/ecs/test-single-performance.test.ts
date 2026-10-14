@@ -26,7 +26,10 @@ describe('Single Performance Test', () => {
   /**
    * Вспомогательная функция для запуска игрового цикла (синхронная версия)
    */
-  function runGameLoopSync(ticks: number, onTick?: (tick: number) => void): {
+  function runGameLoopSync(
+    ticks: number,
+    onTick?: (tick: number) => void,
+  ): {
     totalTime: number;
     averageFPS: number;
     finalEntityCount: number;
@@ -54,7 +57,7 @@ describe('Single Performance Test', () => {
     return {
       totalTime,
       averageFPS,
-      finalEntityCount: entityEstimate
+      finalEntityCount: entityEstimate,
     };
   }
 
@@ -70,7 +73,9 @@ describe('Single Performance Test', () => {
     console.log(`   Event-систем: ${Object.keys(stats.eventSystems).length} типов`);
 
     Object.entries(stats.clusters).forEach(([name, cluster]) => {
-      console.log(`   Кластер "${name}": ${cluster.systemsCount} систем, интервал: ${cluster.interval || 'каждый тик'}`);
+      console.log(
+        `   Кластер "${name}": ${cluster.systemsCount} систем, интервал: ${cluster.interval || 'каждый тик'}`,
+      );
     });
 
     return stats;
@@ -94,7 +99,9 @@ describe('Single Performance Test', () => {
         for (let i = 0; i < 5; i++) {
           EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
         }
-        console.log(`   Тик ${tick}: Добавлено 5 сущностей, всего ~${105 + Math.floor(tick / 50) * 5}`);
+        console.log(
+          `   Тик ${tick}: Добавлено 5 сущностей, всего ~${105 + Math.floor(tick / 50) * 5}`,
+        );
       }
 
       // Каждые 20 тиков отправляем событие
@@ -103,7 +110,9 @@ describe('Single Performance Test', () => {
       }
     });
 
-    console.log(`✅ Завершено: ${result.totalTime.toFixed(2)}ms, средний FPS: ${result.averageFPS.toFixed(1)}`);
+    console.log(
+      `✅ Завершено: ${result.totalTime.toFixed(2)}ms, средний FPS: ${result.averageFPS.toFixed(1)}`,
+    );
 
     expect(result.averageFPS).toBeGreaterThan(30); // Минимум 30 FPS
     expect(result.totalTime).toBeLessThan(10000); // Максимум 10 секунд

@@ -17,7 +17,12 @@ import './performance/clusters';
 import './performance';
 
 // Явный импорт фабрик для гарантии регистрации
-import { createSimplePerformanceEntity, createPerformanceCitizen, createPerformanceBuilding, createPerformanceVehicle } from './performance/entities/performance_factories';
+import {
+  createSimplePerformanceEntity,
+  createPerformanceCitizen,
+  createPerformanceBuilding,
+  createPerformanceVehicle,
+} from './performance/entities/performance_factories';
 
 describe('ECS Performance Tests', () => {
   let eventBus: EventBus;
@@ -203,7 +208,9 @@ describe('ECS Performance Tests', () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
 
-      console.log(`Создано 1000 жителей + 500 зданий + 200 транспортных средств за ${duration.toFixed(2)}ms`);
+      console.log(
+        `Создано 1000 жителей + 500 зданий + 200 транспортных средств за ${duration.toFixed(2)}ms`,
+      );
 
       expect(duration).toBeLessThan(2000);
     });
@@ -371,9 +378,15 @@ describe('ECS Performance Tests', () => {
       // Регистрируем фабрику если не зарегистрирована
       const registry = EntityFactoryRegistry.getInstance();
       if (!registry.has('simple_performance_entity')) {
-        import('./performance/entities/performance_factories').then(({ createSimplePerformanceEntity }) => {
-          registry.register('simple_performance_entity', createSimplePerformanceEntity, 'Создает простую сущность для тестов максимальной производительности');
-        });
+        import('./performance/entities/performance_factories').then(
+          ({ createSimplePerformanceEntity }) => {
+            registry.register(
+              'simple_performance_entity',
+              createSimplePerformanceEntity,
+              'Создает простую сущность для тестов максимальной производительности',
+            );
+          },
+        );
       }
 
       // Создаем несколько сущностей для event систем

@@ -4,7 +4,7 @@ import {
   PerformanceCitizenComponent,
   PerformanceBuildingComponent,
   PerformanceVehicleComponent,
-  SimplePerformanceComponent
+  SimplePerformanceComponent,
 } from '../components/performance_components';
 
 /**
@@ -17,9 +17,9 @@ export const createPerformanceCitizen = createEntityFactory(
 
     // Используем create метод компонента для автоматического addComponent
     PerformanceCitizenComponent.create(world, entityId, {
-      money: Math.floor(Math.random() * 5000 + 500),    // 500-5500
-      happiness: Math.floor(Math.random() * 100),        // 0-100
-      health: Math.floor(Math.random() * 50 + 50),       // 50-100
+      money: Math.floor(Math.random() * 5000 + 500), // 500-5500
+      happiness: Math.floor(Math.random() * 100), // 0-100
+      health: Math.floor(Math.random() * 50 + 50), // 50-100
       x: Math.random() * 10000,
       y: Math.random() * 10000,
       age: Math.floor(Math.random() * 100),

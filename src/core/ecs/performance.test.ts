@@ -26,7 +26,10 @@ describe('ECS Performance Tests', () => {
   /**
    * Вспомогательная функция для запуска игрового цикла (синхронная версия для тестов)
    */
-  function measureThroughput(ticks: number, onTick?: (tick: number) => void): {
+  function measureThroughput(
+    ticks: number,
+    onTick?: (tick: number) => void,
+  ): {
     totalTime: number;
     throughputFPS: number;
     finalEntityCount: number;
@@ -54,7 +57,7 @@ describe('ECS Performance Tests', () => {
     return {
       totalTime,
       throughputFPS,
-      finalEntityCount: entityEstimate
+      finalEntityCount: entityEstimate,
     };
   }
 
@@ -62,7 +65,10 @@ describe('ECS Performance Tests', () => {
    * Реальный игровой цикл с правильным таймингом (имитация requestAnimationFrame)
    * Возвращает реалистичные метрики производительности
    */
-  function runRealGameLoop(durationMs: number, onFrame?: (frame: number) => void): {
+  function runRealGameLoop(
+    durationMs: number,
+    onFrame?: (frame: number) => void,
+  ): {
     totalTime: number;
     averageFPS: number;
     frameCount: number;
@@ -111,7 +117,8 @@ describe('ECS Performance Tests', () => {
     // Расчет вариации времени кадра
     const avgFrameTime = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
     const frameTimeVariance = Math.sqrt(
-      frameTimes.reduce((sum, time) => sum + Math.pow(time - avgFrameTime, 2), 0) / frameTimes.length
+      frameTimes.reduce((sum, time) => sum + Math.pow(time - avgFrameTime, 2), 0) /
+        frameTimes.length,
     );
 
     return {
@@ -120,7 +127,7 @@ describe('ECS Performance Tests', () => {
       frameCount,
       minFPS: minFPS === Infinity ? 0 : minFPS,
       maxFPS,
-      frameTimeVariance
+      frameTimeVariance,
     };
   }
 
@@ -136,7 +143,9 @@ describe('ECS Performance Tests', () => {
     console.log(`   Event-систем: ${Object.keys(stats.eventSystems).length} типов`);
 
     Object.entries(stats.clusters).forEach(([name, cluster]) => {
-      console.log(`   Кластер "${name}": ${cluster.systemsCount} систем, интервал: ${cluster.interval || 'каждый тик'}`);
+      console.log(
+        `   Кластер "${name}": ${cluster.systemsCount} систем, интервал: ${cluster.interval || 'каждый тик'}`,
+      );
     });
 
     return stats;
@@ -161,7 +170,9 @@ describe('ECS Performance Tests', () => {
           for (let i = 0; i < 5; i++) {
             EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
           }
-          console.log(`   Тик ${tick}: Добавлено 5 сущностей, всего ~${105 + Math.floor(tick / 50) * 5}`);
+          console.log(
+            `   Тик ${tick}: Добавлено 5 сущностей, всего ~${105 + Math.floor(tick / 50) * 5}`,
+          );
         }
 
         // Каждые 20 тиков отправляем событие
@@ -170,7 +181,9 @@ describe('ECS Performance Tests', () => {
         }
       });
 
-      console.log(`✅ Завершено: ${result.totalTime.toFixed(2)}ms, throughput: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`);
+      console.log(
+        `✅ Завершено: ${result.totalTime.toFixed(2)}ms, throughput: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`,
+      );
 
       expect(result.throughputFPS).toBeGreaterThan(30000); // Минимум 30K throughput тиков/сек
       expect(result.totalTime).toBeLessThan(10000); // Максимум 10 секунд
@@ -187,7 +200,9 @@ describe('ECS Performance Tests', () => {
         EntityFactoryRegistry.getInstance().create('performance_building', world);
       }
 
-      console.log('🚀 Тестирование интервальных систем (performance_simulation, interval: 100ms)...');
+      console.log(
+        '🚀 Тестирование интервальных систем (performance_simulation, interval: 100ms)...',
+      );
 
       // Запускаем на 500 тиков (должно быть достаточно для нескольких интервалов)
       const result = measureThroughput(500);
@@ -281,7 +296,9 @@ describe('ECS Performance Tests', () => {
           totalCitizens += newCitizens;
           totalBuildings += newBuildings;
 
-          console.log(`   Тик ${tick}: +${newCitizens} жителей, +${newBuildings} зданий (всего: ${totalCitizens}ж + ${totalBuildings}з)`);
+          console.log(
+            `   Тик ${tick}: +${newCitizens} жителей, +${newBuildings} зданий (всего: ${totalCitizens}ж + ${totalBuildings}з)`,
+          );
         }
 
         // Имитация игровой активности
@@ -289,7 +306,7 @@ describe('ECS Performance Tests', () => {
           eventBus.emit('performance:city_growth', {
             tick,
             citizens: totalCitizens,
-            buildings: totalBuildings
+            buildings: totalBuildings,
           });
         }
       });
@@ -338,7 +355,8 @@ describe('ECS Performance Tests', () => {
         }
 
         // Случайные события
-        if (Math.random() < 0.05) { // 5% шанс на тик
+        if (Math.random() < 0.05) {
+          // 5% шанс на тик
           eventBus.emit('performance:random_event', { tick, type: 'random' });
         }
       });
@@ -351,8 +369,12 @@ describe('ECS Performance Tests', () => {
       console.log(`   Throughput: ${result.throughputFPS.toFixed(0)} тиков/сек`);
       console.log(`   Пиковый throughput: ${peakFPS}`);
       console.log(`   Минимальный throughput: ${minFPS}`);
-      console.log(`   Использование памяти: ${memoryDelta > 0 ? '+' + (memoryDelta / 1024 / 1024).toFixed(1) + 'MB' : 'N/A'}`);
-      console.log(`   🔥 Экстремальная пропускная способность: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`);
+      console.log(
+        `   Использование памяти: ${memoryDelta > 0 ? '+' + (memoryDelta / 1024 / 1024).toFixed(1) + 'MB' : 'N/A'}`,
+      );
+      console.log(
+        `   🔥 Экстремальная пропускная способность: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`,
+      );
 
       expect(result.totalTime).toBeGreaterThan(10); // Минимум 10ms для значимого замера
       expect(result.throughputFPS).toBeGreaterThan(10000); // Минимум 10K throughput FPS (хорошая пропускная способность)
@@ -448,7 +470,7 @@ describe('ECS Performance Tests', () => {
       let clusterActivations = {
         simulation: 0,
         benchmark: 0,
-        stress: 0
+        stress: 0,
       };
 
       const result = measureThroughput(300, (tick) => {
@@ -470,14 +492,18 @@ describe('ECS Performance Tests', () => {
 
         // Каждые 100 тиков логируем прогресс
         if (tick % 100 === 0) {
-          console.log(`   Тик ${tick}: Активаций кластеров - sim:${clusterActivations.simulation}, bench:${clusterActivations.benchmark}, stress:${clusterActivations.stress}`);
+          console.log(
+            `   Тик ${tick}: Активаций кластеров - sim:${clusterActivations.simulation}, bench:${clusterActivations.benchmark}, stress:${clusterActivations.stress}`,
+          );
         }
       });
 
       console.log(`✅ Тест кластеров завершен:`);
       console.log(`   Время: ${result.totalTime.toFixed(2)}ms`);
       console.log(`   Throughput: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`);
-      console.log(`   Всего активаций кластеров: ${clusterActivations.simulation + clusterActivations.benchmark + clusterActivations.stress}`);
+      console.log(
+        `   Всего активаций кластеров: ${clusterActivations.simulation + clusterActivations.benchmark + clusterActivations.stress}`,
+      );
 
       expect(result.throughputFPS).toBeGreaterThan(10000);
       expect(clusterActivations.simulation).toBeGreaterThan(10);
@@ -598,7 +624,8 @@ describe('ECS Performance Tests', () => {
         }
 
         // Случайные мини-пики
-        if (Math.random() < 0.02) { // 2% шанс
+        if (Math.random() < 0.02) {
+          // 2% шанс
           eventBus.emit('performance:mini_spike', { tick, type: 'random' });
         }
       });
@@ -644,7 +671,9 @@ describe('ECS Performance Tests', () => {
           }
 
           if (tick % 5000 === 0) {
-            console.log(`   Тик ${tick}: Throughput ~${(currentThroughput / 1000).toFixed(1)}K тиков/сек`);
+            console.log(
+              `   Тик ${tick}: Throughput ~${(currentThroughput / 1000).toFixed(1)}K тиков/сек`,
+            );
           }
         }
 
@@ -668,7 +697,9 @@ describe('ECS Performance Tests', () => {
       console.log(`   Время выполнения: ${result.totalTime.toFixed(2)}ms`);
       console.log(`   Общий throughput: ${(result.throughputFPS / 1000).toFixed(1)}K тиков/сек`);
       console.log(`   Количество замеров: ${throughputHistory.length}`);
-      console.log(`   Потребление памяти: ${memoryDelta > 0 ? (memoryDelta / 1024 / 1024).toFixed(1) + 'MB' : 'N/A'}`);
+      console.log(
+        `   Потребление памяти: ${memoryDelta > 0 ? (memoryDelta / 1024 / 1024).toFixed(1) + 'MB' : 'N/A'}`,
+      );
 
       expect(result.totalTime).toBeGreaterThan(10); // Минимум 10ms для значимого замера
       expect(result.throughputFPS).toBeGreaterThan(50000); // Минимум 50K throughput тиков/сек
@@ -731,17 +762,20 @@ describe('ECS Performance Tests', () => {
       });
 
       // Анализируем восстановление
-      const peakPhase = performanceLog.filter(p => p.phase === 'peak');
-      const recoveryPhase = performanceLog.filter(p => p.phase === 'recovery');
+      const peakPhase = performanceLog.filter((p) => p.phase === 'peak');
+      const recoveryPhase = performanceLog.filter((p) => p.phase === 'recovery');
 
       const avgPeakFPS = peakPhase.reduce((sum, p) => sum + p.fps, 0) / peakPhase.length;
-      const avgRecoveryFPS = recoveryPhase.reduce((sum, p) => sum + p.fps, 0) / recoveryPhase.length;
+      const avgRecoveryFPS =
+        recoveryPhase.reduce((sum, p) => sum + p.fps, 0) / recoveryPhase.length;
 
       console.log(`✅ Тест восстановления завершен:`);
       console.log(`   Время: ${result.totalTime.toFixed(2)}ms`);
       console.log(`   Пиковая нагрузка - средний FPS: ${avgPeakFPS.toFixed(1)}`);
       console.log(`   Восстановление - средний FPS: ${avgRecoveryFPS.toFixed(1)}`);
-      console.log(`   Восстановление производительности: ${((avgRecoveryFPS - avgPeakFPS) / avgPeakFPS * 100).toFixed(1)}%`);
+      console.log(
+        `   Восстановление производительности: ${(((avgRecoveryFPS - avgPeakFPS) / avgPeakFPS) * 100).toFixed(1)}%`,
+      );
 
       expect(avgRecoveryFPS).toBeGreaterThan(avgPeakFPS * 0.8); // Восстановление минимум 80% от пика
       expect(result.totalTime).toBeLessThan(20000); // Максимум 20 секунд
@@ -760,11 +794,14 @@ describe('ECS Performance Tests', () => {
       const result = runRealGameLoop(2000, (frame) => {
         // Каждые 60 кадров (1 секунда) логируем прогресс
         if (frame % 60 === 0) {
-          console.log(`   Кадр ${frame}: ${(frame * 1000 / (performance.now() - performance.now() + frame * (1000/60))).toFixed(1)} FPS`);
+          console.log(
+            `   Кадр ${frame}: ${((frame * 1000) / (performance.now() - performance.now() + frame * (1000 / 60))).toFixed(1)} FPS`,
+          );
         }
 
         // Имитируем игровую логику - рост города
-        if (frame % 120 === 0 && frame > 0) { // Каждые 2 секунды
+        if (frame % 120 === 0 && frame > 0) {
+          // Каждые 2 секунды
           for (let i = 0; i < 10; i++) {
             EntityFactoryRegistry.getInstance().create('simple_performance_entity', world);
           }
