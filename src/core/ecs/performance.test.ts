@@ -11,6 +11,16 @@ import './__tests__/performance/entities';
 import './__tests__/performance/systems';
 import './__tests__/performance/clusters';
 
+/**
+ * `performance.memory` — нестандартное расширение, доступно только в Chrome/Edge.
+ * Возвращает размер используемой кучи в байтах или 0, если API недоступен
+ * (Firefox, Safari, Node без флага --expose-gc).
+ */
+function getUsedHeapSize(): number {
+  const perf = performance as Performance & { memory?: { usedJSHeapSize: number } };
+  return perf.memory?.usedJSHeapSize ?? 0;
+}
+
 describe('ECS Performance Tests', () => {
   let eventBus: EventBus;
   let tickManager: TickManager;
@@ -333,7 +343,7 @@ describe('ECS Performance Tests', () => {
 
       console.log('🚀 Запуск долгосрочного теста на 10000 тиков...');
 
-      const startMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+      const startMemory = getUsedHeapSize();
       let peakFPS = 0;
       let minFPS = 999;
 
@@ -361,7 +371,7 @@ describe('ECS Performance Tests', () => {
         }
       });
 
-      const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+      const endMemory = getUsedHeapSize();
       const memoryDelta = endMemory - startMemory;
 
       console.log(`✅ Долгосрочный тест производительности завершен:`);
@@ -655,7 +665,7 @@ describe('ECS Performance Tests', () => {
 
       console.log('🔄 Тест стабильности: 20000 тиков непрерывной работы...');
 
-      const startMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+      const startMemory = getUsedHeapSize();
       let throughputHistory: number[] = [];
       let memoryCheckpoints: number[] = [];
 
@@ -666,8 +676,9 @@ describe('ECS Performance Tests', () => {
           const currentThroughput = result.throughputFPS;
           throughputHistory.push(currentThroughput);
 
-          if (performance.memory) {
-            memoryCheckpoints.push(performance.memory.usedJSHeapSize);
+          const heapSize = getUsedHeapSize();
+          if (heapSize > 0) {
+            memoryCheckpoints.push(heapSize);
           }
 
           if (tick % 5000 === 0) {
@@ -690,7 +701,7 @@ describe('ECS Performance Tests', () => {
         }
       });
 
-      const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+      const endMemory = getUsedHeapSize();
       const memoryDelta = endMemory - startMemory;
 
       console.log(`✅ Тест стабильности throughput завершен:`);

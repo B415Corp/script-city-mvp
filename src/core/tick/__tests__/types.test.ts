@@ -130,6 +130,9 @@ describe('Tick Types', () => {
           dayOfMonth: 1,
           hour: 8,
           minute: 0,
+          week: 1,
+          dayOfWeek: 1,
+          timeOfDayCondition: TimeConditions.MORNING,
         }),
         setTime: (minutes: number) => {
           // mock implementation
@@ -157,6 +160,9 @@ describe('Tick Types', () => {
           dayOfMonth: 1,
           hour: 8,
           minute: 0,
+          week: 1,
+          dayOfWeek: 1,
+          timeOfDayCondition: TimeConditions.MORNING,
         }),
       };
 

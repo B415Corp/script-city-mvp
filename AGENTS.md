@@ -120,8 +120,6 @@ src/
 
 | Проблема | Где |
 |---|---|
-| `npm run type-check` падает, 16 ошибок | 2 реальных бага: `tick/controllers/time_controller.ts` не заполняет `week`/`dayOfWeek`/`timeOfDayCondition`; удалённый `simulations/entry_simulation` остался в `core/types.ts` и `internal/core_builder.ts`. Остальное — `performance.memory` и `.factory` в перф-тестах |
-| `npm run lint` падает: 112 ошибок `no-undef` — глобал `performance` не объявлен в ESLint-конфиге для тестовых файлов | `eslint.config.js` |
 | Per-tick системы **без кластера не выполняются**: `ScheduleManager.update()` зовёт `updateClusters()` и интервальные системы, но массив `this.systems` не обходит | `core/ecs/ecs_manager.ts` |
 | Event-driven системы всегда получают `delta = 0` и **не видят payload** события | `handleEventSystem` / `handleCallSystem` |
 | Реестры компонентов/систем — глобальные синглтоны, авторегистрация происходит на импорте; `main.ts` импортирует `src/core/ecs/test`, т.е. бенчмарки попадают в рантайм | `core/ecs/registry/*`, `main.ts` |
@@ -129,7 +127,7 @@ src/
 | `ECSManager.destroy()` не снимает подписки EventBus и не чистит реестры — утечка | `ecs_manager.ts` |
 | `Logger.info` на каждую регистрацию — шум в консоли на старте | `ecs_manager.ts` |
 | 24 файла (включая `package-lock.json`) сохранены с **CRLF**, хотя `.editorconfig` и Prettier требуют LF → грязные diff между Windows и Linux | исправлено через `.gitattributes` (`* text=auto eol=lf`) |
-| Флакующий перф-тест «должен демонстрировать реалистичную производительность игрового цикла» проверяет реальные FPS (`minFPS > 30`, `averageFPS < 70`) и падает на загруженной машине — воспроизводится и на чистом коде | `src/core/ecs/performance.test.ts` |
+| Флакующий перф-тест «должен демонстрировать реалистичную производительность игрового цикла» проверяет реальные FPS (`minFPS > 30`, `averageFPS < 70`) и падает на загруженной машине. Из-за него `npm run build` не проходит целиком, хотя `lint`, `type-check`, `format:check` и `vite build` — зелёные | `src/core/ecs/performance.test.ts` |
 
 ## 8. Определение готовности (Definition of Done)
 

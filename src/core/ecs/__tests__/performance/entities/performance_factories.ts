@@ -111,7 +111,7 @@ export const createBulkPerformanceEntities = createEntityFactory(
     const entities = [];
 
     for (let i = 0; i < count; i++) {
-      entities.push(createSimplePerformanceEntity.factory(world));
+      entities.push(createSimplePerformanceEntity(world));
     }
 
     return entities[0]; // Возвращаем ID первой сущности для совместимости

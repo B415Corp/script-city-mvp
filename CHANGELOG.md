@@ -16,6 +16,7 @@
 - Рабочее окружение для ИИ-агентов: `AGENTS.md`, `docs/development/code-style.md`,
   `docs/development/workflow.md`, индекс документации `docs/README.md`.
 - Первая запись `CHANGELOG.md` с реконструированной историей релиза 0.1.0.
+- Тесты границ времени суток (`TimeConditions`), недели и дня недели в `TimeController`.
 
 ### Changed
 
@@ -36,6 +37,21 @@
   теперь проходит полностью.
 - Исправлены ошибочные утверждения о кодировке в новой документации: все файлы репозитория
   корректный UTF-8 без BOM, проблема была только в артефактах вывода консоли.
+- `TimeController.getTimeUpdateData()` теперь возвращает полный `GameTimeUpdateData`:
+  добавлены `week`, `dayOfWeek` и `timeOfDayCondition`. Раньше эти поля объявлялись
+  в интерфейсе, но не заполнялись, из-за чего «время суток» в данных события
+  `GameTimeUpdated` отсутствовало.
+- Удалены мёртвые ссылки на класс `EntrySimulation`, удалённый в 0.1.0:
+  импорт и `entrySimulationFactory` из `ICoreDependencies`, методы
+  `withEntrySimulation` и `withEntrySimulationFactory` в `CoreBuilder`.
+- Исправлен вызов фабрики в `performance_factories.ts`: `createSimplePerformanceEntity`
+  возвращается как функция, поэтому `.factory` не существует.
+- Обращение к нестандартному `performance.memory` (только Chrome/Edge) заменено на
+  типизированный помощник `getUsedHeapSize()` с безопасным возвратом 0.
+- В `eslint.config.js` объявлены глобалы `performance` и `Performance`, которых
+  не было в списках — из-за этого ESLint давал 112 ошибок `no-undef`.
+
+**`npm run type-check` и `npm run lint` теперь проходят без ошибок и предупреждений.**
 
 ### Known issues
 
