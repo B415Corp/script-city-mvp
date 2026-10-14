@@ -8,6 +8,7 @@ import { createSimpleComponent } from '@/core/ecs/core/component_schema';
 import { ComponentRegistry } from '@/core/ecs/registry/component_registry';
 import { SystemRegistry } from '@/core/ecs/registry/system_registry';
 import { ClusterRegistry } from '@/core/ecs/registry/cluster_registry';
+import { Logger } from '@/core/utils/logger';
 
 // Импортируем компоненты динамически из реестра
 // Компоненты будут получаться во время выполнения
@@ -57,6 +58,7 @@ export class SimulationDebug extends DebugComponent {
   private updateTimer: number | null = null;
   private updateInterval = 2000; // Обновлять каждые 2 секунды
   private timeService: TimeService;
+  private logger: Logger = Logger.create('SimulationDebug');
 
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus, ecsManager);
@@ -121,13 +123,13 @@ export class SimulationDebug extends DebugComponent {
   private updateSimulationInfo(): void {
     try {
       if (!this.ecsManager) {
-        console.warn('ECS Manager not available');
+        this.logger.warn('ECS Manager not available');
         this.showError('Менеджер ECS недоступен');
         return;
       }
 
       if (!this.timeService) {
-        console.warn('TimeService not available');
+        this.logger.warn('TimeService not available');
         this.showError('Сервис времени недоступен');
         return;
       }
@@ -137,7 +139,7 @@ export class SimulationDebug extends DebugComponent {
       this.updateEconomyList();
       this.updateScheduleList();
     } catch (error) {
-      console.error('Error updating simulation debug info:', error);
+      this.logger.error('Error updating simulation debug info:', error);
       this.showError('Ошибка загрузки данных симуляции');
     }
   }
@@ -451,13 +453,13 @@ export class SimulationDebug extends DebugComponent {
 
     try {
       if (!this.ecsManager) {
-        console.warn('ECSManager not available in getCitizensData');
+        this.logger.warn('ECSManager not available in getCitizensData');
         return citizens;
       }
 
       const world = this.ecsManager.getWorld();
       if (!world) {
-        console.warn('World not available in getCitizensData');
+        this.logger.warn('World not available in getCitizensData');
         return citizens;
       }
 
@@ -468,7 +470,7 @@ export class SimulationDebug extends DebugComponent {
       const positionComponent = componentRegistry.get('Position');
 
       if (!personComponent || !citizenComponent || !positionComponent) {
-        console.warn('Required components not found in registry');
+        this.logger.warn('Required components not found in registry');
         return citizens;
       }
 
@@ -530,11 +532,11 @@ export class SimulationDebug extends DebugComponent {
             },
           });
         } catch (error) {
-          console.warn(`Error reading citizen entity ${eid}:`, error);
+          this.logger.warn(`Error reading citizen entity ${eid}:`, error);
         }
       });
     } catch (error) {
-      console.error('Error getting citizens data:', error);
+      this.logger.error('Error getting citizens data:', error);
     }
 
     return citizens;
@@ -545,13 +547,13 @@ export class SimulationDebug extends DebugComponent {
 
     try {
       if (!this.ecsManager) {
-        console.warn('ECSManager not available in getBuildingsData');
+        this.logger.warn('ECSManager not available in getBuildingsData');
         return buildings;
       }
 
       const world = this.ecsManager.getWorld();
       if (!world) {
-        console.warn('World not available in getBuildingsData');
+        this.logger.warn('World not available in getBuildingsData');
         return buildings;
       }
 
@@ -563,7 +565,7 @@ export class SimulationDebug extends DebugComponent {
       const workplaceComponent = componentRegistry.get('Workplace');
 
       if (!positionComponent) {
-        console.warn('Position component not found in registry');
+        this.logger.warn('Position component not found in registry');
         return buildings;
       }
 
@@ -595,7 +597,7 @@ export class SimulationDebug extends DebugComponent {
               currentOccupancy: occupants,
             });
           } catch (error) {
-            console.warn(`Error reading Residential entity ${eid}:`, error);
+            this.logger.warn(`Error reading Residential entity ${eid}:`, error);
           }
         });
       }
@@ -632,7 +634,7 @@ export class SimulationDebug extends DebugComponent {
               currentOccupancy: customers,
             });
           } catch (error) {
-            console.warn(`Error reading Commercial entity ${eid}:`, error);
+            this.logger.warn(`Error reading Commercial entity ${eid}:`, error);
           }
         });
       }
@@ -661,12 +663,12 @@ export class SimulationDebug extends DebugComponent {
               currentOccupancy: occupied,
             });
           } catch (error) {
-            console.warn(`Error reading Workplace entity ${eid}:`, error);
+            this.logger.warn(`Error reading Workplace entity ${eid}:`, error);
           }
         });
       }
     } catch (error) {
-      console.error('Error getting buildings data:', error);
+      this.logger.error('Error getting buildings data:', error);
     }
 
     return buildings;
@@ -712,7 +714,7 @@ export class SimulationDebug extends DebugComponent {
       else if (hour >= 9) currentPhase = 'День (Работа)';
       else if (hour >= 6) currentPhase = 'Утро (Пробуждение)';
     } catch (error) {
-      console.warn('Error getting time data for schedule:', error);
+      this.logger.warn('Error getting time data for schedule:', error);
     }
 
     // Простая логика активностей на основе энергии жителей
@@ -740,7 +742,7 @@ export class SimulationDebug extends DebugComponent {
     try {
       return this.timeService.getTimeData().totalMinutes;
     } catch (error) {
-      console.warn('TimeService not ready, using fallback time');
+      this.logger.warn('TimeService not ready, using fallback time');
       return 8 * 60; // 8:00 fallback
     }
   }

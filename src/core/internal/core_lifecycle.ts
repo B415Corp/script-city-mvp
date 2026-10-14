@@ -3,9 +3,11 @@ import ModuleManager from '../modules/module_manager';
 import { EventBus } from '../event_bus/event_bus';
 import { ECSManager } from '../ecs/ecs_manager';
 import { TickManager } from '../tick/tick_manager';
+import { Logger } from '../utils/logger';
 
 // Методы жизненного цикла для Core
 export class CoreLifecycle {
+  private logger: Logger = Logger.create('Core');
   private phaser?: Phaser.Game;
   private resizeHandler?: () => void;
   private moduleManager?: ModuleManager;
@@ -50,7 +52,7 @@ export class CoreLifecycle {
       try {
         this.moduleManager.destroy();
       } catch (error) {
-        console.error('[Core] Error destroying ModuleManager:', error);
+        this.logger.error('Error destroying ModuleManager:', error);
       }
       this.moduleManager = undefined!;
     }
@@ -60,7 +62,7 @@ export class CoreLifecycle {
       try {
         this.ecsManager.destroy();
       } catch (error) {
-        console.error('[Core] Error destroying ECSManager:', error);
+        this.logger.error('Error destroying ECSManager:', error);
       }
       this.ecsManager = null;
     }
@@ -70,7 +72,7 @@ export class CoreLifecycle {
       try {
         this.tickManager.destroy();
       } catch (error) {
-        console.error('[Core] Error destroying TickManager:', error);
+        this.logger.error('Error destroying TickManager:', error);
       }
       this.tickManager = undefined!;
     }
@@ -80,7 +82,7 @@ export class CoreLifecycle {
       try {
         this.eventBus.clear(); // Используем существующий метод clear()
       } catch (error) {
-        console.error('[Core] Error destroying EventBus:', error);
+        this.logger.error('Error destroying EventBus:', error);
       }
       this.eventBus = undefined!;
     }
@@ -90,7 +92,7 @@ export class CoreLifecycle {
       try {
         this.phaser.destroy(true);
       } catch (error) {
-        console.error('[Core] Error destroying Phaser:', error);
+        this.logger.error('Error destroying Phaser:', error);
       }
       this.phaser = undefined!;
     }

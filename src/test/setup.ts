@@ -33,16 +33,13 @@ vi.mock('phaser', () => ({
   Scene: (globalThis as any).Phaser.Scene,
 }));
 
-// Mock BitECS functions and types
-vi.mock('bitecs', () => ({
-  addComponent: vi.fn(),
-  removeComponent: vi.fn(),
-  registerComponent: vi.fn(),
-  createWorld: vi.fn(() => ({})), // Return empty object as mock world
-  addEntity: vi.fn(() => 1), // Return mock entity ID
-  World: {},
-  EntityId: {},
-}));
+// BitECS: используем реальную реализацию. Полностью мокать библиотеку нельзя —
+// ECS-тесты и перф-бенчмарки должны работать на настоящем мире и запросах.
+// Отдельные тесты, которым нужен изолированный мир, мокают bitecs сами (см. ecs_manager.test.ts).
+vi.mock('bitecs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('bitecs')>();
+  return { ...actual };
+});
 
 // Mock window for Phaser
 Object.defineProperty(window, 'innerWidth', { value: 800, writable: true });

@@ -120,12 +120,13 @@ src/
 
 | Проблема | Где |
 |---|---|
-| Per-tick системы **без кластера не выполняются**: `ScheduleManager.update()` зовёт `updateClusters()` и интервальные системы, но массив `this.systems` не обходит | `core/ecs/ecs_manager.ts` |
-| Event-driven системы всегда получают `delta = 0` и **не видят payload** события | `handleEventSystem` / `handleCallSystem` |
-| Реестры компонентов/систем — глобальные синглтоны, авторегистрация происходит на импорте; `main.ts` импортирует `src/core/ecs/test`, т.е. бенчмарки попадают в рантайм | `core/ecs/registry/*`, `main.ts` |
-| `ECSManager.getStats()` возвращает `totalEntities: 0` — дебаг-панель врёт | `ecs_manager.ts` |
-| `ECSManager.destroy()` не снимает подписки EventBus и не чистит реестры — утечка | `ecs_manager.ts` |
-| `Logger.info` на каждую регистрацию — шум в консоли на старте | `ecs_manager.ts` |
+| ~~Per-tick системы без кластера не выполняются~~ — исправлено: `ScheduleManager.update()` обходит `this.systems` | `core/ecs/ecs_manager.ts` |
+| ~~Event-driven системы получают `delta = 0` и не видят payload~~ — исправлено: `SystemFunction` = `(world, delta?, payload?)` | `smart_constructors.ts`, `ecs_manager.ts` |
+| ~~`main.ts` импортирует `src/core/ecs/test`, бенчмарки попадают в рантайм~~ — исправлено: импортируется `src/core/ecs/content` | `main.ts`, `core/ecs/content.ts` |
+| ~~`getStats()` возвращает `totalEntities: 0`~~ — исправлено: считается через `getAllEntities` + `query` | `ecs_manager.ts` |
+| ~~`destroy()` не снимает подписки и не чистит реестры~~ — исправлено: отписка, `deleteWorld`, `clear()` реестров | `ecs_manager.ts` |
+| ~~`Logger.info` на каждую регистрацию~~ — исправлено: регистрация логируется на `debug` | `ecs_manager.ts` |
+| Реестры ECS всё ещё глобальные синглтоны, а авторегистрация происходит на импорте. Точка входа — `src/core/ecs/content.ts`, новый контент добавляется только туда | `core/ecs/registry/*` |
 | 24 файла (включая `package-lock.json`) сохранены с **CRLF**, хотя `.editorconfig` и Prettier требуют LF → грязные diff между Windows и Linux | исправлено через `.gitattributes` (`* text=auto eol=lf`) |
 
 ## 8. Определение готовности (Definition of Done)

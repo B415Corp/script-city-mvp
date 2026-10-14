@@ -17,6 +17,21 @@
   `docs/development/workflow.md`, индекс документации `docs/README.md`.
 - Первая запись `CHANGELOG.md` с реконструированной историей релиза 0.1.0.
 - Тесты границ времени суток (`TimeConditions`), недели и дня недели в `TimeController`.
+- `ScheduleManager.update()` теперь выполняет per-tick системы без кластера
+  (раньше массив `systems` не обходился — такие системы молча не работали).
+- Event-driven системы получают payload события: `SystemFunction` расширен до
+  `(world, delta?, payload?)`, `createSystem` резолвит компоненты из
+  `ComponentRegistry` и передаёт в `updateFn` реальный результат `query()`
+  вместо пустого массива.
+- `ECSManager.getStats()` считает настоящее количество сущностей
+  (`getAllEntities`) и их распределение по компонентам.
+- `ECSManager.destroy()` отписывается от всех событий EventBus, сбрасывает
+  `ScheduleManager`, освобождает мир и чистит реестры.
+- `content.ts` — единая точка регистрации игрового ECS-контента; `main.ts`
+  больше не импортирует `src/core/ecs/test`, бенчмарки убраны из рантайма.
+- `Logger.create()` вместо `console.*` в `ecs_manager.ts`, `event_bus.ts`,
+  `core_lifecycle.ts`, `component_builder.ts`, `component_schema.ts`,
+  `tile_renderer.ts`, отладочных панелях.
 
 ### Changed
 
@@ -26,6 +41,25 @@
 - Markdown-файлы исключены из форматирования Prettier (`*.md` в `.prettierignore`):
   Prettier выравнивает широкие таблицы в столбцы по 200 символов, из-за чего документы
   становились нечитаемыми в исходниках и в diff.
+- `registerSystem()` в `ScheduleManager` принимает имя системы и оборачивает вызов
+  в `try/catch` через `Logger`: падение одной системы больше не роняет весь тик.
+- Интервальные системы кластеров выполняются ровно один раз за тик: раньше они
+  обрабатывались и в `updateClusters()`, и в общем цикле интервальных систем.
+- Кластеры уважают свой `metadata.interval` — раньше он игнорировался, и все
+  системы кластера выполнялись каждый тик.
+- 11 дублирующихся файлов перф-тестов ECS сведены к одному
+  `src/core/ecs/__tests__/performance.test.ts`, проверяющему стоимость кадра
+  (avg/p95) вместо wall-clock FPS. Падавший тест на 150K throughput удалён.
+- `src/test/setup.ts` больше не мокает `bitecs` целиком: ECS-тесты и бенчмарки
+  работают на реальном мире и запросах bitecs.
+
+### Removed
+
+- Тестовый ECS-контент из рантайма: `src/core/ecs/test/`, `components/test/`,
+  `systems/test/`, `entities/test/` (переименованы в `citizen_components.ts`,
+  `citizen_factory.ts`, `work_income_system.ts`, `first_sim_cluster.ts`).
+- `createTestEntity` / `createPlayerEntity` / `createNpcEntity` — фабрики-заглушки,
+  возвращавшие случайные числа вместо entity id.
 
 ### Fixed
 
@@ -65,6 +99,17 @@
   (64 файла вместо 32), удваивая время сборки.
 
 **`npm run build` проходит целиком: lint, type-check, тесты и сборка — зелёные.**
+
+- `ECSManager` больше не засоряет консоль логом на каждую зарегистрированную
+  систему и компонент: детали регистрации переведены на `logger.debug`.
+- `Logger.error()` принимает `unknown` вместо `Error`, чтобы логировать
+  исключения из `catch` без приведений типов.
+- `createComponentSchema` больше не используется напрямую: добавлен
+  `createSchemaComponent()`, который регистрирует компонент в
+  `ComponentRegistry`. Из-за отсутствия регистрации система `work_income`
+  не находила компонент `Money` и выполнялась с пустым набором сущностей.
+- `WorkIncomeSystem` использует `entities` из аргумента `updateFn` вместо
+  собственного `query()` с двойным обходом массива.
 
 ---
 

@@ -374,10 +374,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying ModuleManager:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying ModuleManager');
       expect(core._moduleManager).toBeUndefined();
     });
 
@@ -398,10 +396,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying ECSManager:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying ECSManager');
       expect(core._ecsManager).toBeNull();
     });
 
@@ -422,10 +418,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying TickManager:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying TickManager');
       expect(core._tickManager).toBeUndefined();
     });
 
@@ -446,10 +440,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying EventBus:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying EventBus');
       expect(core._eventBus).toBeUndefined();
     });
 
@@ -470,7 +462,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith('[Core] Error destroying Phaser:', expect.any(Error));
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying Phaser');
       expect(core._phaser).toBeUndefined();
     });
   });

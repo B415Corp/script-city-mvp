@@ -1,4 +1,4 @@
-import { EnhancedComponent, ComponentSchema } from '../core/component_schema';
+import type { EnhancedComponent, ComponentSchema } from '../core/component_schema';
 
 /**
  * Реестр всех компонентов ECS

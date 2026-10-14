@@ -2,10 +2,12 @@ import { getTextureType } from '@/core/scenes';
 import { IsometricMath } from '../infrastructure/isometric_math';
 import { DEFAULT_MAP } from '../infrastructure/maps/default_map';
 import { TileInfo } from '../types';
+import { Logger } from '@/core/utils/logger';
 
 export class TileRenderer {
   private container: Phaser.GameObjects.Container; // контейнер для рендеринга тайлов
   private isometricMath: IsometricMath; // изометрическая математика
+  private logger: Logger = Logger.create('TileRenderer');
 
   constructor(
     private scene: Phaser.Scene,
@@ -33,7 +35,7 @@ export class TileRenderer {
     const textureKey = getTextureType(tileType);
 
     if (!this.scene.textures.exists(textureKey)) {
-      console.warn(`Texture ${textureKey} missing for tile ${tileX},${tileY}`);
+      this.logger.warn(`Texture ${textureKey} missing for tile ${tileX},${tileY}`);
       return;
     }
 

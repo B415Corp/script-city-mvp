@@ -2,7 +2,7 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { BaseModule } from '../../extends';
 import { Logger } from '@/core/utils/logger';
 import { ECSManager } from '@/core/ecs/ecs_manager';
-import { createCitizen, createFactory } from '@/core/ecs/entities/test/firts_sim_factory';
+import { createCitizen, createFactory } from '@/core/ecs/entities/citizen_factory';
 
 export class SimulationModule extends BaseModule {
   protected scene!: Phaser.Scene;

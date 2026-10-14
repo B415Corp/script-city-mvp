@@ -1,5 +1,8 @@
 import { addComponent, removeComponent, registerComponent } from 'bitecs';
 import type { World } from 'bitecs';
+import { Logger } from '../../utils/logger';
+
+const componentLogger = Logger.create('ComponentBuilder');
 
 // ============================================================================
 // TYPES
@@ -72,19 +75,17 @@ function validateField(value: number, field: FieldConfig, fieldName: string): bo
   if (import.meta.env.PROD) return true;
 
   if (typeof value !== 'number' || isNaN(value)) {
-    console.warn(
-      `[Component] Invalid value for "${fieldName}": expected number, got ${typeof value}`,
-    );
+    componentLogger.warn(`Invalid value for "${fieldName}": expected number, got ${typeof value}`);
     return false;
   }
 
   if (field.min !== undefined && value < field.min) {
-    console.warn(`[Component] Value ${value} for "${fieldName}" is below min ${field.min}`);
+    componentLogger.warn(`Value ${value} for "${fieldName}" is below min ${field.min}`);
     return false;
   }
 
   if (field.max !== undefined && value > field.max) {
-    console.warn(`[Component] Value ${value} for "${fieldName}" is above max ${field.max}`);
+    componentLogger.warn(`Value ${value} for "${fieldName}" is above max ${field.max}`);
     return false;
   }
 
@@ -213,9 +214,7 @@ export function defineComponent<T extends ComponentSchema>(
       registerComponent(world, component);
       (component as Record<string, unknown>).__registered = true;
 
-      if (import.meta.env.DEV) {
-        console.log(`[ComponentBuilder] Registered component: ${name}`);
-      }
+      componentLogger.debug(`Registered component: ${name}`);
     }
   };
 

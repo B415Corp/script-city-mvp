@@ -326,9 +326,10 @@ describe('Схема компонентов', () => {
 
       component.create(mockWorld, 1, { value: NaN });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[Component TestComponent] Invalid value for "value"'),
-      );
+      // Logger форматирует сообщение через %c-плейсхолдеры, поэтому собираем все
+      // аргументы вызова в одну строку и проверяем её целиком.
+      const loggedText = consoleWarnSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Component "TestComponent": invalid value for "value"');
 
       consoleWarnSpy.mockRestore();
     });

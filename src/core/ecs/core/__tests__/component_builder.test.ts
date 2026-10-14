@@ -141,9 +141,10 @@ describe('Билдер компонентов', () => {
       // Тестируем некорректное значение (NaN)
       component.create(mockWorld, entityId, { health: NaN });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid value for "health": expected number, got'),
-      );
+      // Logger форматирует сообщение через %c-плейсхолдеры, поэтому собираем все
+      // аргументы вызова в одну строку и проверяем её целиком.
+      const loggedText = consoleWarnSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Invalid value for "health": expected number, got');
 
       consoleWarnSpy.mockRestore();
     });
@@ -254,14 +255,13 @@ describe('Билдер компонентов', () => {
       expect(registerComponent).toHaveBeenCalledTimes(1);
     });
 
-    it('должен логировать регистрацию в dev режиме', () => {
+    it('должен логировать регистрацию компонента', () => {
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       component.register(mockWorld);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[ComponentBuilder] Registered component: TestComponent',
-      );
+      const loggedText = consoleLogSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Registered component: TestComponent');
 
       consoleLogSpy.mockRestore();
     });
@@ -276,17 +276,18 @@ describe('Билдер компонентов', () => {
       };
       const component = defineComponent('LevelComponent', schema);
 
+      // Logger форматирует сообщение через %c-плейсхолдеры, поэтому собираем все
+      // аргументы вызова в одну строку и проверяем её целиком.
+      const loggedText = (): string =>
+        consoleWarnSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+
       // Тестируем значение ниже минимума
       component.create(mockWorld, 1, { level: 0 });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Value 0 for "level" is below min 1'),
-      );
+      expect(loggedText()).toContain('Value 0 for "level" is below min 1');
 
       // Тестируем значение выше максимума
       component.create(mockWorld, 2, { level: 150 });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Value 150 for "level" is above max 100'),
-      );
+      expect(loggedText()).toContain('Value 150 for "level" is above max 100');
 
       consoleWarnSpy.mockRestore();
     });
