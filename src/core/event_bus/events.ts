@@ -42,4 +42,9 @@ export enum Events {
 
   // Citizen events
   CitizenHired = 'citizen:hired',
+
+  // Zoning / settlement
+  ZonePlaced = 'ZonePlaced',
+  ZoneCleared = 'ZoneCleared',
+  EntitySpawned = 'EntitySpawned',
 }

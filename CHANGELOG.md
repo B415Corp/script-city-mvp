@@ -59,6 +59,14 @@
 - `window.sim` синхронизирован: `main.ts` и `ecs_debug.ts` используют полный
   `SimDebugMethods` (8 методов), убран доступ через `(core as any)` в пользу
   `EntityFactoryRegistry.getInstance()`.
+- Введён DI-контейнер `ECSRegistries` (`createECSRegistries`/`getGlobalECSRegistries`):
+  `ECSManager` принимает реестры третьим параметром, `createComponent`/`createSystem`/
+  `createCluster`/`createEntityFactory` — опциональным параметром; `Core.ecsRegistries`
+  читает реестры менеджера. Синглтоны остались только как fallback.
+- Связка зона→симуляция→рендер: события `ZonePlaced`/`ZoneCleared`/`EntitySpawned`,
+  компоненты `Position`/`Zone`/`House`, event-система `zone_spawn` (кап 50 тайлов),
+  `ZoneRenderer`-оверлей в `MapModule`, мост `TilesSelected`→`ZonePlaced` по активному
+  инструменту; фиксированный стартовый спавн из `SimulationModule` удалён.
 
 ### Removed
 

@@ -2,7 +2,6 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { BaseModule } from '../../extends';
 import { Logger } from '@/core/utils/logger';
 import { ECSManager } from '@/core/ecs/ecs_manager';
-import { createCitizen, createFactory } from '@/core/ecs/entities/citizen_factory';
 
 export class SimulationModule extends BaseModule {
   protected scene!: Phaser.Scene;
@@ -13,32 +12,13 @@ export class SimulationModule extends BaseModule {
     super(scene, eventBus, ecsManager);
     this.logger = Logger.create('🌆 SimulationModule', '#45b7d1');
     this.logger.info('SimulationModule initialized');
-
-    this.startSimulation();
   }
+
+  /**
+   * Стартовый посев убран: сущности создаются системой zone_spawn
+   * по событию ZonePlaced, а не фиксированным набором в конструкторе.
+   */
   public startSimulation(): void {
-    this.logger.info('🌠🌠🌠 Simulation started');
-
-    this.createCitizens();
-    this.createFactories();
-
-    this.logger.info('👥 Жителей создано: 10');
-    this.logger.info('🏭 Заводов создано: 5');
-  }
-
-  private createCitizens(): void {
-    const world = this.ecsManager.getWorld();
-
-    for (let i = 0; i < 10; i++) {
-      createCitizen(world);
-    }
-  }
-
-  private createFactories(): void {
-    const world = this.ecsManager.getWorld();
-
-    for (let i = 0; i < 5; i++) {
-      createFactory(world);
-    }
+    this.logger.info('Simulation ready: settlement via ZonePlaced events');
   }
 }
