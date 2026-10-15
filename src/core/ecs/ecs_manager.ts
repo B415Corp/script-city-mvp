@@ -52,7 +52,7 @@ export class ECSManager {
   }
 
   /**
-   * Возвращает BitECS world (для Phase 0 - пустой)
+   * Возвращает BitECS world
    */
   getWorld(): World {
     return this.world;
@@ -118,8 +118,6 @@ export class ECSManager {
 
     return { totalEntities: allEntities.length, entityCounts };
   }
-
-  // В Phase 0 остальные методы не нужны - ECS отключен
 
   /**
    * Автоматическая регистрация компонентов из ComponentRegistry

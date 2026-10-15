@@ -44,7 +44,7 @@ export class ModuleManager {
   constructor(
     scene: Phaser.Scene,
     eventBus: EventBus,
-    ecsManager: ECSManager | null, // Временно null для Phase 0
+    ecsManager: ECSManager | null,
     tickManager: TickManager,
   ) {
     this.scene = scene;
@@ -64,7 +64,6 @@ export class ModuleManager {
       // DebugModule получает ECSManager и TickManager для доступа к статистике
       let module: BaseModule;
       if (name === 'DebugModule') {
-        // Для Phase 0 передаем null вместо ECSManager
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
@@ -122,17 +121,14 @@ export class ModuleManager {
 
   // очистка ресурсов
   public destroy(): void {
-    // Очищаем все базовые модули
     for (const module of this.baseModuleApi.values()) {
-      // TODO: добавить destroy метод в BaseModule если нужен
-      // module.destroy();
+      module.destroy();
     }
     this.baseModuleApi.clear();
 
     // Очищаем все кастомные модули
     for (const module of this.customModuleApi.values()) {
-      // TODO: добавить destroy метод в CustomModule если нужен
-      // module.destroy();
+      module.destroy();
     }
     this.customModuleApi.clear();
   }

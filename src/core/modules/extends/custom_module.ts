@@ -50,4 +50,8 @@ export abstract class CustomModule {
     // Логика выключения
     this.eventBus.emit(Events.ModuleDisabled, { id: this.id });
   }
+
+  public destroy(): void {
+    this.onDisable();
+  }
 }

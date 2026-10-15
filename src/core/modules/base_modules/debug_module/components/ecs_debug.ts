@@ -12,6 +12,10 @@ declare global {
       time: () => void;
       listenTime: () => () => void;
       getECSStats: () => ECSDebugStats;
+      checkRegistries: () => void;
+      testScheduleManager: (duration?: number) => void;
+      testEventSystems: () => void;
+      testEntityFactories: () => void;
     };
   }
 }
