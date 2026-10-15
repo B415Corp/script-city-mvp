@@ -59,7 +59,15 @@ export class ModuleManager {
   }
 
   // инициализация базовых модулей в порядке очереди
+  private requireECSManager(): ECSManager {
+    if (!this.ecsManager) {
+      throw new Error('ModuleManager: ECSManager is required to init base modules');
+    }
+    return this.ecsManager;
+  }
+
   private initBaseModules(): void {
+    const ecsManager = this.requireECSManager();
     Object.entries(this.baseModules).forEach(([name, ModuleClass]) => {
       // DebugModule получает ECSManager и TickManager для доступа к статистике
       let module: BaseModule;
@@ -69,13 +77,13 @@ export class ModuleManager {
           eventBus: EventBus,
           ecsManager: ECSManager,
           tickManager: TickManager,
-        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager!, this.tickManager);
+        ) => DebugModule)(this.scene, this.eventBus, ecsManager, this.tickManager);
       } else {
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
           ecsManager: ECSManager,
-        ) => BaseModule)(this.scene, this.eventBus, this.ecsManager!);
+        ) => BaseModule)(this.scene, this.eventBus, ecsManager);
       }
       this.baseModuleApi.set(name, module);
     });

@@ -5,6 +5,7 @@ import { EventBus } from './event_bus/event_bus';
 import { ECSManager } from './ecs/ecs_manager';
 import { TickManager } from './tick/tick_manager';
 import { ComponentRegistry } from './ecs/registry/component_registry';
+import { createECSRegistries } from './ecs/registry/ecs_registries';
 import { SystemRegistry } from './ecs/registry/system_registry';
 import { ClusterRegistry } from './ecs/registry/cluster_registry';
 import { EntityFactoryRegistry } from './ecs/registry/entity_factory_registry';
@@ -53,7 +54,7 @@ export class Core {
     this.ecsManagerFactory =
       dependencies.ecsManagerFactory ||
       ((eventBus: EventBus, tickManager: TickManager): ECSManager =>
-        new ECSManager(eventBus, tickManager));
+        new ECSManager(eventBus, tickManager, createECSRegistries()));
     this.moduleManagerFactory =
       dependencies.moduleManagerFactory ||
       ((

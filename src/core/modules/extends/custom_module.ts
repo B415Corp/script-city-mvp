@@ -52,6 +52,10 @@ export abstract class CustomModule {
   }
 
   public destroy(): void {
-    this.onDisable();
+    this.onDestroy();
+  }
+
+  protected onDestroy(): void {
+    // Хук для наследников. По умолчанию без сайд-эффектов.
   }
 }

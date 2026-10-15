@@ -11,7 +11,9 @@ export class ComponentRegistry {
   constructor() {}
 
   /**
-   * Получить единственный экземпляр реестра (Singleton)
+   * Получить единственный экземпляр реестра (Singleton).
+   * @deprecated Глобальный синглтон оставлен для обратной совместимости.
+   * Новый код должен использовать createECSRegistries() + DI через ECSManager.
    */
   static getInstance(): ComponentRegistry {
     if (!ComponentRegistry.instance) {

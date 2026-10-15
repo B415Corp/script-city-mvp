@@ -11,6 +11,11 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
       },
+      output: {
+        manualChunks: {
+          phaser: ['phaser'],
+        },
+      },
     },
   },
   resolve: {

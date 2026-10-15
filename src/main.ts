@@ -4,6 +4,7 @@ import { Events } from './core/event_bus/events';
 import { MainScene } from './core/scenes';
 import { GameTimeUpdateData } from './core/ecs/types';
 import { ECSDebugStats } from './core/modules/base_modules/debug_module/components/ecs_debug';
+import type { SimDebugMethods } from './core/modules/base_modules/debug_module/components/ecs_debug';
 import { TimeService } from './core/tick/time_service';
 import { Logger } from './core/utils/logger';
 import { ComponentRegistry } from './core/ecs/registry/component_registry';
@@ -14,22 +15,10 @@ import { EntityFactoryRegistry } from './core/ecs/registry/entity_factory_regist
 // Игровой ECS-контент (компоненты, системы, фабрики, кластеры)
 import './core/ecs/content';
 
-// Глобальный интерфейс для отладки
-interface SimDebugMethods {
-  stats: () => void;
-  time: () => void;
-  listenTime: () => () => void;
-  getECSStats: () => ECSDebugStats;
-  checkRegistries: () => void;
-  testScheduleManager: (duration?: number) => void;
-  testEventSystems: () => void;
-  testEntityFactories: () => void;
-}
-
-// Глобальный объект для отладки
+// Глобальный объект для отладки (только DEV, тип — из ecs_debug)
 declare global {
   interface Window {
-    sim: SimDebugMethods;
+    sim?: SimDebugMethods;
   }
 }
 
@@ -58,8 +47,8 @@ async function startGame(): Promise<void> {
   const core = new Core(phaserConfig);
   await core.init();
 
-  // Глобальные методы для отладки в браузерной консоли
-  if (typeof window !== 'undefined' && core.eventBus && core.tickManager) {
+  // Отладочный API только для разработки: в прод-сборке window.sim не создаётся.
+  if (import.meta.env.DEV && typeof window !== 'undefined' && core.eventBus && core.tickManager) {
     // Используем TimeService из TickManager
     const timeService = core.tickManager.getTimeService();
 
@@ -88,10 +77,12 @@ async function startGame(): Promise<void> {
           eventSystems: {},
         },
       checkRegistries: (): void => {
-        const componentRegistry = ComponentRegistry.getInstance();
-        const systemRegistry = SystemRegistry.getInstance();
-        const clusterRegistry = ClusterRegistry.getInstance();
-        const entityFactoryRegistry = EntityFactoryRegistry.getInstance();
+        const viaManager = core.ecsRegistries;
+        const componentRegistry = viaManager?.components() ?? ComponentRegistry.getInstance();
+        const systemRegistry = viaManager?.systems() ?? SystemRegistry.getInstance();
+        const clusterRegistry = viaManager?.clusters() ?? ClusterRegistry.getInstance();
+        const entityFactoryRegistry =
+          viaManager?.entityFactories() ?? EntityFactoryRegistry.getInstance();
 
         logger.info('=== Component Registry ===');
         logger.info(`Components: ${componentRegistry.size()}`);
@@ -129,7 +120,7 @@ async function startGame(): Promise<void> {
         }
 
         // Показываем фабрики сущностей
-        const efRegistry = EntityFactoryRegistry.getInstance();
+        const efRegistry = viaManager?.entityFactories() ?? EntityFactoryRegistry.getInstance();
         if (efRegistry.size() > 0) {
           logger.info('=== Entity Factories ===');
           logger.info(`Factories: ${efRegistry.size()}`);

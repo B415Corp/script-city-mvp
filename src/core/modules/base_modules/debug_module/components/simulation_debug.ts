@@ -463,73 +463,49 @@ export class SimulationDebug extends DebugComponent {
         return citizens;
       }
 
-      // Получаем компоненты из реестра
-      const componentRegistry = ComponentRegistry.getInstance();
-      const personComponent = componentRegistry.get('Person');
-      const citizenComponent = componentRegistry.get('Citizen');
-      const positionComponent = componentRegistry.get('Position');
+      // Реальные компоненты: Money + Position (опционально).
+      const registries = this.ecsManager.getRegistries?.() as
+        | { components: { get: (name: string) => unknown } }
+        | undefined;
+      const componentRegistry = (registries?.components ??
+        ComponentRegistry.getInstance()) as unknown as {
+        get: (name: string) => unknown;
+      };
+      const moneyComponent = componentRegistry.get('Money') as unknown as
+        | { money: number[] }
+        | undefined;
+      const positionComponent = componentRegistry.get('Position') as unknown as
+        | { tileX: number[]; tileY: number[] }
+        | undefined;
 
-      if (!personComponent || !citizenComponent || !positionComponent) {
-        this.logger.warn('Required components not found in registry');
+      if (!moneyComponent) {
         return citizens;
       }
 
-      // Получаем все сущности с компонентами Person и Citizen
-      const personEntities = query(world, [personComponent, citizenComponent, positionComponent]);
+      // query требует bitECS-компонент; реестр хранит EnhancedComponent — приводим тип.
+      const moneyEntities = query(world, [
+        moneyComponent as unknown as Parameters<typeof query>[1],
+      ]);
 
-      personEntities.forEach((eid: number) => {
+      moneyEntities.forEach((eid: number) => {
         try {
-          // Доступ к компонентам через BitECS API
-          const personComp = personComponent as unknown as { age: number[]; gender: number[] };
-          const citizenComp = citizenComponent as unknown as {
-            happiness: number[];
-            energy: number[];
-            money: number[];
-            home: number[];
-            workplace: number[];
-            housingType: number[];
-          };
-          const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
-
-          const age = personComp.age[eid] || 0;
-          const gender = personComp.gender[eid] || 0;
-          const happiness = citizenComp.happiness[eid] || 0;
-          const energy = citizenComp.energy[eid] || 0;
-          const money = citizenComp.money[eid] || 0;
-          const home = citizenComp.home[eid] || 0;
-          const workplace = citizenComp.workplace[eid] || 0;
-          const housingType = citizenComp.housingType[eid] || 0;
-          const posX = positionComp.x[eid] || 0;
-          const posY = positionComp.y[eid] || 0;
-
-          // Определяем тип жилья
-          const housingNames: Record<number, string> = {
-            0: 'Собственное',
-            1: 'Арендное',
-          };
+          const money = moneyComponent.money[eid] ?? 0;
+          const posX = positionComponent?.tileX[eid] ?? 0;
+          const posY = positionComponent?.tileY[eid] ?? 0;
 
           citizens.push({
             id: eid,
-            age: Math.floor(age),
-            gender: gender === 0 ? 'Male' : 'Female',
-            happiness: happiness,
-            energy: energy,
-            money: money,
-            home: home,
-            workplace: workplace,
-            housingType: housingNames[housingType] || 'Собственное',
-            salary: 100, // Пока фиксированная зарплата
-            needs: {
-              food: 50, // Заглушка, пока нет компонента Needs
-              shopping: 30,
-              work: energy,
-              sleep: 80 - energy,
-            },
-            currentActivity: 'idle', // Заглушка, пока нет компонента Schedule
-            position: {
-              x: posX,
-              y: posY,
-            },
+            age: 0,
+            gender: 'Unknown',
+            happiness: 0,
+            energy: 0,
+            money,
+            home: 0,
+            housingType: 'Unknown',
+            salary: 0,
+            needs: { food: 0, shopping: 0, work: 0, sleep: 0 },
+            currentActivity: 'idle',
+            position: { x: posX, y: posY },
           });
         } catch (error) {
           this.logger.warn(`Error reading citizen entity ${eid}:`, error);
@@ -557,110 +533,115 @@ export class SimulationDebug extends DebugComponent {
         return buildings;
       }
 
-      // Получаем компоненты из реестра
-      const componentRegistry = ComponentRegistry.getInstance();
-      const positionComponent = componentRegistry.get('Position');
-      const residentialComponent = componentRegistry.get('Residential');
-      const commercialComponent = componentRegistry.get('Commercial');
-      const workplaceComponent = componentRegistry.get('Workplace');
+      // Реальные компоненты: House / Zone / Factory / Workplace + Position.
+      const registries = this.ecsManager.getRegistries?.() as
+        | { components: { get: (name: string) => unknown } }
+        | undefined;
+      const componentRegistry = (registries?.components ??
+        ComponentRegistry.getInstance()) as unknown as {
+        get: (name: string) => unknown;
+      };
+      const positionComponent = componentRegistry.get('Position') as unknown as
+        | { tileX: number[]; tileY: number[] }
+        | undefined;
+      const houseComponent = componentRegistry.get('House') as unknown as
+        | { capacity: number[]; occupancy: number[] }
+        | undefined;
+      const zoneComponent = componentRegistry.get('Zone') as unknown as
+        | { kind: number[] }
+        | undefined;
+      const factoryComponent = componentRegistry.get('Factory') as unknown as
+        | { workplace: number[] }
+        | undefined;
+      const workplaceComponent = componentRegistry.get('Workplace') as unknown | undefined;
 
       if (!positionComponent) {
         this.logger.warn('Position component not found in registry');
         return buildings;
       }
 
-      // Получаем жилые дома
-      if (residentialComponent) {
-        const residentialEntities = query(world, [residentialComponent, positionComponent]);
+      const pos = positionComponent;
+      const at = (eid: number): { x: number; y: number } => ({
+        x: pos.tileX[eid] ?? 0,
+        y: pos.tileY[eid] ?? 0,
+      });
 
-        residentialEntities.forEach((eid: number) => {
+      // Дома
+      if (houseComponent) {
+        const houseEntities = query(world, [
+          houseComponent as unknown as Parameters<typeof query>[1],
+        ]);
+
+        houseEntities.forEach((eid: number) => {
           try {
-            const residentialComp = residentialComponent as unknown as {
-              capacity: number[];
-              occupants: number[];
-            };
-            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
-
-            const capacity = residentialComp.capacity[eid] || 4;
-            const occupants = residentialComp.occupants[eid] || 0;
-            const posX = positionComp.x[eid] || 0;
-            const posY = positionComp.y[eid] || 0;
-
             buildings.push({
               id: eid,
-              type: 'Residential',
-              position: {
-                x: posX,
-                y: posY,
-              },
-              capacity: capacity,
-              currentOccupancy: occupants,
+              type: 'House',
+              position: at(eid),
+              capacity: houseComponent.capacity[eid] ?? 4,
+              currentOccupancy: houseComponent.occupancy[eid] ?? 0,
             });
           } catch (error) {
-            this.logger.warn(`Error reading Residential entity ${eid}:`, error);
+            this.logger.warn(`Error reading House entity ${eid}:`, error);
           }
         });
       }
 
-      // Получаем коммерческие здания
-      if (commercialComponent) {
-        const commercialEntities = query(world, [commercialComponent, positionComponent]);
+      // Зоны
+      if (zoneComponent) {
+        const zoneEntities = query(world, [
+          zoneComponent as unknown as Parameters<typeof query>[1],
+        ]);
 
-        commercialEntities.forEach((eid: number) => {
+        zoneEntities.forEach((eid: number) => {
           try {
-            const commercialComp = commercialComponent as unknown as {
-              type: number[];
-              employees: number[];
-              customers: number[];
-            };
-            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
-
-            const buildingType = commercialComp.type[eid] || 0;
-            const employees = commercialComp.employees[eid] || 0;
-            const customers = commercialComp.customers[eid] || 0;
-            const posX = positionComp.x[eid] || 0;
-            const posY = positionComp.y[eid] || 0;
-
-            const typeNames = ['Shop', 'Office', 'Factory'];
-
+            const kind = zoneComponent.kind[eid] ?? 0;
             buildings.push({
               id: eid,
-              type: typeNames[buildingType] || 'Shop',
-              position: {
-                x: posX,
-                y: posY,
-              },
-              capacity: employees,
-              currentOccupancy: customers,
+              type: kind === 1 ? 'CommercialZone' : 'LivingZone',
+              position: at(eid),
             });
           } catch (error) {
-            this.logger.warn(`Error reading Commercial entity ${eid}:`, error);
+            this.logger.warn(`Error reading Zone entity ${eid}:`, error);
           }
         });
       }
 
-      // Получаем рабочие места
+      // Заводы
+      if (factoryComponent) {
+        const factoryEntities = query(world, [
+          factoryComponent as unknown as Parameters<typeof query>[1],
+        ]);
+
+        factoryEntities.forEach((eid: number) => {
+          try {
+            buildings.push({
+              id: eid,
+              type: 'Factory',
+              position: at(eid),
+              capacity: factoryComponent.workplace[eid] ?? 0,
+              currentOccupancy: 0,
+            });
+          } catch (error) {
+            this.logger.warn(`Error reading Factory entity ${eid}:`, error);
+          }
+        });
+      }
+
+      // Рабочие места
       if (workplaceComponent) {
-        const workplaceEntities = query(world, [workplaceComponent, positionComponent]);
+        const workplaceEntities = query(world, [
+          workplaceComponent as unknown as Parameters<typeof query>[1],
+        ]);
 
         workplaceEntities.forEach((eid: number) => {
           try {
-            const workplaceComp = workplaceComponent as unknown as { occupied: number[] };
-            const positionComp = positionComponent as unknown as { x: number[]; y: number[] };
-
-            const occupied = workplaceComp.occupied[eid] || 0;
-            const posX = positionComp.x[eid] || 0;
-            const posY = positionComp.y[eid] || 0;
-
             buildings.push({
               id: eid,
               type: 'Workplace',
-              position: {
-                x: posX,
-                y: posY,
-              },
-              capacity: 1, // Одно рабочее место
-              currentOccupancy: occupied,
+              position: at(eid),
+              capacity: 1,
+              currentOccupancy: 0,
             });
           } catch (error) {
             this.logger.warn(`Error reading Workplace entity ${eid}:`, error);

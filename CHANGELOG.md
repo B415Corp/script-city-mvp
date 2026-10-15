@@ -67,6 +67,13 @@
   компоненты `Position`/`Zone`/`House`, event-система `zone_spawn` (кап 50 тайлов),
   `ZoneRenderer`-оверлей в `MapModule`, мост `TilesSelected`→`ZonePlaced` по активному
   инструменту; фиксированный стартовый спавн из `SimulationModule` удалён.
+- Ядро 9/10: `Core` создаёт `ECSManager` на свежем `createECSRegistries()`,
+  `getInstance()` помечены `@deprecated`; `BaseModule`/`CustomModule.destroy()`
+  без сайд-эффектов (`onDestroy`-хук), `ModuleManager` с явным `requireECSManager()`;
+  `window.sim` только в DEV; `SimulationDebug` читает реальные `Money`/`Position`/
+  `Zone`/`House`/`Factory` через реестры менеджера; Phaser вынесен в отдельный чанк
+  (`manualChunks`), initial `main` ~120kB; тесты изоляции и teardown
+  (`ecs_isolation.test.ts`).
 
 ### Removed
 

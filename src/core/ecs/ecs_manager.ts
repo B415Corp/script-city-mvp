@@ -34,7 +34,7 @@ export class ECSManager {
     private registries: ECSRegistries = getGlobalECSRegistries(),
   ) {
     this.logger = Logger.create('ECSManager');
-    this.logger.info('ECSManager initialized (Phase 3 - with Event system)');
+    this.logger.info('ECSManager initialized');
     this.world = createWorld();
     this.scheduleManager = new ScheduleManager(
       this.world,

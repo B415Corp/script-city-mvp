@@ -4,19 +4,21 @@ import { DebugComponent } from './debug_component';
 import { ComponentRegistry } from '@/core/ecs/registry/component_registry';
 import { Logger } from '@/core/utils/logger';
 
-// Глобальный интерфейс для отладки (объявлен в main.ts)
+// Глобальный интерфейс для отладки (объявлен в main.ts, только DEV)
+export interface SimDebugMethods {
+  stats: () => void;
+  time: () => void;
+  listenTime: () => () => void;
+  getECSStats: () => ECSDebugStats;
+  checkRegistries: () => void;
+  testScheduleManager: (duration?: number) => void;
+  testEventSystems: () => void;
+  testEntityFactories: () => void;
+}
+
 declare global {
   interface Window {
-    sim: {
-      stats: () => void;
-      time: () => void;
-      listenTime: () => () => void;
-      getECSStats: () => ECSDebugStats;
-      checkRegistries: () => void;
-      testScheduleManager: (duration?: number) => void;
-      testEventSystems: () => void;
-      testEntityFactories: () => void;
-    };
+    sim?: SimDebugMethods;
   }
 }
 

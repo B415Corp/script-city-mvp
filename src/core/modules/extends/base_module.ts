@@ -52,6 +52,11 @@ export abstract class BaseModule {
   }
 
   public destroy(): void {
-    this.onDisable();
+    this.onDestroy();
+  }
+
+  protected onDestroy(): void {
+    // Хук для наследников. По умолчанию без сайд-эффектов:
+    // teardown не должен эмитить события.
   }
 }
