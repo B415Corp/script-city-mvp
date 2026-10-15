@@ -25,7 +25,7 @@ export class ClusterRegistry {
   private static instance: ClusterRegistry;
   private clusters = new Map<string, RegisteredCluster>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
    * Получить единственный экземпляр реестра (Singleton)

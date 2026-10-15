@@ -129,7 +129,6 @@ export class DebugModule extends BaseModule {
   // обновление компонентов
   public update(): void {
     const currentComponent = this.debugComponentsApi.get(this.currentTab);
-    // Для Phase 0 все компоненты обновляются вручную
     if (currentComponent) {
       currentComponent.onUpdate();
     }

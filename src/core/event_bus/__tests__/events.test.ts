@@ -175,9 +175,9 @@ describe('Events enum', () => {
   });
 
   describe('Полный список событий', () => {
-    it('должен содержать ровно 28 событий', () => {
+    it('должен содержать ровно 31 событие', () => {
       const eventCount = Object.keys(Events).length;
-      expect(eventCount).toBe(28);
+      expect(eventCount).toBe(31);
     });
 
     it('должен содержать все ожидаемые события', () => {
@@ -210,6 +210,9 @@ describe('Events enum', () => {
         'time:tick',
         'time:day',
         'citizen:hired',
+        'ZonePlaced',
+        'ZoneCleared',
+        'EntitySpawned',
       ];
 
       const actualEvents = Object.values(Events);

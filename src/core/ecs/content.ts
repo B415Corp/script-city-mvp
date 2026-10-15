@@ -9,12 +9,14 @@
 
 // Компоненты
 import './components/citizen_components';
+import './components/zone_components';
 
 // Фабрики сущностей
 import './entities/citizen_factory';
 
 // Системы
 import './systems/work_income_system';
+import './systems/zone_spawn_system';
 
 // Кластеры
 import './clusters/first_sim_cluster';

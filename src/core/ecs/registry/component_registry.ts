@@ -8,7 +8,7 @@ export class ComponentRegistry {
   private static instance: ComponentRegistry;
   private components = new Map<string, EnhancedComponent<ComponentSchema>>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
    * Получить единственный экземпляр реестра (Singleton)

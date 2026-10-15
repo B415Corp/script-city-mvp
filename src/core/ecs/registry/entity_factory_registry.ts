@@ -21,7 +21,7 @@ export class EntityFactoryRegistry {
   private static instance: EntityFactoryRegistry;
   private factories = new Map<string, RegisteredEntityFactory>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
    * Получить единственный экземпляр реестра (Singleton)

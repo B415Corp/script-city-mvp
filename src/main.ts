@@ -29,12 +29,7 @@ interface SimDebugMethods {
 // Глобальный объект для отладки
 declare global {
   interface Window {
-    sim: {
-      stats: () => void;
-      time: () => void;
-      listenTime: () => () => void;
-      getECSStats: () => ECSDebugStats;
-    };
+    sim: SimDebugMethods;
   }
 }
 
@@ -68,8 +63,7 @@ async function startGame(): Promise<void> {
     // Используем TimeService из TickManager
     const timeService = core.tickManager.getTimeService();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).sim = {
+    window.sim = {
       stats: (): void =>
         logger.info('ECS Stats:', core.ecsManager?.getStats() || { message: 'ECS disabled' }),
       time: (): void => {
@@ -135,8 +129,7 @@ async function startGame(): Promise<void> {
         }
 
         // Показываем фабрики сущностей
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const efRegistry = (core as any).ecsRegistries.entityFactories();
+        const efRegistry = EntityFactoryRegistry.getInstance();
         if (efRegistry.size() > 0) {
           logger.info('=== Entity Factories ===');
           logger.info(`Factories: ${efRegistry.size()}`);

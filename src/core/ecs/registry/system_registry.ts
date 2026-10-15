@@ -28,7 +28,7 @@ export class SystemRegistry {
   private static instance: SystemRegistry;
   private systems = new Map<string, RegisteredSystem>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
    * Получить единственный экземпляр реестра (Singleton)

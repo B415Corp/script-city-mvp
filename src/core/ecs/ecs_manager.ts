@@ -7,6 +7,7 @@ import { ComponentRegistry } from './registry/component_registry';
 import { SystemRegistry } from './registry/system_registry';
 import { ClusterRegistry } from './registry/cluster_registry';
 import { EntityFactoryRegistry } from './registry/entity_factory_registry';
+import { ECSRegistries, getGlobalECSRegistries } from './registry/ecs_registries';
 import { SystemFunction } from './core/smart_constructors';
 import { CallSystemPayload } from '../event_bus/types';
 import { ECSDebugStats } from '../modules/base_modules/debug_module/components/ecs_debug';
@@ -30,6 +31,7 @@ export class ECSManager {
   constructor(
     private eventBus: EventBus,
     private tickManager: TickManager,
+    private registries: ECSRegistries = getGlobalECSRegistries(),
   ) {
     this.logger = Logger.create('ECSManager');
     this.logger.info('ECSManager initialized (Phase 3 - with Event system)');
@@ -37,8 +39,8 @@ export class ECSManager {
     this.scheduleManager = new ScheduleManager(
       this.world,
       this.eventBus,
-      SystemRegistry.getInstance(),
-      ClusterRegistry.getInstance(),
+      this.registries.systems,
+      this.registries.clusters,
     );
 
     // Подписываемся на события для event-driven систем
@@ -52,19 +54,23 @@ export class ECSManager {
   }
 
   /**
-   * Возвращает BitECS world (для Phase 0 - пустой)
+   * Возвращает BitECS world
    */
   getWorld(): World {
     return this.world;
+  }
+
+  getRegistries(): ECSRegistries {
+    return this.registries;
   }
 
   /**
    * Возвращает статистику ECS для дебаг панели
    */
   getStats(): ECSDebugStats {
-    const componentRegistry = ComponentRegistry.getInstance();
-    const systemRegistry = SystemRegistry.getInstance();
-    const clusterRegistry = ClusterRegistry.getInstance();
+    const componentRegistry = this.registries.components;
+    const systemRegistry = this.registries.systems;
+    const clusterRegistry = this.registries.clusters;
 
     // Преобразуем кластеры в формат для дебаг панели
     const clusters: Record<
@@ -119,8 +125,6 @@ export class ECSManager {
     return { totalEntities: allEntities.length, entityCounts };
   }
 
-  // В Phase 0 остальные методы не нужны - ECS отключен
-
   /**
    * Автоматическая регистрация компонентов из ComponentRegistry
    * Вызывается в initECSManager() для автоматической настройки
@@ -128,7 +132,7 @@ export class ECSManager {
   private autoRegisterComponents(): void {
     // Компоненты уже созданы через defineComponent() в createComponent() и лежат
     // в ComponentRegistry. Здесь только фиксируем их количество в BitECS-мире.
-    this.logger.debug(`Registered ${ComponentRegistry.getInstance().size()} components`);
+    this.logger.debug(`Registered ${this.registries.components.size()} components`);
   }
 
   /**
@@ -136,7 +140,7 @@ export class ECSManager {
    * Вызывается в initECSManager() для автоматической настройки
    */
   private autoRegisterSystems(): void {
-    const registry = SystemRegistry.getInstance();
+    const registry = this.registries.systems;
 
     // Раскладываем системы по способу выполнения: event-driven, интервальные
     // и per-tick. Per-tick системы кластеров выполняются через updateClusters(),
@@ -191,8 +195,8 @@ export class ECSManager {
    * Вызывается в initECSManager() для автоматической настройки
    */
   private autoRegisterClusters(): void {
-    const clusterRegistry = ClusterRegistry.getInstance();
-    const systemRegistry = SystemRegistry.getInstance();
+    const clusterRegistry = this.registries.clusters;
+    const systemRegistry = this.registries.systems;
 
     // Автоматически создать кластеры на основе метаданных систем
     clusterRegistry.autoCreateFromSystemMetadata(systemRegistry.getAll());
@@ -260,7 +264,7 @@ export class ECSManager {
     if (!systemName) return;
 
     // Находим систему в реестре и выполняем её
-    const registry = SystemRegistry.getInstance();
+    const registry = this.registries.systems;
     const registeredSystem = registry.get(systemName);
 
     if (registeredSystem) {
@@ -328,20 +332,20 @@ export class ECSManager {
     this.scheduleManager.destroy();
     this.eventSystemMap.clear();
 
-    // Мир и реестры — глобальное состояние синглтонов, поэтому чистим и их:
-    // иначе следующий ECSManager подхватит сущности и системы прошлой сессии.
+    // Чистим только инжектированный контейнер: для глобального поведения
+    // идентично очистке синглтонов, для изолированного — не трогает чужой контент.
     deleteWorld(this.world);
-    SystemRegistry.getInstance().clear();
-    ClusterRegistry.getInstance().clear();
-    ComponentRegistry.getInstance().clear();
-    EntityFactoryRegistry.getInstance().clear();
+    this.registries.systems.clear();
+    this.registries.clusters.clear();
+    this.registries.components.clear();
+    this.registries.entityFactories.clear();
 
     this.destroyed = true;
     this.logger.info('ECSManager destroyed and resources cleaned up');
   }
 
   /**
-   * Метод для тестирования event-driven систем (Phase 3)
+   * Метод для тестирования event-driven систем
    * Отправляет тестовые события для проверки работы систем
    */
   testEventSystems(): void {
@@ -359,11 +363,11 @@ export class ECSManager {
   }
 
   /**
-   * Метод для тестирования фабрик сущностей (Phase 4)
+   * Метод для тестирования фабрик сущностей
    * Создает тестовые сущности через зарегистрированные фабрики
    */
   testEntityFactories(): void {
-    const registry = EntityFactoryRegistry.getInstance();
+    const registry = this.registries.entityFactories;
 
     this.logger.info('Testing entity factories...');
 
@@ -384,7 +388,7 @@ export class ECSManager {
   }
 
   /**
-   * Метод для тестирования ScheduleManager (Phase 2)
+   * Метод для тестирования ScheduleManager
    * Запускает тестовый цикл обновления систем
    */
   testScheduleManager(duration = 5000, deltaTime = 100): void {

@@ -55,12 +55,13 @@ export type SystemUpdateFunction = (
 export function createComponent<T extends Record<string, number>>(
   name: string,
   defaults: T,
+  registry: ComponentRegistry = ComponentRegistry.getInstance(),
 ): EnhancedComponent<ComponentSchema> {
   // Создаем компонент через существующую инфраструктуру
   const component = createSimpleComponent(name, defaults);
 
   // Автоматически регистрируем в реестре
-  ComponentRegistry.getInstance().register(name, component);
+  registry.register(name, component);
 
   return component;
 }
@@ -103,11 +104,12 @@ export function createComponent<T extends Record<string, number>>(
 export function createSchemaComponent(
   name: string,
   fields: Record<string, FieldBuilder>,
+  registry: ComponentRegistry = ComponentRegistry.getInstance(),
 ): EnhancedComponent<ComponentSchema> {
   const component = createComponentSchema(name, fields);
 
   // Автоматически регистрируем в реестре
-  ComponentRegistry.getInstance().register(name, component);
+  registry.register(name, component);
 
   return component;
 }
@@ -117,6 +119,8 @@ export function createSystem(
   components: string[],
   updateFn: SystemUpdateFunction,
   metadata: SystemMetadata,
+  systemRegistry: SystemRegistry = SystemRegistry.getInstance(),
+  componentRegistry: ComponentRegistry = ComponentRegistry.getInstance(),
 ): SystemFunction {
   const logger = Logger.create('createSystem');
 
@@ -127,7 +131,7 @@ export function createSystem(
   const resolveComponents = (): EnhancedComponent<ComponentSchema>[] => {
     if (resolvedComponents) return resolvedComponents;
 
-    const registry = ComponentRegistry.getInstance();
+    const registry = componentRegistry;
     const resolved: EnhancedComponent<ComponentSchema>[] = [];
 
     for (const componentName of components) {
@@ -157,7 +161,7 @@ export function createSystem(
   };
 
   // Автоматически регистрируем в реестре с метаданными
-  SystemRegistry.getInstance().register(name, system, {
+  systemRegistry.register(name, system, {
     ...metadata,
     name, // Убеждаемся что имя в метаданных совпадает
   });
@@ -185,8 +189,9 @@ export function createCluster(
   name: string,
   systemNames: string[],
   metadata: { enabled: boolean; description?: string; interval?: number },
+  registry: ClusterRegistry = ClusterRegistry.getInstance(),
 ): void {
-  ClusterRegistry.getInstance().register(name, systemNames, metadata);
+  registry.register(name, systemNames, metadata);
 }
 
 /**
@@ -215,8 +220,9 @@ export function createEntityFactory(
   name: string,
   factoryFn: (world: World) => number,
   description?: string,
+  registry: EntityFactoryRegistry = EntityFactoryRegistry.getInstance(),
 ): (world: World) => number {
-  EntityFactoryRegistry.getInstance().register(name, factoryFn, description);
+  registry.register(name, factoryFn, description);
 
   return factoryFn;
 }
