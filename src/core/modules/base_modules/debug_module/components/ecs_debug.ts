@@ -2,16 +2,23 @@ import { EventBus } from '@/core/event_bus/event_bus';
 import { ECSManager } from '@/core/ecs/ecs_manager';
 import { DebugComponent } from './debug_component';
 import { ComponentRegistry } from '@/core/ecs/registry/component_registry';
+import { Logger } from '@/core/utils/logger';
 
-// Глобальный интерфейс для отладки (объявлен в main.ts)
+// Глобальный интерфейс для отладки (объявлен в main.ts, только DEV)
+export interface SimDebugMethods {
+  stats: () => void;
+  time: () => void;
+  listenTime: () => () => void;
+  getECSStats: () => ECSDebugStats;
+  checkRegistries: () => void;
+  testScheduleManager: (duration?: number) => void;
+  testEventSystems: () => void;
+  testEntityFactories: () => void;
+}
+
 declare global {
   interface Window {
-    sim: {
-      stats: () => void;
-      time: () => void;
-      listenTime: () => () => void;
-      getECSStats: () => ECSDebugStats;
-    };
+    sim?: SimDebugMethods;
   }
 }
 
@@ -40,6 +47,7 @@ export class ECSDebug extends DebugComponent {
   private entitiesList!: HTMLElement;
   private updateTimer: number | null = null;
   private updateInterval = 5000; // Обновлять каждые 5 секунд
+  private logger: Logger = Logger.create('ECSDebug');
 
   constructor(scene: Phaser.Scene, eventBus: EventBus, ecsManager: ECSManager) {
     super(scene, eventBus);
@@ -52,7 +60,7 @@ export class ECSDebug extends DebugComponent {
     this.entitiesList = document.getElementById('entities-list') as HTMLElement;
 
     if (!this.systemsList || !this.componentsList || !this.entitiesList) {
-      console.error('ECS Debug DOM elements not found');
+      this.logger.error('ECS Debug DOM elements not found');
       return;
     }
   }
@@ -72,7 +80,7 @@ export class ECSDebug extends DebugComponent {
 
     // Если инициализация не удалась, выходим
     if (!this.systemsList || !this.componentsList || !this.entitiesList) {
-      console.error('Cannot activate ECS Debug - DOM elements not available');
+      this.logger.error('Cannot activate ECS Debug - DOM elements not available');
       return;
     }
 
@@ -127,7 +135,7 @@ export class ECSDebug extends DebugComponent {
       this.updateComponentsList();
       this.updateEntitiesList(stats);
     } catch (error) {
-      console.error('Error updating ECS debug info:', error);
+      this.logger.error('Error updating ECS debug info:', error);
       this.showError('Error loading ECS data');
     }
   }

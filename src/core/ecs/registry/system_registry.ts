@@ -28,10 +28,12 @@ export class SystemRegistry {
   private static instance: SystemRegistry;
   private systems = new Map<string, RegisteredSystem>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
-   * Получить единственный экземпляр реестра (Singleton)
+   * Получить единственный экземпляр реестра (Singleton).
+   * @deprecated Глобальный синглтон оставлен для обратной совместимости.
+   * Новый код должен использовать createECSRegistries() + DI через ECSManager.
    */
   static getInstance(): SystemRegistry {
     if (!SystemRegistry.instance) {

@@ -44,7 +44,7 @@ export class ModuleManager {
   constructor(
     scene: Phaser.Scene,
     eventBus: EventBus,
-    ecsManager: ECSManager | null, // Временно null для Phase 0
+    ecsManager: ECSManager | null,
     tickManager: TickManager,
   ) {
     this.scene = scene;
@@ -59,24 +59,31 @@ export class ModuleManager {
   }
 
   // инициализация базовых модулей в порядке очереди
+  private requireECSManager(): ECSManager {
+    if (!this.ecsManager) {
+      throw new Error('ModuleManager: ECSManager is required to init base modules');
+    }
+    return this.ecsManager;
+  }
+
   private initBaseModules(): void {
+    const ecsManager = this.requireECSManager();
     Object.entries(this.baseModules).forEach(([name, ModuleClass]) => {
       // DebugModule получает ECSManager и TickManager для доступа к статистике
       let module: BaseModule;
       if (name === 'DebugModule') {
-        // Для Phase 0 передаем null вместо ECSManager
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
           ecsManager: ECSManager,
           tickManager: TickManager,
-        ) => DebugModule)(this.scene, this.eventBus, this.ecsManager!, this.tickManager);
+        ) => DebugModule)(this.scene, this.eventBus, ecsManager, this.tickManager);
       } else {
         module = new (ModuleClass as new (
           scene: Phaser.Scene,
           eventBus: EventBus,
           ecsManager: ECSManager,
-        ) => BaseModule)(this.scene, this.eventBus, this.ecsManager!);
+        ) => BaseModule)(this.scene, this.eventBus, ecsManager);
       }
       this.baseModuleApi.set(name, module);
     });
@@ -122,17 +129,14 @@ export class ModuleManager {
 
   // очистка ресурсов
   public destroy(): void {
-    // Очищаем все базовые модули
     for (const module of this.baseModuleApi.values()) {
-      // TODO: добавить destroy метод в BaseModule если нужен
-      // module.destroy();
+      module.destroy();
     }
     this.baseModuleApi.clear();
 
     // Очищаем все кастомные модули
     for (const module of this.customModuleApi.values()) {
-      // TODO: добавить destroy метод в CustomModule если нужен
-      // module.destroy();
+      module.destroy();
     }
     this.customModuleApi.clear();
   }

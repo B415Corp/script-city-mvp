@@ -1,14 +1,39 @@
+import { query, type QueryResult } from 'bitecs';
 import { ComponentRegistry } from '../registry/component_registry';
 import { SystemRegistry, SystemMetadata } from '../registry/system_registry';
 import { ClusterRegistry } from '../registry/cluster_registry';
 import { EntityFactoryRegistry } from '../registry/entity_factory_registry';
-import { createSimpleComponent, EnhancedComponent, ComponentSchema } from './component_schema';
+import {
+  createSimpleComponent,
+  createComponentSchema,
+  EnhancedComponent,
+  ComponentSchema,
+  FieldBuilder,
+} from './component_schema';
+import { Logger } from '../../utils/logger';
 import type { World, EntityId } from 'bitecs';
 
 /**
- * Тип функции системы
+ * Тип функции системы.
+ *
+ * `delta` — длительность тика в реальных миллисекундах.
+ * `payload` — payload события, если система вызвана event-driven; для per-tick систем `undefined`.
  */
-export type SystemFunction = (world: World, delta?: number) => void;
+export type SystemFunction = (world: World, delta?: number, payload?: unknown) => void;
+
+/**
+ * Сигнатура пользовательской логики системы, которую передают в `createSystem`.
+ *
+ * `entities` — результат запроса по компонентам системы. Тип соответствует
+ * `QueryResult` из bitecs: это либо массив, либо `Uint32Array` (зависит от
+ * настройки `buffered`), поэтому индексируемый и итерируемый.
+ */
+export type SystemUpdateFunction = (
+  world: World,
+  entities: QueryResult,
+  delta: number,
+  payload?: unknown,
+) => void;
 
 /**
  * Умный конструктор компонентов
@@ -30,12 +55,13 @@ export type SystemFunction = (world: World, delta?: number) => void;
 export function createComponent<T extends Record<string, number>>(
   name: string,
   defaults: T,
+  registry: ComponentRegistry = ComponentRegistry.getInstance(),
 ): EnhancedComponent<ComponentSchema> {
   // Создаем компонент через существующую инфраструктуру
   const component = createSimpleComponent(name, defaults);
 
   // Автоматически регистрируем в реестре
-  ComponentRegistry.getInstance().register(name, component);
+  registry.register(name, component);
 
   return component;
 }
@@ -67,21 +93,75 @@ export function createComponent<T extends Record<string, number>>(
  * );
  * ```
  */
+/**
+ * Умный конструктор компонента с расширенной схемой полей.
+ * Создаёт компонент через createComponentSchema() и автоматически регистрирует
+ * его в ComponentRegistry — так же, как createComponent().
+ *
+ * Нужен, когда важны явные типы и ограничения полей (min/max), а не вывод типа
+ * из значения по умолчанию.
+ */
+export function createSchemaComponent(
+  name: string,
+  fields: Record<string, FieldBuilder>,
+  registry: ComponentRegistry = ComponentRegistry.getInstance(),
+): EnhancedComponent<ComponentSchema> {
+  const component = createComponentSchema(name, fields);
+
+  // Автоматически регистрируем в реестре
+  registry.register(name, component);
+
+  return component;
+}
+
 export function createSystem(
   name: string,
   components: string[],
-  updateFn: (world: World, entities: EntityId[], delta: number) => void,
+  updateFn: SystemUpdateFunction,
   metadata: SystemMetadata,
+  systemRegistry: SystemRegistry = SystemRegistry.getInstance(),
+  componentRegistry: ComponentRegistry = ComponentRegistry.getInstance(),
 ): SystemFunction {
+  const logger = Logger.create('createSystem');
+
+  // Компоненты резолвятся лениво: на момент вызова createSystem они могут быть
+  // ещё не зарегистрированы (порядок импорта модулей не гарантирован).
+  let resolvedComponents: EnhancedComponent<ComponentSchema>[] | null = null;
+
+  const resolveComponents = (): EnhancedComponent<ComponentSchema>[] => {
+    if (resolvedComponents) return resolvedComponents;
+
+    const registry = componentRegistry;
+    const resolved: EnhancedComponent<ComponentSchema>[] = [];
+
+    for (const componentName of components) {
+      const component = registry.get(componentName);
+      if (component) {
+        resolved.push(component);
+      } else {
+        logger.error(
+          `Система "${name}" ссылается на незарегистрированный компонент "${componentName}" — ` +
+            `он не будет учтён в запросе.`,
+        );
+      }
+    }
+
+    resolvedComponents = resolved;
+    return resolved;
+  };
+
   // Создаем функцию системы
-  const system: SystemFunction = (world, delta) => {
-    // Здесь будет логика запроса сущностей и вызова updateFn
-    // Пока что просто вызываем updateFn с пустыми параметрами
-    updateFn(world, [], delta || 0);
+  const system: SystemFunction = (world, delta, payload) => {
+    const queryComponents = resolveComponents();
+    // Система без компонентов не имеет фильтра — отдаём пустой набор,
+    // чтобы updateFn никогда не работал с невалидными entity id.
+    const entities = queryComponents.length > 0 ? query(world, queryComponents) : [];
+
+    updateFn(world, entities, delta ?? 0, payload);
   };
 
   // Автоматически регистрируем в реестре с метаданными
-  SystemRegistry.getInstance().register(name, system, {
+  systemRegistry.register(name, system, {
     ...metadata,
     name, // Убеждаемся что имя в метаданных совпадает
   });
@@ -109,8 +189,9 @@ export function createCluster(
   name: string,
   systemNames: string[],
   metadata: { enabled: boolean; description?: string; interval?: number },
+  registry: ClusterRegistry = ClusterRegistry.getInstance(),
 ): void {
-  ClusterRegistry.getInstance().register(name, systemNames, metadata);
+  registry.register(name, systemNames, metadata);
 }
 
 /**
@@ -139,8 +220,9 @@ export function createEntityFactory(
   name: string,
   factoryFn: (world: World) => number,
   description?: string,
+  registry: EntityFactoryRegistry = EntityFactoryRegistry.getInstance(),
 ): (world: World) => number {
-  EntityFactoryRegistry.getInstance().register(name, factoryFn, description);
+  registry.register(name, factoryFn, description);
 
   return factoryFn;
 }

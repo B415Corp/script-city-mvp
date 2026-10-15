@@ -4,7 +4,6 @@ import { MainScene } from '../scenes';
 import { EventBus } from '../event_bus/event_bus';
 import { ECSManager } from '../ecs/ecs_manager';
 import { TickManager } from '../tick/tick_manager';
-import { EntrySimulation } from '../simulations/entry_simulation';
 import { GameSpeeds } from '../tick/types';
 import { Core } from '../core';
 import { ICoreDependencies } from '../types';
@@ -27,17 +26,17 @@ export class CoreBuilder {
   }
 
   withPhaser(phaser: Phaser.Game): this {
-    this.dependencies.phaserFactory = () => phaser;
+    this.dependencies.phaserFactory = (): Phaser.Game => phaser;
     return this;
   }
 
   withEventBus(eventBus: EventBus): this {
-    this.dependencies.eventBusFactory = () => eventBus;
+    this.dependencies.eventBusFactory = (): EventBus => eventBus;
     return this;
   }
 
   withTickManager(tickManager: TickManager): this {
-    this.dependencies.tickManagerFactory = () => tickManager;
+    this.dependencies.tickManagerFactory = (): TickManager => tickManager;
     return this;
   }
 
@@ -49,17 +48,12 @@ export class CoreBuilder {
   }
 
   withECSManager(ecsManager: ECSManager): this {
-    this.dependencies.ecsManagerFactory = () => ecsManager;
+    this.dependencies.ecsManagerFactory = (): ECSManager => ecsManager;
     return this;
   }
 
   withModuleManager(moduleManager: ModuleManager): this {
-    this.dependencies.moduleManagerFactory = () => moduleManager;
-    return this;
-  }
-
-  withEntrySimulation(entrySimulation: EntrySimulation): this {
-    this.dependencies.entrySimulationFactory = () => entrySimulation;
+    this.dependencies.moduleManagerFactory = (): ModuleManager => moduleManager;
     return this;
   }
 
@@ -89,17 +83,6 @@ export class CoreBuilder {
     ) => ModuleManager,
   ): this {
     this.dependencies.moduleManagerFactory = factory;
-    return this;
-  }
-
-  withEntrySimulationFactory(
-    factory: (
-      ecsManager: ECSManager,
-      eventBus: EventBus,
-      tickManager: TickManager,
-    ) => EntrySimulation,
-  ): this {
-    this.dependencies.entrySimulationFactory = factory;
     return this;
   }
 

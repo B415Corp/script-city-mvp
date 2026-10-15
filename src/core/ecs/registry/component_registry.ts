@@ -1,4 +1,4 @@
-import { EnhancedComponent, ComponentSchema } from '../core/component_schema';
+import type { EnhancedComponent, ComponentSchema } from '../core/component_schema';
 
 /**
  * Реестр всех компонентов ECS
@@ -8,10 +8,12 @@ export class ComponentRegistry {
   private static instance: ComponentRegistry;
   private components = new Map<string, EnhancedComponent<ComponentSchema>>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
-   * Получить единственный экземпляр реестра (Singleton)
+   * Получить единственный экземпляр реестра (Singleton).
+   * @deprecated Глобальный синглтон оставлен для обратной совместимости.
+   * Новый код должен использовать createECSRegistries() + DI через ECSManager.
    */
   static getInstance(): ComponentRegistry {
     if (!ComponentRegistry.instance) {

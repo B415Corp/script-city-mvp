@@ -150,10 +150,10 @@ describe('EventBus', () => {
       expect(badCallback).toHaveBeenCalledWith({ data: 'test' });
 
       // Должна быть залогирована ошибка
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[EventBus] Error in callback for "test:event":',
-        expect.any(Error),
-      );
+      // Logger форматирует сообщение через %c-плейсхолдеры, поэтому собираем все
+      // аргументы вызова в одну строку и проверяем её целиком.
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error in callback for "test:event"');
 
       consoleSpy.mockRestore();
     });

@@ -50,4 +50,13 @@ export abstract class BaseModule {
     // Логика выключения
     this.eventBus.emit(Events.ModuleDisabled, { id: this.id });
   }
+
+  public destroy(): void {
+    this.onDestroy();
+  }
+
+  protected onDestroy(): void {
+    // Хук для наследников. По умолчанию без сайд-эффектов:
+    // teardown не должен эмитить события.
+  }
 }

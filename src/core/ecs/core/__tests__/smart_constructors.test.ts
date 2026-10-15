@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createComponent,
+  createSchemaComponent,
   createSystem,
   createCluster,
   createEntityFactory,
   SystemFunction,
 } from '../smart_constructors';
+import { money, uint16 } from '../component_schema';
 import { ComponentRegistry } from '../../registry/component_registry';
 import { SystemRegistry } from '../../registry/system_registry';
 import { ClusterRegistry } from '../../registry/cluster_registry';
@@ -31,6 +33,7 @@ describe('Умные конструкторы', () => {
     // Настройка моков реестров
     mockComponentRegistry = {
       register: vi.fn(),
+      get: vi.fn().mockReturnValue(undefined),
     } as unknown as ComponentRegistry;
     mockSystemRegistry = {
       register: vi.fn(),
@@ -85,6 +88,22 @@ describe('Умные конструкторы', () => {
     });
   });
 
+  describe('createSchemaComponent', () => {
+    it('должен создавать компонент со схемой и регистрировать его в ComponentRegistry', () => {
+      const component = createSchemaComponent('Money', { money: money(0) });
+
+      expect(component.name).toBe('Money');
+      expect(mockComponentRegistry.register).toHaveBeenCalledWith('Money', component);
+    });
+
+    it('должен сохранять ограничения полей из схемы', () => {
+      const component = createSchemaComponent('Factory', { workplace: uint16(0).min(0).max(50) });
+
+      expect(component.schema.workplace.max).toBe(50);
+      expect(component.schema.workplace.min).toBe(0);
+    });
+  });
+
   describe('createSystem', () => {
     it('должен создавать систему и регистрировать её в SystemRegistry с метаданными', () => {
       const systemName = 'TestSystem';
@@ -112,12 +131,35 @@ describe('Умные конструкторы', () => {
 
     it('должен создавать систему, которая вызывает updateFn при выполнении', () => {
       const updateFn = vi.fn();
+      vi.mocked(ComponentRegistry.getInstance().get).mockReturnValue(undefined);
       const system = createSystem('TestSystem', ['TestComponent'], updateFn, {});
 
       const mockWorld = {} as World;
       system(mockWorld, 16.67); // Выполняем систему
 
-      expect(updateFn).toHaveBeenCalledWith(mockWorld, [], 16.67);
+      expect(updateFn).toHaveBeenCalledWith(mockWorld, [], 16.67, undefined);
+    });
+
+    it('должен передавать payload события в updateFn', () => {
+      const updateFn = vi.fn();
+      vi.mocked(ComponentRegistry.getInstance().get).mockReturnValue(undefined);
+      const system = createSystem('EventSystem', [], updateFn, {});
+
+      const mockWorld = {} as World;
+      const payload = { citizenId: 42 };
+      system(mockWorld, 16.67, payload);
+
+      expect(updateFn).toHaveBeenCalledWith(mockWorld, [], 16.67, payload);
+    });
+
+    it('должен подставлять 0 вместо отсутствующего delta', () => {
+      const updateFn = vi.fn();
+      vi.mocked(ComponentRegistry.getInstance().get).mockReturnValue(undefined);
+      const system = createSystem('NoDeltaSystem', [], updateFn, {});
+
+      system({} as World);
+
+      expect(updateFn).toHaveBeenCalledWith({}, [], 0, undefined);
     });
 
     it('должен обрабатывать систему с минимальными метаданными', () => {

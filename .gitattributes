@@ -1,0 +1,16 @@
+# Нормализация переводов строк: репозиторий хранит и отдаёт LF.
+# Это убирает грязные diff между Windows и Linux разработчиками.
+* text=auto eol=lf
+
+# Бинарные ассеты не трогаем
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mp3 binary
+*.wav binary
+
+# Windows-специфичные скрипты оставляем как есть
+*.bat text eol=crlf
+*.cmd text eol=crlf

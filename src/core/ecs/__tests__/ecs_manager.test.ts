@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createWorld } from 'bitecs';
 import { ECSManager, ScheduleManager } from '../ecs_manager';
 import { EventBus } from '../../event_bus/event_bus';
+import { Events } from '../../event_bus/events';
 import { TickManager } from '../../tick/tick_manager';
+import { SystemFunction } from '../core/smart_constructors';
 import { Logger } from '../../utils/logger';
 import { ComponentRegistry } from '../registry/component_registry';
 import { SystemRegistry } from '../registry/system_registry';
@@ -12,6 +14,10 @@ import { EntityFactoryRegistry } from '../registry/entity_factory_registry';
 // Моки для зависимостей
 vi.mock('bitecs', () => ({
   createWorld: vi.fn(),
+  deleteWorld: vi.fn(),
+  getAllEntities: vi.fn(() => []),
+  query: vi.fn(() => []),
+  addEntity: vi.fn(() => 1),
 }));
 
 // Не мокаем реестры, используем реальные для интеграционных тестов
@@ -65,10 +71,11 @@ describe('ECSManager', () => {
       const ecsManager = new ECSManager(realEventBus, realTickManager);
 
       // Имитируем получение события 'custom:event'
-      realEventBus.emit('custom:event', { someData: 'test' });
+      const payload = { someData: 'test' };
+      realEventBus.emit('custom:event', payload);
 
-      // Проверяем, что система была вызвана
-      expect(mockSystem).toHaveBeenCalledWith(ecsManager.getWorld(), 0);
+      // Система получает payload события третьим аргументом
+      expect(mockSystem).toHaveBeenCalledWith(ecsManager.getWorld(), 0, payload);
     });
 
     it('должен выполнять систему по имени через CallSystem событие', () => {
@@ -86,10 +93,11 @@ describe('ECSManager', () => {
       const ecsManager = new ECSManager(realEventBus, realTickManager);
 
       // Имитируем событие CallSystem
-      realEventBus.emit('CallSystem', { systemName: 'CallSystemTest' });
+      const payload = { systemName: 'CallSystemTest' };
+      realEventBus.emit('CallSystem', payload);
 
-      // Проверяем, что система была вызвана
-      expect(mockSystem).toHaveBeenCalledWith(ecsManager.getWorld(), 0);
+      // Проверяем, что система была вызвана с payload
+      expect(mockSystem).toHaveBeenCalledWith(ecsManager.getWorld(), 0, payload);
     });
 
     it('должен логировать предупреждение если система не найдена', () => {
@@ -124,10 +132,79 @@ describe('ECSManager', () => {
       const ecsManager = new ECSManager(realEventBus, realTickManager);
 
       // Имитируем событие CallSystem
-      realEventBus.emit('CallSystem', { systemName: 'FailingSystem' });
+      const payload = { systemName: 'FailingSystem' };
+      realEventBus.emit('CallSystem', payload);
 
       // Проверяем, что система была вызвана (несмотря на ошибку)
-      expect(failingSystem).toHaveBeenCalledWith(ecsManager.getWorld(), 0);
+      expect(failingSystem).toHaveBeenCalledWith(ecsManager.getWorld(), 0, payload);
+    });
+
+    it('должен пробрасывать payload в event-driven систему', () => {
+      const received: unknown[] = [];
+
+      const system = ((_world: unknown, _delta?: number, payload?: unknown): void => {
+        received.push(payload);
+      }) as SystemFunction;
+
+      SystemRegistry.getInstance().register('PayloadSystem', system, {
+        eventTriggers: ['payload:event'],
+      });
+
+      const realEventBus = new EventBus();
+      const realTickManager = new TickManager(realEventBus);
+      const ecsManager = new ECSManager(realEventBus, realTickManager);
+
+      const payload = { citizenId: 7, action: 'hire' };
+      realEventBus.emit('payload:event', payload);
+
+      expect(received).toEqual([payload]);
+
+      ecsManager.destroy();
+    });
+
+    it('должен отписываться от событий и чистить реестры в destroy', () => {
+      const mockSystem = vi.fn();
+      SystemRegistry.getInstance().register('DestroySystem', mockSystem, {
+        eventTriggers: ['destroy:event'],
+      });
+
+      const realEventBus = new EventBus();
+      const realTickManager = new TickManager(realEventBus);
+      const ecsManager = new ECSManager(realEventBus, realTickManager);
+
+      realEventBus.emit('destroy:event', {});
+      expect(mockSystem).toHaveBeenCalledTimes(1);
+
+      ecsManager.destroy();
+
+      // Система больше не зарегистрирована и не вызывается
+      realEventBus.emit('destroy:event', {});
+      expect(mockSystem).toHaveBeenCalledTimes(1);
+
+      expect(SystemRegistry.getInstance().size()).toBe(0);
+      expect(ClusterRegistry.getInstance().size()).toBe(0);
+      expect(ComponentRegistry.getInstance().size()).toBe(0);
+      expect(EntityFactoryRegistry.getInstance().size()).toBe(0);
+
+      // Повторный destroy безопасен
+      expect(() => ecsManager.destroy()).not.toThrow();
+    });
+
+    it('должен останавливать обновление систем после destroy', () => {
+      const mockSystem = vi.fn();
+      SystemRegistry.getInstance().register('TickSystem', mockSystem, {});
+
+      const realEventBus = new EventBus();
+      const realTickManager = new TickManager(realEventBus);
+      const ecsManager = new ECSManager(realEventBus, realTickManager);
+
+      realEventBus.emit(Events.LogicTick, { delta: 16 });
+      expect(mockSystem).toHaveBeenCalledTimes(1);
+
+      ecsManager.destroy();
+
+      realEventBus.emit(Events.LogicTick, { delta: 16 });
+      expect(mockSystem).toHaveBeenCalledTimes(1);
     });
   });
 });

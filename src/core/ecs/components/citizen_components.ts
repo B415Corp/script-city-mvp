@@ -1,8 +1,8 @@
-import { createComponentSchema, money } from '../../core/component_schema';
-import { createComponent } from '../../core/smart_constructors';
+import { money } from '../core/component_schema';
+import { createComponent, createSchemaComponent } from '../core/smart_constructors';
 
 // хранит текущую сумму денег жителя
-export const MoneyComponent = createComponentSchema('Money', {
+export const MoneyComponent = createSchemaComponent('Money', {
   money: money(0),
 });
 

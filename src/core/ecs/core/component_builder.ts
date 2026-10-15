@@ -1,5 +1,8 @@
 import { addComponent, removeComponent, registerComponent } from 'bitecs';
 import type { World } from 'bitecs';
+import { Logger } from '../../utils/logger';
+
+const componentLogger = Logger.create('ComponentBuilder');
 
 // ============================================================================
 // TYPES
@@ -72,19 +75,17 @@ function validateField(value: number, field: FieldConfig, fieldName: string): bo
   if (import.meta.env.PROD) return true;
 
   if (typeof value !== 'number' || isNaN(value)) {
-    console.warn(
-      `[Component] Invalid value for "${fieldName}": expected number, got ${typeof value}`,
-    );
+    componentLogger.warn(`Invalid value for "${fieldName}": expected number, got ${typeof value}`);
     return false;
   }
 
   if (field.min !== undefined && value < field.min) {
-    console.warn(`[Component] Value ${value} for "${fieldName}" is below min ${field.min}`);
+    componentLogger.warn(`Value ${value} for "${fieldName}" is below min ${field.min}`);
     return false;
   }
 
   if (field.max !== undefined && value > field.max) {
-    console.warn(`[Component] Value ${value} for "${fieldName}" is above max ${field.max}`);
+    componentLogger.warn(`Value ${value} for "${fieldName}" is above max ${field.max}`);
     return false;
   }
 
@@ -213,9 +214,7 @@ export function defineComponent<T extends ComponentSchema>(
       registerComponent(world, component);
       (component as Record<string, unknown>).__registered = true;
 
-      if (import.meta.env.DEV) {
-        console.log(`[ComponentBuilder] Registered component: ${name}`);
-      }
+      componentLogger.debug(`Registered component: ${name}`);
     }
   };
 
@@ -225,58 +224,3 @@ export function defineComponent<T extends ComponentSchema>(
 
   return component as EnhancedComponent<T>;
 }
-
-// ============================================================================
-// USAGE EXAMPLE
-// ============================================================================
-
-/*
-// С новым createSimpleComponent API:
-//
-// 1. Определение компонента (ультра-просто!)
-export const Citizen = createSimpleComponent('Citizen', {
-  money: 100.0,      // → автоматически float32
-  happiness: 70,     // → автоматически uint8 (0-255)
-  salary: 50.0,      // → автоматически float32
-  workplace: 0,      // → автоматически uint32
-  home: 0,           // → автоматически uint32
-  lastWorkDay: 0,    // → автоматически uint32
-});
-
-// 2. В фабриках - используем .create()
-export class PersonFactory {
-  createCitizen(world: World, eid: number): void {
-    Citizen.create(world, eid, {
-      money: 100.0,
-      happiness: 70,
-      salary: 50.0
-    });
-  }
-}
-
-// 3. В системах - ПРЯМОЙ доступ к TypedArrays!
-export const WorkSystem = (world: World) => {
-  const entities = query(world, [Citizen, Person]);
-
-  return (delta: number) => {
-    // ✅ ПРЯМОЙ доступ - максимальная производительность!
-    for (let i = 0; i < entities.length; i++) {
-      const eid = entities[i];
-
-      if (Citizen.workplace[eid] > 0) {
-        const dailySalary = Citizen.salary[eid] / 7;
-
-        // ✅ Прямая запись в TypedArray - 0 overhead!
-        Citizen.money[eid] += dailySalary;
-        Citizen.lastWorkDay[eid] = currentDay;
-      }
-    }
-  };
-};
-
-// 4. Для отладки - используем .inspect()
-if (import.meta.env.DEV) {
-  const data = Citizen.inspect(world, eid);
-  console.log('Citizen data:', data);
-}
-*/

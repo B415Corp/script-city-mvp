@@ -10,6 +10,9 @@ import {
 export type { ComponentSchema, EnhancedComponent, FieldType, NumberFieldConfig };
 import { addComponent, removeComponent } from 'bitecs';
 import type { World } from 'bitecs';
+import { Logger } from '../../utils/logger';
+
+const schemaLogger = Logger.create('ComponentSchema');
 
 /**
  * Higher-level API для создания компонентов ECS
@@ -201,8 +204,8 @@ export function createSimpleComponent<T extends Record<string, number>>(
       if (import.meta.env.DEV) {
         // Базовая валидация типа
         if (typeof value !== 'number' || isNaN(value)) {
-          console.warn(
-            `[Component ${name}] Invalid value for "${key}": expected number, got ${typeof value}`,
+          schemaLogger.warn(
+            `Component "${name}": invalid value for "${key}": expected number, got ${typeof value}`,
           );
         }
       }

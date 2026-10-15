@@ -202,6 +202,13 @@ describe('Core', () => {
       clear: vi.fn(),
     } as unknown as EntityFactoryRegistry;
 
+    mockECSManager.getRegistries = vi.fn().mockReturnValue({
+      components: mockComponentRegistry,
+      systems: mockSystemRegistry,
+      clusters: mockClusterRegistry,
+      entityFactories: mockEntityFactoryRegistry,
+    });
+
     // Мокаем getInstance методы
     (ComponentRegistry.getInstance as any).mockReturnValue(mockComponentRegistry);
     (SystemRegistry.getInstance as any).mockReturnValue(mockSystemRegistry);
@@ -374,10 +381,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying ModuleManager:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying ModuleManager');
       expect(core._moduleManager).toBeUndefined();
     });
 
@@ -398,10 +403,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying ECSManager:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying ECSManager');
       expect(core._ecsManager).toBeNull();
     });
 
@@ -422,10 +425,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying TickManager:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying TickManager');
       expect(core._tickManager).toBeUndefined();
     });
 
@@ -446,10 +447,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Core] Error destroying EventBus:',
-        expect.any(Error),
-      );
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying EventBus');
       expect(core._eventBus).toBeUndefined();
     });
 
@@ -470,7 +469,8 @@ describe('Core', () => {
 
       core.destroy();
 
-      expect(consoleSpy).toHaveBeenCalledWith('[Core] Error destroying Phaser:', expect.any(Error));
+      const loggedText = consoleSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(loggedText).toContain('Error destroying Phaser');
       expect(core._phaser).toBeUndefined();
     });
   });
@@ -602,7 +602,6 @@ describe('Core', () => {
       const componentRegistry = registries?.components();
 
       expect(componentRegistry).toBe(mockComponentRegistry);
-      expect(ComponentRegistry.getInstance).toHaveBeenCalled();
     });
 
     it('systems() должен возвращать SystemRegistry', () => {
@@ -613,7 +612,6 @@ describe('Core', () => {
       const systemRegistry = registries?.systems();
 
       expect(systemRegistry).toBe(mockSystemRegistry);
-      expect(SystemRegistry.getInstance).toHaveBeenCalled();
     });
 
     it('clusters() должен возвращать ClusterRegistry', () => {
@@ -624,7 +622,6 @@ describe('Core', () => {
       const clusterRegistry = registries?.clusters();
 
       expect(clusterRegistry).toBe(mockClusterRegistry);
-      expect(ClusterRegistry.getInstance).toHaveBeenCalled();
     });
 
     it('entityFactories() должен возвращать EntityFactoryRegistry', () => {
@@ -635,7 +632,6 @@ describe('Core', () => {
       const entityFactoryRegistry = registries?.entityFactories();
 
       expect(entityFactoryRegistry).toBe(mockEntityFactoryRegistry);
-      expect(EntityFactoryRegistry.getInstance).toHaveBeenCalled();
     });
   });
 });

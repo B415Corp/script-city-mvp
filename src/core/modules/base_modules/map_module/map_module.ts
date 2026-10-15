@@ -6,9 +6,10 @@ import { Logger } from '@/core/utils/logger';
 import { CameraController } from './camera/camera_controller';
 import { InputHandler } from './input/input_handler';
 import { TileRenderer } from './rendering/tile_renderer';
+import { ZoneRenderer } from './rendering/zone_renderer';
 import { TileHighlighter } from './selection/tile_highlighter';
 import { TileSelector } from './selection/tile_selector';
-import { TileInfo } from './types';
+import { TileInfo, TilesSelectedPayload } from './types';
 import { ToolActivatedPayload } from '../tools_module/types';
 
 export class MapModule extends BaseModule {
@@ -22,6 +23,8 @@ export class MapModule extends BaseModule {
   private highlighter?: TileHighlighter; // выделение тайла
   private selector?: TileSelector; // селектор тайлов
   private inputHandler?: InputHandler; // обработчик ввода
+  private zoneRenderer?: ZoneRenderer; // оверлей зон и сущностей
+  private currentTool: string = 'select';
 
   // Параметры сетки
   private readonly gridWidth: number = 100;
@@ -113,9 +116,24 @@ export class MapModule extends BaseModule {
     // 1) слушаем активацию инструмента
     this.eventBus.on(Events.ToolActivated, this.onToolActivated);
 
-    // 2) при закрытии/рестарте сцены снимаем слушатель (чтобы не дублировался)
+    // Мост «выделение + инструмент → ECS»: TilesSelected превращается в ZonePlaced/ZoneCleared.
+    this.eventBus.on(Events.TilesSelected, this.onTilesSelected);
+
+    // Оверлей зон поверх тайлов
+    this.zoneRenderer = new ZoneRenderer(
+      this.scene,
+      this.container,
+      (tileX, tileY) => isometricMath.tileToScreen(tileX, tileY),
+      this.eventBus,
+    );
+    this.zoneRenderer.attach();
+
+    // 2) при закрытии/рестарте сцены снимаем слушатели (чтобы не дублировались)
     this.scene.sys.events.once('shutdown', () => {
       this.eventBus.off(Events.ToolActivated, this.onToolActivated);
+      this.eventBus.off(Events.TilesSelected, this.onTilesSelected);
+      this.zoneRenderer?.destroy();
+      this.zoneRenderer = undefined;
     });
 
     const escKey = this.scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
@@ -148,6 +166,7 @@ export class MapModule extends BaseModule {
   private onToolActivated = (payload?: ToolActivatedPayload): void => {
     if (!payload) return;
 
+    this.currentTool = payload.type;
     this.highlighter?.setStyle(payload.style.hover);
     this.selector?.setStyle(payload.style.selection);
 
@@ -158,6 +177,19 @@ export class MapModule extends BaseModule {
 
     // опционально: очистить выделение при смене инструмента
     this.selector?.cancel();
+  };
+
+  private onTilesSelected = (payload?: TilesSelectedPayload): void => {
+    if (!payload) return;
+    if (this.currentTool === 'living_zone' || this.currentTool === 'commercial_zone') {
+      this.eventBus.emit(Events.ZonePlaced, {
+        kind: this.currentTool === 'commercial_zone' ? 'commercial' : 'living',
+        start: payload.start,
+        end: payload.end,
+      });
+    } else if (this.currentTool === 'clear_zone') {
+      this.eventBus.emit(Events.ZoneCleared, { start: payload.start, end: payload.end });
+    }
   };
 }
 

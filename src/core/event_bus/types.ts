@@ -35,6 +35,26 @@ export interface CitizenHiredPayload {
   salary: number;
 }
 
+export type ZoneKindString = 'living' | 'commercial';
+
+export interface ZonePlacedPayload {
+  kind: ZoneKindString;
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+}
+
+export interface ZoneClearedPayload {
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+}
+
+export interface EntitySpawnedPayload {
+  entityId: number;
+  kind: string;
+  tileX: number;
+  tileY: number;
+}
+
 // ============================================================================
 // EVENT PAYLOAD MAP (типобезопасный маппинг)
 // ============================================================================
@@ -85,6 +105,11 @@ export interface EventPayloadMap {
 
   // Citizen events
   'citizen:hired': CitizenHiredPayload;
+
+  // Zoning / settlement
+  [Events.ZonePlaced]: ZonePlacedPayload;
+  [Events.ZoneCleared]: ZoneClearedPayload;
+  [Events.EntitySpawned]: EntitySpawnedPayload;
 }
 
 // ============================================================================

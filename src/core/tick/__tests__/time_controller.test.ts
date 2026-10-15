@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TimeController } from '../controllers/time_controller';
 import { EventBus } from '../../event_bus/event_bus';
 import { Events } from '../../event_bus/events';
+import { TimeConditions } from '../types';
 
 /**
  * Тесты для TimeController - контроллера управления игровым временем
@@ -121,6 +122,37 @@ describe('TimeController', () => {
       expect(data.timeOfDay).toBe('00:00');
       expect(data.hour).toBe(0);
       expect(data.minute).toBe(0);
+    });
+
+    it('должен заполнять номер недели и день недели', () => {
+      timeController.setTime(8 * 60); // День 1
+      let data = timeController.getTimeUpdateData();
+
+      expect(data.week).toBe(1);
+      expect(data.dayOfWeek).toBe(1);
+
+      timeController.setTime(7 * 24 * 60 + 8 * 60); // День 8 - снова понедельник
+      data = timeController.getTimeUpdateData();
+
+      expect(data.day).toBe(8);
+      expect(data.dayOfWeek).toBe(1);
+      expect(data.week).toBe(2);
+    });
+
+    it.each([
+      [3 * 60, TimeConditions.NIGHT], // 03:00 - ночь
+      [6 * 60, TimeConditions.MORNING], // 06:00 - утро
+      [11 * 60 + 59, TimeConditions.MORNING], // 11:59 - ещё утро
+      [12 * 60, TimeConditions.AFTERNOON], // 12:00 - день
+      [17 * 60 + 59, TimeConditions.AFTERNOON], // 17:59 - ещё день
+      [18 * 60, TimeConditions.EVENING], // 18:00 - вечер
+      [21 * 60 + 59, TimeConditions.EVENING], // 21:59 - ещё вечер
+      [22 * 60, TimeConditions.NIGHT], // 22:00 - ночь
+      [23 * 60 + 59, TimeConditions.NIGHT], // 23:59 - ночь
+    ])('должен определять время суток в %i минут как %s', (minutes, expected) => {
+      timeController.setTime(minutes as number);
+
+      expect(timeController.getTimeUpdateData().timeOfDayCondition).toBe(expected);
     });
   });
 

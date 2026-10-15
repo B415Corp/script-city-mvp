@@ -1,6 +1,7 @@
 import { GameTimeUpdateData } from '../../ecs/types';
 import { EventBus } from '../../event_bus/event_bus';
 import { Events } from '../../event_bus/events';
+import { TimeConditions } from '../types';
 
 /**
  * Контроллер для управления игровым временем
@@ -82,7 +83,21 @@ export class TimeController {
       hour: hours,
       minute: minutes,
       minutesOfDay: this.gameTimeOfDay,
+      week: Math.floor(day / 7) + 1,
+      dayOfWeek: day % 7,
+      timeOfDayCondition: this.getTimeCondition(hours),
     };
+  }
+
+  /**
+   * Определить условие времени суток по часу
+   * Границы совпадают с TimeConditions: утро 6-12, день 12-18, вечер 18-22, ночь 22-6
+   */
+  private getTimeCondition(hours: number): TimeConditions {
+    if (hours >= 6 && hours < 12) return TimeConditions.MORNING;
+    if (hours >= 12 && hours < 18) return TimeConditions.AFTERNOON;
+    if (hours >= 18 && hours < 22) return TimeConditions.EVENING;
+    return TimeConditions.NIGHT;
   }
 
   /**

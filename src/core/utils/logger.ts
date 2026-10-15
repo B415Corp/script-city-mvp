@@ -146,7 +146,7 @@ export class Logger {
   /**
    * Error сообщение
    */
-  error(message: string, error?: Error, ...args: unknown[]): void {
+  error(message: string, error?: unknown, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
       console.error(
         `%c❌ %c[ERROR]%c [${this.context}] ${message}`,

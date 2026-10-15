@@ -54,7 +54,7 @@ describe('ModuleManager', () => {
     } as unknown as Phaser.Scene;
 
     eventBus = new EventBus();
-    ecsManager = null; // Для Phase 0
+    ecsManager = null;
     tickManager = {
       start: vi.fn(),
       stop: vi.fn(),

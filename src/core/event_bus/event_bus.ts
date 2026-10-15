@@ -1,3 +1,4 @@
+import { Logger } from '../utils/logger';
 import { EventCallback, HandlerInfo, Subscription, EventPayloadMap } from './types';
 
 // ============================================================================
@@ -6,6 +7,7 @@ import { EventCallback, HandlerInfo, Subscription, EventPayloadMap } from './typ
 
 export class EventBus {
   private listeners: Map<string, Set<HandlerInfo>> = new Map();
+  private logger: Logger = Logger.create('EventBus');
 
   // Type-safe methods for known events
   on<K extends keyof EventPayloadMap>(
@@ -61,7 +63,7 @@ export class EventBus {
       try {
         handlerInfo.handler(payload);
       } catch (error) {
-        console.error(`[EventBus] Error in callback for "${event}":`, error);
+        this.logger.error(`Error in callback for "${event}":`, error);
       }
     }
   }

@@ -21,10 +21,12 @@ export class EntityFactoryRegistry {
   private static instance: EntityFactoryRegistry;
   private factories = new Map<string, RegisteredEntityFactory>();
 
-  private constructor() {}
+  constructor() {}
 
   /**
-   * Получить единственный экземпляр реестра (Singleton)
+   * Получить единственный экземпляр реестра (Singleton).
+   * @deprecated Глобальный синглтон оставлен для обратной совместимости.
+   * Новый код должен использовать createECSRegistries() + DI через ECSManager.
    */
   static getInstance(): EntityFactoryRegistry {
     if (!EntityFactoryRegistry.instance) {
