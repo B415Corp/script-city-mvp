@@ -183,11 +183,12 @@ export class Core {
     if (!this._ecsManager) {
       return null;
     }
+    const registries = this._ecsManager.getRegistries();
     return {
-      components: (): ComponentRegistry => ComponentRegistry.getInstance(),
-      systems: (): SystemRegistry => SystemRegistry.getInstance(),
-      clusters: (): ClusterRegistry => ClusterRegistry.getInstance(),
-      entityFactories: (): EntityFactoryRegistry => EntityFactoryRegistry.getInstance(),
+      components: (): ComponentRegistry => registries.components,
+      systems: (): SystemRegistry => registries.systems,
+      clusters: (): ClusterRegistry => registries.clusters,
+      entityFactories: (): EntityFactoryRegistry => registries.entityFactories,
     };
   }
 
