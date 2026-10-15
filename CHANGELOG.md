@@ -52,6 +52,13 @@
   (avg/p95) вместо wall-clock FPS. Падавший тест на 150K throughput удалён.
 - `src/test/setup.ts` больше не мокает `bitecs` целиком: ECS-тесты и бенчмарки
   работают на реальном мире и запросах bitecs.
+- Зачистка долга DoD: удалены `TODO`, пометки `Phase 0` и закомментированный код
+  (`ecs/index.ts`, `ecs_manager.ts`, `module_manager.ts`, `debug_module.ts`,
+  `component_builder.ts`); `BaseModule`/`CustomModule` получили метод `destroy()`,
+  `ModuleManager.destroy()` теперь реально чистит модули.
+- `window.sim` синхронизирован: `main.ts` и `ecs_debug.ts` используют полный
+  `SimDebugMethods` (8 методов), убран доступ через `(core as any)` в пользу
+  `EntityFactoryRegistry.getInstance()`.
 
 ### Removed
 
